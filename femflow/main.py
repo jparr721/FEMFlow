@@ -1,7 +1,10 @@
+import contextlib
+import os
+
 import glfw
 import imgui
-import OpenGL.GL as gl
 from imgui.integrations.glfw import GlfwRenderer
+from OpenGL.GL import *
 
 
 def window():
@@ -12,10 +15,14 @@ def main():
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
+    compile_shaders()
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
         impl.process_inputs()
+
+        glClearColor(1.0, 1.0, 1.0, 1)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         imgui.new_frame()
 
@@ -37,11 +44,6 @@ def main():
         imgui.extra.text_ansi_colored("Eggs", 0.2, 1.0, 0.0)
         imgui.end()
 
-        # show_test_window()
-
-        gl.glClearColor(1.0, 1.0, 1.0, 1)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-
         imgui.render()
         impl.render(imgui.get_draw_data())
         glfw.swap_buffers(window)
@@ -52,7 +54,7 @@ def main():
 
 def impl_glfw_init():
     width, height = 1280, 720
-    window_name = "minimal ImGui/GLFW3 example"
+    window_name = "FEMFlow Viewer"
 
     if not glfw.init():
         print("Could not initialize OpenGL context")
@@ -63,7 +65,7 @@ def impl_glfw_init():
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 
-    glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
+    glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL_TRUE)
 
     # Create a windowed mode window and its OpenGL context
     window = glfw.create_window(int(width), int(height), window_name, None, None)
@@ -75,6 +77,31 @@ def impl_glfw_init():
         exit(1)
 
     return window
+
+
+def compile_shaders():
+    frag_shader_source = ""
+    vertex_shader_source = ""
+    print(os.listdir("."))
+
+    with open("core.frag.glsl", "r") as f:
+        frag_shader_source = f.read()
+
+    with open("core.vs.glsl", "r") as f:
+        vertex_shader_source = f.read()
+
+    vertex_shader = glCreateShader(GL_VERTEX_SHADER)
+    glShaderSource(vertex_shader, 1, vertex_shader_source, None)
+
+
+@contextlib.contextmanager
+def create_vao():
+    id = glGenVertexArrays(1)
+    try:
+        glBindVertexArray(id)
+        yield
+    finally:
+        glDeleteVertexArrays(1, [id])
 
 
 if __name__ == "__main__":
