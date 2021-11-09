@@ -1,4 +1,3 @@
-import ctypes
 import logging
 
 import glfw
@@ -6,7 +5,11 @@ import imgui
 from imgui.integrations.glfw import GlfwRenderer
 from OpenGL.GL import *
 
+from mesh import Mesh
+from renderer import Renderer
+
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class Visualizer(object):
@@ -14,16 +17,11 @@ class Visualizer(object):
         self.WINDOW_TITLE = "FEMFlow Viewer"
         self.WINDOW_WIDTH = 1200
         self.WINDOW_HEIGHT = 800
-        self.FRAG_SHADER_PATH = "core.frag.glsl"
-        self.VERTEX_SHADER_PATH = "core.vs.glsl"
+        self.background_color = [0, 0, 0, 0]
 
-    def __exit__(self):
-        glDeleteBuffers(1, [self.vbo_id])
-        glDeleteVertexArrays(1, [self.vao_id])
-        glfw.terminate()
-
-    def launch(self):
         assert glfw.init(), "GLFW is not initialized!"
+
+        logger.info("GLFW Initialized.")
 
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
@@ -38,36 +36,21 @@ class Visualizer(object):
         assert self.window, "GLFW failed to open the window"
 
         glfw.make_context_current(self.window)
-        glClearColor(0, 0, 0, 1)
+        glClearColor(*self.background_color)
 
-    def create_vao(self):
-        self.vao_id = glGenVertexArrays(1)
-        glBindVertexArray(self.vao_id)
+        mesh = Mesh("femflow/cuboid.obj")
+        self.renderer: Renderer = Renderer(mesh)
 
-    def create_vbo(self):
-        assert self.vao_id, "No VAO found!"
-        vertex_data = [-1, -1, 0, 1, -1, 0, 0, 1, 0]
+    def __enter__(self):
+        return self
 
-        self.vbo_id = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo_id)
-        array_type = GLfloat * len(vertex_data)
-        glBufferData(
-            GL_ARRAY_BUFFER, len(vertex_data) * ctypes.sizeof(ctypes.c_float), array_type(*vertex_data), GL_STATIC_DRAW
-        )
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        logger.info("Destroying glfw")
+        glfw.terminate()
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, False, 0, None)
-        glEnableVertexAttribArray(0)
+    def launch(self):
+        while not glfw.window_should_close(self.window):
+            glfw.swap_buffers(self.window)
+            glfw.poll_events()
+            self.renderer.render()
 
-    def create_shaders(self):
-        self.vertex_shader_source = ""
-        self.fragment_shader_source = ""
-
-        with open(self.VERTEX_SHADER_PATH, "r") as f:
-            self.vertex_shader_source = f.read()
-
-        assert len(self.vertex_shader_source) > 0, "No vertex shader found"
-
-        with open(self.FRAG_SHADER_PATH, "r") as f:
-            self.fragment_shader_source = f.read()
-
-        assert len(self.fragment_shader_source) > 0, "No fragment shader found"

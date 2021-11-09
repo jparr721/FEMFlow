@@ -1,21 +1,18 @@
-import contextlib
-import os
-
 import glfw
+import igl
 import imgui
+import numpy as np
+import wildmeshing as wm
 from imgui.integrations.glfw import GlfwRenderer
 from OpenGL.GL import *
 
-
-def window():
-    pass
+from visualizer import Visualizer
 
 
 def main():
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
-    compile_shaders()
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
@@ -79,30 +76,18 @@ def impl_glfw_init():
     return window
 
 
-def compile_shaders():
-    frag_shader_source = ""
-    vertex_shader_source = ""
-    print(os.listdir("."))
-
-    with open("core.frag.glsl", "r") as f:
-        frag_shader_source = f.read()
-
-    with open("core.vs.glsl", "r") as f:
-        vertex_shader_source = f.read()
-
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER)
-    glShaderSource(vertex_shader, 1, vertex_shader_source, None)
-
-
-@contextlib.contextmanager
-def create_vao():
-    id = glGenVertexArrays(1)
-    try:
-        glBindVertexArray(id)
-        yield
-    finally:
-        glDeleteVertexArrays(1, [id])
+def flatten(matrix):
+    if matrix.shape[1] == 1:
+        return matrix
+    return matrix.reshape(-1)
 
 
 if __name__ == "__main__":
-    main()
+    # v, f, = igl.read_triangle_mesh("cuboid.obj")
+    # t = wm.Tetrahedralizer(stop_quality=500)
+    # t.set_mesh(v, f)
+    # t.tetrahedralize()
+    # vv, tt = t.get_tet_mesh()
+    # print(igl.boundary_facets(tt))
+    with Visualizer() as visualizer:
+        visualizer.launch()
