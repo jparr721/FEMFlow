@@ -19,7 +19,7 @@ class Mesh(object):
         volumes=None,
         tetrahedralize=False,
     ):
-        self.DEFAULT_MESH_COLOR = np.array([1, 0, 0, 1])
+        self.DEFAULT_MESH_COLOR = np.array([1, 0, 0, 1], dtype=np.float32)
 
         self.faces = None
         self.vertices = None
@@ -33,7 +33,7 @@ class Mesh(object):
         elif volumes is not None and surface is None:
             self._init_from_volume_mesh(data, volumes)
 
-        self.colors = np.repeat(self.DEFAULT_MESH_COLOR, len(self.vertices / 3))
+        self.colors = np.tile(self.DEFAULT_MESH_COLOR, len(self.vertices / 3))
         self.rest_positions = self.vertices
 
     def update(self, displacements: np.array):
@@ -42,6 +42,9 @@ class Mesh(object):
     def _init_from_file(self, filename: str):
         logger.info(f"Loading mesh from file: {filename}")
         V, F = igl.read_triangle_mesh(filename)
+
+        if len(F.shape) > 1 and F.shape[1] == 4:
+            F = igl.boundary_facets(F)
 
         if self.tetrahedralize:
             VT, T = self._tetrahedralize(V, F)
@@ -55,6 +58,9 @@ class Mesh(object):
     def _init_from_surface_mesh(
         self, V: Union[List[float], List[List[float]], np.array], F: Union[List[float], List[List[float]], np.array]
     ):
+        if len(F.shape) > 1 and F.shape[1] == 4:
+            F = igl.boundary_facets(F)
+
         if self.tetrahedralize:
             VT, T = self._tetrahedralize(V, F)
             self.tetrahedra = self._flatten(T)
@@ -72,7 +78,7 @@ class Mesh(object):
         self.tetrahedra = T
 
     def _flatten(self, matrix):
-        if matrix.shape[1] == 1:
+        if len(matrix.shape) > 1 and matrix.shape[1] == 1:
             return matrix
         return matrix.reshape(-1)
 

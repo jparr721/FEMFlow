@@ -1,11 +1,13 @@
-import atexit
 import ctypes
 import logging
 import os
 
+import numpy as np
+from OpenGL.arrays import vbo
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
+from .camera import Camera
 from .gl_util import log_errors
 from .mesh import Mesh
 from .shader_program import ShaderProgram
@@ -35,17 +37,33 @@ class Renderer(object):
 
         # TODO(@jparr721) Add dirty states for rendering.
 
-        atexit.register(self.destroy_buffers)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        logger.info("Destroying buffer objects")
+        self.shader_program.destroy()
+        glDeleteBuffers(1, [self.position_vbo, self.color_vbo, self.faces_index_buffer])
+        glDeleteVertexArrays(1, [self.vao])
 
     def set_mesh(self, mesh: Mesh):
         self.mesh = mesh
         self._build_buffers()
 
-    def render(self):
+    def resize(self, width, height, camera: Camera):
+        self.shader_program.bind()
+        proj = camera.projection_matrix * camera.view_matrix
+        self.shader_program.set_matrix_uniform(self.mvp, proj)
+        self.shader_program.release()
+
+    def render(self, camera: Camera):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         self.reload_buffers()
         self.shader_program.bind()
+        proj = camera.projection_matrix * camera.view_matrix
+        self.shader_program.set_matrix_uniform(self.mvp, proj)
+
         glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, len(self.mesh.faces), GL_UNSIGNED_INT, None)
         glBindVertexArray(self.vao)  # self.vao might need to be 0
@@ -58,11 +76,6 @@ class Renderer(object):
         self._bind_vbo("color", self.color_vbo, 4, self.mesh.colors)
         self._bind_ibo(self.mesh.faces, True)
         log_errors(self.reload_buffers.__name__)
-
-    def destroy_buffers(self):
-        logger.info("Destroying buffer objects")
-        glDeleteBuffers(1, [self.position_vbo, self.color_vbo, self.faces_index_buffer])
-        glDeleteVertexArrays(1, [self.vao])
 
     def _build_buffers(self):
         logger.info("Initializing buffer objects")
@@ -79,19 +92,21 @@ class Renderer(object):
         self._bind_ibo(self.mesh.faces, True)
         log_errors(self._build_buffers.__name__)
 
-    def _bind_vbo(self, name: str, buffer: int, stride: int, data, refresh: bool = True):
+    def _bind_vbo(self, name: str, buffer: int, stride: int, data: np.ndarray, refresh: bool = True):
         handle = glGetAttribLocation(self.shader_program.id, name)
         glBindBuffer(GL_ARRAY_BUFFER, buffer)
         if refresh:
-            list_type = GLfloat * len(data)
-            glBufferData(GL_ARRAY_BUFFER, ctypes.sizeof(ctypes.c_float) * len(data), list_type(*data), GL_DYNAMIC_DRAW)
+            _data = GLfloat * data.size
+            glBufferData(GL_ARRAY_BUFFER, data.size * data.itemsize, _data(*data), GL_DYNAMIC_DRAW)
 
         glVertexAttribPointer(handle, stride, GL_FLOAT, GL_FALSE, stride * ctypes.sizeof(ctypes.c_float), None)
         glEnableVertexAttribArray(handle)
 
-    def _bind_ibo(self, data, refresh: bool = False):
+    def _bind_ibo(self, data: np.ndarray, refresh: bool = False):
         if refresh:
             self.faces_index_buffer = glGenBuffers(1)
-        list_type = GLfloat * len(data)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.faces_index_buffer)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, ctypes.sizeof(ctypes.c_int) * len(data), list_type(*data), GL_STATIC_DRAW)
+        _data = GLuint * data.size
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER, data.size * data.itemsize, _data(*data), GL_STATIC_DRAW,
+        )

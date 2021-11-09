@@ -1,4 +1,4 @@
-import ctypes
+import logging
 from collections import defaultdict
 
 from OpenGL.GL import *
@@ -6,13 +6,16 @@ from OpenGL.GL import *
 from .gl_util import log_errors
 from .shader import Shader
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 
 class ShaderProgram(object):
     def __init__(self):
         self.id = glCreateProgram()
         self.shaders = defaultdict(Shader)
 
-    def __del__(self):
+    def destroy(self):
         for shader in self.shaders.values():
             glDeleteShader(shader.id)
         glDeleteProgram(self.id)
@@ -35,6 +38,9 @@ class ShaderProgram(object):
 
     def set_matrix_uniform_identity(self):
         glLoadIdentity()
+
+    def set_matrix_uniform(self, location: int, uniform):
+        glUniformMatrix4fv(location, 1, GL_FALSE, uniform)
 
     def uniform_location(self, name: str) -> int:
         return glGetUniformLocation(self.id, name)
