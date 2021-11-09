@@ -3,8 +3,8 @@ from collections import defaultdict
 
 from OpenGL.GL import *
 
-from gl_util import log_errors
-from shader import Shader
+from .gl_util import log_errors
+from .shader import Shader
 
 
 class ShaderProgram(object):

@@ -1,5 +1,3 @@
-from logging import error
-
 from OpenGL.GL import GL_NO_ERROR, glGetError
 from OpenGL.GLU import gluErrorString
 

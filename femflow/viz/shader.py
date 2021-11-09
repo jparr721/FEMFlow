@@ -2,7 +2,7 @@ import logging
 
 from OpenGL.GL import GL_COMPILE_STATUS, GLenum, glCreateShader, glGetShaderInfoLog, glGetShaderiv, glShaderSource
 
-from gl_util import log_errors
+from .gl_util import log_errors
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

@@ -1,12 +1,9 @@
 import glfw
-import igl
 import imgui
-import numpy as np
-import wildmeshing as wm
 from imgui.integrations.glfw import GlfwRenderer
 from OpenGL.GL import *
 
-from visualizer import Visualizer
+from viz.visualizer import Visualizer
 
 
 def main():

@@ -5,8 +5,8 @@ import imgui
 from imgui.integrations.glfw import GlfwRenderer
 from OpenGL.GL import *
 
-from mesh import Mesh
-from renderer import Renderer
+from .mesh import Mesh
+from .renderer import Renderer
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

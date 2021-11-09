@@ -4,10 +4,11 @@ import logging
 import os
 
 from OpenGL.GL import *
+from OpenGL.GLU import *
 
-from gl_util import log_errors
-from mesh import Mesh
-from shader_program import ShaderProgram
+from .gl_util import log_errors
+from .mesh import Mesh
+from .shader_program import ShaderProgram
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
