@@ -58,7 +58,6 @@ class Renderer(object):
 
     def render(self, camera: Camera):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
         self.reload_buffers()
         self.shader_program.bind()
         proj = camera.projection_matrix * camera.view_matrix
@@ -66,7 +65,6 @@ class Renderer(object):
 
         glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, len(self.mesh.faces), GL_UNSIGNED_INT, None)
-        glBindVertexArray(self.vao)  # self.vao might need to be 0
         self.shader_program.release()
         log_errors(self.render.__name__)
 

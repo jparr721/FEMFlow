@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import numpy as np
 from lib.math.linear_algebra import normalized
 
@@ -12,7 +10,7 @@ class Camera(object):
         far_plane=1000.0,
         rotation_sensitivity=0.01,
         pan_sensitivity=0.01,
-        zoom_sensitivity=0.01,
+        zoom_sensitivity=0.1,
         min_fov=10.0,
         max_fov=120.0,
         fov=65.0,
@@ -43,8 +41,8 @@ class Camera(object):
         self._view_matrix = np.eye(4)
         self._projection_matrix = np.eye(4)
 
-        self.eye = np.array([0, 0, 1])
-        self.look_at = np.zeros(3)
+        self.eye = np.array([0, 0, 5])
+        self.center = np.zeros(3)
         self.up = np.array([0, 1, 0])
 
         self.near_plane = near_plane
@@ -81,18 +79,18 @@ class Camera(object):
     @property
     def view_direction(self):
         self._compile()
-        return normalized(self.look_at - self.eye)
+        return normalized(self.center - self.eye)
 
     @property
     def right_direction(self):
         self._compile()
-        dir = normalized(self.look_at - self.eye)
+        dir = normalized(self.center - self.eye)
         return normalized(np.cross(self.up, dir))
 
     @property
     def left_direction(self):
         self._compile()
-        dir = normalized(self.look_at - self.eye)
+        dir = normalized(self.center - self.eye)
         return normalized(np.cross(dir, self.up))
 
     @property
@@ -142,12 +140,17 @@ class Camera(object):
         self._compile()
 
     def set_perspective(self):
+        if self.fov > self.max_fov:
+            self.fov = self.max_fov
+        elif self.fov < self.min_fov:
+            self.fov = self.min_fov
+
         aspect_ratio = self.width / self.height
         y_max = self.near_plane * np.tan(self.fov * np.pi) / 360
         x_max = y_max * aspect_ratio
         self._set_frustum(-x_max, x_max, -y_max, y_max)
 
-    def _set_frustum(self, left: float, right: float, top: float, bottom: float):
+    def _set_frustum(self, left: float, right: float, bottom: float, top: float):
         t1 = 2.0 * self.near_plane
         t2 = right - left
         t3 = top - bottom
@@ -157,63 +160,59 @@ class Camera(object):
             [
                 [t1 / t2, 0, 0, 0],
                 [0, t1 / t3, 0, 0],
-                [(right + left) / t2, (top + bottom) / t3, (-self.far_plane - self.near_plane) / t4, -1.0],
+                [(right + left) / t2, (top + bottom) / t3, -(self.far_plane + self.near_plane) / t4, -1.0],
                 [0, 0, (-t1 * self.far_plane) / t4, 0],
             ]
         )
 
-    def _look_at(self):
-        matrix = np.zeros((4, 4))
-        y = deepcopy(self.up)
-        z = self.look_at - self.eye
-        x = normalized(np.cross(y, z))
-        y = normalized(np.cross(z, x))
-        z = normalized(z)
+    @staticmethod
+    def look_at(eye: np.ndarray, at: np.ndarray, up: np.ndarray):
+        matrix = np.eye(4)
+        f = normalized(at - eye)
+        s = normalized(np.cross(f, up))
+        u = np.cross(s, f)
 
-        matrix[0, 0] = -x[0]
-        matrix[0, 1] = -x[1]
-        matrix[0, 2] = -x[2]
-        matrix[0, 3] = np.dot(x, self.eye)
+        matrix[0, 0] = s[0]
+        matrix[0, 1] = s[1]
+        matrix[0, 2] = s[2]
+        matrix[0, 3] = -np.dot(s, eye)
 
-        matrix[1, 0] = y[0]
-        matrix[1, 1] = y[1]
-        matrix[1, 2] = y[2]
-        matrix[1, 3] = -np.dot(y, self.eye)
+        matrix[1, 0] = u[0]
+        matrix[1, 1] = u[1]
+        matrix[1, 2] = u[2]
+        matrix[1, 3] = -np.dot(u, eye)
 
-        matrix[2, 0] = -z[0]
-        matrix[2, 1] = -z[1]
-        matrix[2, 2] = -z[2]
-        matrix[2, 3] = np.dot(z, self.eye)
-
-        matrix[3, 0] = 0.0
-        matrix[3, 1] = 0.0
-        matrix[3, 2] = 0.0
-        matrix[3, 3] = 1.0
+        matrix[2, 0] = -f[0]
+        matrix[2, 1] = -f[1]
+        matrix[2, 2] = -f[2]
+        matrix[2, 3] = np.dot(f, eye)
 
         return matrix
 
-    def _spherical_to_cartesian(self):
-        sin_phi = np.sin(self.phi)
-        cos_phi = np.cos(self.phi)
+    @staticmethod
+    def _spherical_to_cartesian(r: float, theta: float, phi: float):
+        sin_phi = np.sin(phi)
+        cos_phi = np.cos(phi)
 
-        sin_theta = np.sin(self.theta)
-        cos_theta = np.cos(self.theta)
+        sin_theta = np.sin(theta)
+        cos_theta = np.cos(theta)
 
-        return np.array([self.r * (cos_theta * sin_phi), self.r * cos_phi, self.r * (sin_theta * sin_phi)])
+        return np.array([r * (cos_theta * sin_phi), r * cos_phi, r * (sin_theta * sin_phi)])
 
-    def _sperical_to_cartesian_dPhi(self):
-        sin_phi = np.sin(self.phi)
-        cos_phi = np.cos(self.phi)
+    @staticmethod
+    def _sperical_to_cartesian_dPhi(r: float, theta: float, phi: float):
+        sin_phi = np.sin(phi)
+        cos_phi = np.cos(phi)
 
-        sin_theta = np.sin(self.theta)
-        cos_theta = np.cos(self.theta)
+        sin_theta = np.sin(theta)
+        cos_theta = np.cos(theta)
 
-        return np.array([self.r * (cos_phi * cos_theta), -self.r * sin_phi, self.r * (cos_phi * sin_theta)])
+        return np.array([r * (cos_phi * cos_theta), -r * sin_phi, r * (cos_phi * sin_theta)])
 
     def _compile(self):
-        self.look_at = np.zeros(3)
-        self.eye = self._spherical_to_cartesian()
-        self.up = normalized(self._sperical_to_cartesian_dPhi())
+        self.center = np.zeros(3)
+        self.eye = self._spherical_to_cartesian(self.r, self.theta, self.phi)
+        self.up = normalized(self._sperical_to_cartesian_dPhi(self.r, self.theta, self.phi))
 
         # --------------------------------------------------------------------------------
         # Invert the up direction (since the spherical coordinates have phi
@@ -221,7 +220,7 @@ class Camera(object):
         # direction of the derivative inversed.
         # --------------------------------------------------------------------------------
         self.up *= -1.0
-        self.look_at += self.displacement
+        self.center += self.displacement
         self.eye += self.displacement
 
-        self._view_matrix = self._look_at()
+        self._view_matrix = self.look_at(self.eye, self.center, self.up)
