@@ -160,34 +160,41 @@ class Camera(object):
             [
                 [t1 / t2, 0, 0, 0],
                 [0, t1 / t3, 0, 0],
-                [(right + left) / t2, (top + bottom) / t3, -(self.far_plane + self.near_plane) / t4, -1],
-                [0, 0, (-t1 * self.far_plane) / t4, 0],
+                [
+                    (right + left) / t2,
+                    (top + bottom) / t3,
+                    -(self.far_plane + self.near_plane) / t4,
+                    (-t1 * self.far_plane) / t4,
+                ],
+                [0, 0, -1, 0],
             ]
         )
 
     @staticmethod
     def look_at(eye: np.ndarray, at: np.ndarray, up: np.ndarray):
         matrix = np.eye(4)
-        f = normalized(at - eye)
-        s = normalized(np.cross(f, up))
-        u = np.cross(s, f)
 
-        matrix[0, 0] = s[0]
-        matrix[0, 1] = s[1]
-        matrix[0, 2] = s[2]
-        matrix[0, 3] = -np.dot(s, eye)
+        z = at - eye
+        x = normalized(np.cross(up, z))
+        y = normalized(np.cross(z, x))
+        z = normalized(z)
 
-        matrix[1, 0] = u[0]
-        matrix[1, 1] = u[1]
-        matrix[1, 2] = u[2]
-        matrix[1, 3] = -np.dot(u, eye)
+        matrix[0, 0] = -x[0]
+        matrix[0, 1] = -x[1]
+        matrix[0, 2] = -x[2]
+        matrix[0, 3] = np.dot(x, eye)
 
-        matrix[2, 0] = -f[0]
-        matrix[2, 1] = -f[1]
-        matrix[2, 2] = -f[2]
-        matrix[2, 3] = np.dot(f, eye)
+        matrix[1, 0] = y[0]
+        matrix[1, 1] = y[1]
+        matrix[1, 2] = y[2]
+        matrix[1, 3] = -np.dot(y, eye)
 
-        return matrix.T
+        matrix[2, 0] = -z[0]
+        matrix[2, 1] = -z[1]
+        matrix[2, 2] = -z[2]
+        matrix[2, 3] = np.dot(z, eye)
+
+        return matrix
 
     @staticmethod
     def _spherical_to_cartesian(r: float, theta: float, phi: float):

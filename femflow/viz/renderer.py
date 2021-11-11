@@ -48,7 +48,7 @@ class Renderer(object):
 
     def resize(self, width, height, camera: Camera):
         self.shader_program.bind()
-        proj = camera.projection_matrix * camera.view_matrix
+        proj = np.matmul(camera.projection_matrix, camera.view_matrix)
         self.shader_program.set_matrix_uniform(self.mvp, proj)
         self.shader_program.release()
 
@@ -56,8 +56,7 @@ class Renderer(object):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.reload_buffers()
         self.shader_program.bind()
-        # logger.debug(camera.view_matrix)
-        proj = camera.projection_matrix * camera.view_matrix
+        proj = np.matmul(camera.projection_matrix, camera.view_matrix)
         self.shader_program.set_matrix_uniform(self.mvp, proj)
         glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, len(self.mesh.faces), GL_UNSIGNED_INT, None)
@@ -84,6 +83,7 @@ class Renderer(object):
         self._bind_vbo("position", self.position_vbo, 3, self.mesh.vertices)
         self._bind_vbo("color", self.color_vbo, 4, self.mesh.colors)
         self._bind_ibo(self.mesh.faces, True)
+        print(self.mesh.faces)
         log_errors(self._build_buffers.__name__)
 
     def _bind_vbo(self, name: str, buffer: int, stride: int, data: np.ndarray, refresh: bool = True):

@@ -71,10 +71,7 @@ class Visualizer(object):
             self.renderer.resize(width, height, self.camera)
 
     def launch(self):
-        V = np.array([-1, -1, 0, 1, -1, 0, 0, 1, 0])
-        F = np.array([0, 1, 2])
-        mesh = Mesh(V, surface=F)
-        # mesh = Mesh("femflow/cube.ply")
+        mesh = Mesh("femflow/cube.ply")
         with Renderer(mesh) as self.renderer:
             while not glfw.window_should_close(self.window):
                 glfw.swap_buffers(self.window)

@@ -59,7 +59,6 @@ def impl_glfw_init():
         print("Could not initialize OpenGL context")
         exit(1)
 
-    # OS X supports only forward-compatible core profiles from 3.2
     glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
