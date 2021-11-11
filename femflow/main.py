@@ -1,18 +1,14 @@
-import logging
-
 import glfw
 import imgui
 import OpenGL
 from imgui.integrations.glfw import GlfwRenderer
+from loguru import logger
 
 OpenGL.ERROR_LOGGING = True
 OpenGL.FULL_LOGGING = True
 from OpenGL.GL import *
 
 from viz.visualizer import Visualizer
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def main():
@@ -89,11 +85,6 @@ def flatten(matrix):
 
 
 if __name__ == "__main__":
-    # v, f, = igl.read_triangle_mesh("cuboid.obj")
-    # t = wm.Tetrahedralizer(stop_quality=500)
-    # t.set_mesh(v, f)
-    # t.tetrahedralize()
-    # vv, tt = t.get_tet_mesh()
-    # print(igl.boundary_facets(tt))
+    logger.info("Warming up...")
     with Visualizer() as visualizer:
         visualizer.launch()

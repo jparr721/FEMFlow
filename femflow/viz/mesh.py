@@ -1,13 +1,10 @@
-import logging
 from typing import List, Union
 
 import igl
 import numpy as np
 import wildmeshing as wm
+from loguru import logger
 from OpenGL.GL import *
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class Mesh(object):

@@ -1,18 +1,14 @@
-import logging
-
 import glfw
 import imgui
 import numpy as np
 from imgui.integrations.glfw import GlfwRenderer
+from loguru import logger
 from OpenGL.GL import *
 
 from .camera import Camera
 from .input import Input
 from .mesh import Mesh
 from .renderer import Renderer
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 
 class Visualizer(object):
@@ -23,6 +19,7 @@ class Visualizer(object):
         self.background_color = [1, 1, 1, 0]
 
         self.camera = Camera()
+        self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
 
         assert glfw.init(), "GLFW is not initialized!"
 

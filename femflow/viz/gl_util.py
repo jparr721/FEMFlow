@@ -1,3 +1,4 @@
+from loguru import logger
 from OpenGL.GL import GL_NO_ERROR, glGetError
 from OpenGL.GLU import gluErrorString
 
@@ -8,4 +9,4 @@ def log_errors(fn_name: str):
         if err == GL_NO_ERROR:
             break
 
-        print(f"Error in {fn_name}: ", gluErrorString(err))
+        logger.error(fn_name, gluErrorString(err))

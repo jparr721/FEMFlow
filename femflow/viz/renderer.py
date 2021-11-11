@@ -1,9 +1,8 @@
 import ctypes
-import logging
 import os
 
 import numpy as np
-from OpenGL.arrays import vbo
+from loguru import logger
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
@@ -11,9 +10,6 @@ from .camera import Camera
 from .gl_util import log_errors
 from .mesh import Mesh
 from .shader_program import ShaderProgram
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class Renderer(object):
@@ -60,9 +56,9 @@ class Renderer(object):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.reload_buffers()
         self.shader_program.bind()
+        # logger.debug(camera.view_matrix)
         proj = camera.projection_matrix * camera.view_matrix
         self.shader_program.set_matrix_uniform(self.mvp, proj)
-
         glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, len(self.mesh.faces), GL_UNSIGNED_INT, None)
         self.shader_program.release()

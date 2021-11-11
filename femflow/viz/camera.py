@@ -1,5 +1,5 @@
 import numpy as np
-from lib.math.linear_algebra import normalized
+from numerics.linear_algebra import normalized
 
 
 class Camera(object):
@@ -145,9 +145,9 @@ class Camera(object):
         elif self.fov < self.min_fov:
             self.fov = self.min_fov
 
-        aspect_ratio = self.width / self.height
-        y_max = self.near_plane * np.tan(self.fov * np.pi) / 360
-        x_max = y_max * aspect_ratio
+        self.aspect_ratio = self.width / self.height
+        y_max = self.near_plane * np.tan(self.fov * np.pi / 360)
+        x_max = y_max * self.aspect_ratio
         self._set_frustum(-x_max, x_max, -y_max, y_max)
 
     def _set_frustum(self, left: float, right: float, bottom: float, top: float):
@@ -160,7 +160,7 @@ class Camera(object):
             [
                 [t1 / t2, 0, 0, 0],
                 [0, t1 / t3, 0, 0],
-                [(right + left) / t2, (top + bottom) / t3, -(self.far_plane + self.near_plane) / t4, -1.0],
+                [(right + left) / t2, (top + bottom) / t3, -(self.far_plane + self.near_plane) / t4, -1],
                 [0, 0, (-t1 * self.far_plane) / t4, 0],
             ]
         )
@@ -187,7 +187,7 @@ class Camera(object):
         matrix[2, 2] = -f[2]
         matrix[2, 3] = np.dot(f, eye)
 
-        return matrix
+        return matrix.T
 
     @staticmethod
     def _spherical_to_cartesian(r: float, theta: float, phi: float):

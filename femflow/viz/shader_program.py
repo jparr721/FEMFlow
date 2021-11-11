@@ -1,13 +1,10 @@
-import logging
 from collections import defaultdict
 
+from loguru import logger
 from OpenGL.GL import *
 
 from .gl_util import log_errors
 from .shader import Shader
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class ShaderProgram(object):
@@ -16,19 +13,25 @@ class ShaderProgram(object):
         self.shaders = defaultdict(Shader)
 
     def destroy(self):
+        logger.info("Destroying shaders")
         for shader in self.shaders.values():
             glDeleteShader(shader.id)
         glDeleteProgram(self.id)
 
     def add_shader(self, shader_type: GLenum, path: str):
+        logger.info(f"Adding shader: {shader_type} at path: {path}")
         shader = Shader(shader_type, path)
         assert shader.build(), "Shader failed to build!"
         self.shaders[shader_type] = shader
         glAttachShader(self.id, shader.id)
+        self.__report_errors()
         log_errors(self.add_shader.__name__)
 
     def link(self):
         glLinkProgram(self.id)
+        value = glGetProgramInfoLog(self.id)
+        if value:
+            logger.error(value)
 
     def bind(self):
         glUseProgram(self.id)
@@ -44,3 +47,8 @@ class ShaderProgram(object):
 
     def uniform_location(self, name: str) -> int:
         return glGetUniformLocation(self.id, name)
+
+    def __report_errors(self):
+        value = glGetProgramInfoLog(self.id)
+        if value:
+            logger.error(value)
