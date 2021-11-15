@@ -1,4 +1,5 @@
 import glfw
+import igl
 import imgui
 import numpy as np
 from imgui.integrations.glfw import GlfwRenderer
@@ -43,8 +44,8 @@ class Visualizer(object):
         glfw.set_window_size_callback(self.window, self.window_size_callback)
 
         glfw.make_context_current(self.window)
-        glEnable(GL_DEPTH_TEST)
         glClearColor(*self.background_color)
+        glEnable(GL_DEPTH_TEST)
 
         self.input = Input()
 
@@ -71,8 +72,104 @@ class Visualizer(object):
             self.renderer.resize(width, height, self.camera)
 
     def launch(self):
-        mesh = Mesh("femflow/cube.ply")
+        vertices = [
+            -0.5,
+            -0.5,
+            0.5,
+            1.0,
+            0.0,
+            0.0,
+            0.5,
+            -0.5,
+            0.5,
+            0.0,
+            1.0,
+            0.0,
+            0.5,
+            0.5,
+            0.5,
+            0.0,
+            0.0,
+            1.0,
+            -0.5,
+            0.5,
+            0.5,
+            1.0,
+            1.0,
+            1.0,
+            -0.5,
+            -0.5,
+            -0.5,
+            1.0,
+            0.0,
+            0.0,
+            0.5,
+            -0.5,
+            -0.5,
+            0.0,
+            1.0,
+            0.0,
+            0.5,
+            0.5,
+            -0.5,
+            0.0,
+            0.0,
+            1.0,
+            -0.5,
+            0.5,
+            -0.5,
+            1.0,
+            1.0,
+            1.0,
+        ]
+        vertices = np.array(vertices, dtype=np.float32)
+
+        faces = [
+            0,
+            1,
+            2,
+            2,
+            3,
+            0,
+            4,
+            5,
+            6,
+            6,
+            7,
+            4,
+            4,
+            5,
+            1,
+            1,
+            0,
+            4,
+            6,
+            7,
+            3,
+            3,
+            2,
+            6,
+            5,
+            6,
+            2,
+            2,
+            1,
+            5,
+            7,
+            4,
+            0,
+            0,
+            3,
+            7,
+        ]
+        faces = np.array(faces, dtype=np.uint32)
+        # vertices, faces = igl.read_triangle_mesh("femflow/cube.obj")
+        mesh = Mesh(vertices, surface=faces)
+        # mesh = Mesh("femflow/cube.ply")
+        print("Time: ", glfw.get_time())
         with Renderer(mesh) as self.renderer:
+            self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+            self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
             while not glfw.window_should_close(self.window):
                 glfw.swap_buffers(self.window)
                 glfw.poll_events()

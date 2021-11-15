@@ -1,5 +1,101 @@
 import numpy as np
-from numerics.linear_algebra import normalized
+import pyrr
+from loguru import logger
+from numerics.linear_algebra import angle_axis, normalized, quaternion_multiply, rotation_as_quat
+from scipy.spatial.transform import Rotation as R
+
+# class Camera(object):
+#     def __init__(self, width, height):
+#         self.width = width
+#         self.height = height
+
+#         self.base_zoom = 1.0
+#         self.zoom = 1.0
+#         self.view_angle = 45.0
+#         self.near = 1.0
+#         self.far = 100.0
+#         self.base_translation = np.zeros(3)
+#         self.translation = np.zeros(3)
+#         self.eye = np.array([0, 0, 5])
+#         self.center = np.zeros(3)
+#         self.up = np.array([0, 1, 0])
+
+#         self.view_matrix = np.eye(4, dtype=np.float32)
+#         self.projection_matrix = np.eye(4, dtype=np.float32)
+#         self.normal_matrix = np.eye(4, dtype=np.float32)
+
+#         self.trackball_angle = R.identity()
+
+#     def update(self):
+#         self.view_matrix = self.look_at(self.eye, self.center, self.up)
+#         t = self.base_translation + self.translation
+#         q_scale = self.trackball_angle.as_matrix() * (self.zoom * self.base_zoom)
+#         t *= q_scale.diagonal()
+#         q_mat = np.eye(4)
+#         q_mat[:3, :3] = q_scale
+#         q_mat[:3, 3] = t
+#         self.view_matrix *= q_mat
+#         self.normal_matrix = np.linalg.inv(self.view_matrix).T
+
+#         fh = np.tan(self.view_angle / 360.0 * np.pi) * self.near
+#         fw = fh * self.width / self.height
+#         self.projection_matrix = self.frustum(-fw, fw, -fh, fh, self.near, self.far)
+
+#     @staticmethod
+#     def frustum(left, right, bottom, top, near_val, far_val):
+#         P = np.zeros((4, 4), order="F")
+#         P[0, 0] = (2.0 * near_val) / (right - left)
+#         P[1, 1] = (2.0 * near_val) / (top - bottom)
+#         P[0, 2] = (right + left) / (right - left)
+#         P[1, 2] = (top + bottom) / (top - bottom)
+#         P[2, 2] = -(far_val + near_val) / (far_val - near_val)
+#         P[3, 2] = -1.0
+#         P[2, 3] = -(2.0 * far_val * near_val) / (far_val - near_val)
+
+#         return P
+
+#     @staticmethod
+#     def look_at(eye: np.ndarray, center: np.ndarray, up: np.ndarray) -> np.ndarray:
+#         f = normalized(center - eye)
+#         s = normalized(np.cross(f, up))
+#         u = np.cross(s, f)
+
+#         ret = np.eye(4)
+
+#         ret[0, 0] = s[0]
+#         ret[0, 1] = s[1]
+#         ret[0, 2] = s[2]
+#         ret[1, 0] = u[0]
+#         ret[1, 1] = u[1]
+#         ret[1, 2] = u[2]
+#         ret[2, 0] = -f[0]
+#         ret[2, 1] = -f[1]
+#         ret[2, 2] = -f[2]
+#         ret[0, 3] = -np.dot(s, eye)
+#         ret[1, 3] = -np.dot(u, eye)
+#         ret[2, 3] = np.dot(f, eye)
+
+#         return ret
+
+#     @staticmethod
+#     def two_axis_valudator_fixed_up(
+#         w: int, h: int, speed: float, down_quat: np.ndarray, down_x: int, down_y: int, mouse_x: int, mouse_y: int
+#     ) -> np.ndarray:
+#         axis = np.array([0, 1, 0])
+
+#         aa = angle_axis(np.pi * (mouse_x - down_x) / w * speed / 2.0, normalized(axis))
+#         x_axis_rot = rotation_as_quat(R.from_matrix(aa))
+
+#         quat = normalized(quaternion_multiply(down_quat, x_axis_rot))
+
+#         axis = np.array([1, 0, 0])
+#         aa = angle_axis(np.pi * (mouse_y - down_y) / h * speed / 2.0, normalized(axis))
+#         y_axis_rot = rotation_as_quat(R.from_matrix(aa))
+
+#         quat = quaternion_multiply(y_axis_rot, quat)
+#         quat = normalized(quat)
+
+#         return quat
 
 
 class Camera(object):
@@ -16,7 +112,7 @@ class Camera(object):
         fov=65.0,
         min_radius=0.1,
         max_radius=1000.0,
-        aspect_ratio=(4.0 / 3.0)
+        aspect_ratio=(4.0 / 3.0),
     ):
         """Basic camera with pan, zoom, and rotate behavior, controllable by any input system
 
@@ -77,26 +173,10 @@ class Camera(object):
         return self._projection_matrix
 
     @property
-    def view_direction(self):
-        self._compile()
-        return normalized(self.center - self.eye)
-
-    @property
-    def right_direction(self):
-        self._compile()
-        dir = normalized(self.center - self.eye)
-        return normalized(np.cross(self.up, dir))
-
-    @property
     def left_direction(self):
         self._compile()
         dir = normalized(self.center - self.eye)
         return normalized(np.cross(dir, self.up))
-
-    @property
-    def up_direction(self):
-        self._compile()
-        return self.up
 
     @property
     def down_direction(self):
@@ -146,55 +226,13 @@ class Camera(object):
             self.fov = self.min_fov
 
         self.aspect_ratio = self.width / self.height
-        y_max = self.near_plane * np.tan(self.fov * np.pi / 360)
-        x_max = y_max * self.aspect_ratio
-        self._set_frustum(-x_max, x_max, -y_max, y_max)
-
-    def _set_frustum(self, left: float, right: float, bottom: float, top: float):
-        t1 = 2.0 * self.near_plane
-        t2 = right - left
-        t3 = top - bottom
-        t4 = self.far_plane - self.near_plane
-
-        self._projection_matrix = np.array(
-            [
-                [t1 / t2, 0, 0, 0],
-                [0, t1 / t3, 0, 0],
-                [
-                    (right + left) / t2,
-                    (top + bottom) / t3,
-                    -(self.far_plane + self.near_plane) / t4,
-                    (-t1 * self.far_plane) / t4,
-                ],
-                [0, 0, -1, 0],
-            ]
-        )
+        self._projection_matrix = pyrr.matrix44.create_perspective_projection(
+            self.fov, self.aspect_ratio, self.near_plane, self.far_plane
+        ).T
 
     @staticmethod
     def look_at(eye: np.ndarray, at: np.ndarray, up: np.ndarray):
-        matrix = np.eye(4)
-
-        z = at - eye
-        x = normalized(np.cross(up, z))
-        y = normalized(np.cross(z, x))
-        z = normalized(z)
-
-        matrix[0, 0] = -x[0]
-        matrix[0, 1] = -x[1]
-        matrix[0, 2] = -x[2]
-        matrix[0, 3] = np.dot(x, eye)
-
-        matrix[1, 0] = y[0]
-        matrix[1, 1] = y[1]
-        matrix[1, 2] = y[2]
-        matrix[1, 3] = -np.dot(y, eye)
-
-        matrix[2, 0] = -z[0]
-        matrix[2, 1] = -z[1]
-        matrix[2, 2] = -z[2]
-        matrix[2, 3] = np.dot(z, eye)
-
-        return matrix
+        return pyrr.matrix44.create_look_at(eye, at, up).T
 
     @staticmethod
     def _spherical_to_cartesian(r: float, theta: float, phi: float):
@@ -204,7 +242,11 @@ class Camera(object):
         sin_theta = np.sin(theta)
         cos_theta = np.cos(theta)
 
-        return np.array([r * (cos_theta * sin_phi), r * cos_phi, r * (sin_theta * sin_phi)])
+        vec = np.zeros(3)
+        vec[0] = r * (cos_theta * sin_phi)
+        vec[1] = r * cos_phi
+        vec[2] = r * (sin_theta * sin_phi)
+        return vec
 
     @staticmethod
     def _sperical_to_cartesian_dPhi(r: float, theta: float, phi: float):
@@ -214,7 +256,11 @@ class Camera(object):
         sin_theta = np.sin(theta)
         cos_theta = np.cos(theta)
 
-        return np.array([r * (cos_phi * cos_theta), -r * sin_phi, r * (cos_phi * sin_theta)])
+        vec = np.zeros(3)
+        vec[0] = r * (cos_phi * cos_theta)
+        vec[1] = -r * sin_phi
+        vec[2] = r * (cos_phi * sin_theta)
+        return vec
 
     def _compile(self):
         self.center = np.zeros(3)

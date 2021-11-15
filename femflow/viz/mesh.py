@@ -8,14 +8,7 @@ from OpenGL.GL import *
 
 
 class Mesh(object):
-    def __init__(
-        self,
-        data: Union[str, List[float], List[List[float]], np.array],
-        *,
-        surface=None,
-        volumes=None,
-        tetrahedralize=False,
-    ):
+    def __init__(self, data: np.ndarray, *, surface=None, volumes=None, tetrahedralize=False):
         self.DEFAULT_MESH_COLOR = np.array([1, 0, 0, 1], dtype=np.float32)
 
         self.faces = None
@@ -29,8 +22,12 @@ class Mesh(object):
             self._init_from_surface_mesh(data, surface)
         elif volumes is not None and surface is None:
             self._init_from_volume_mesh(data, volumes)
+        else:
+            self.vertices = self._flatten(data)
+            self.faces = self._flatten(surface)
+            self.tetrahedra = self._flatten(volumes)
 
-        self.colors = np.tile(self.DEFAULT_MESH_COLOR, len(self.vertices / 3))
+        self.colors = np.tile(self.DEFAULT_MESH_COLOR, len(self.vertices / 3)).astype(np.float32)
         self.rest_positions = self.vertices
 
     def update(self, displacements: np.array):
@@ -39,7 +36,9 @@ class Mesh(object):
     def _init_from_file(self, filename: str):
         logger.info(f"Loading mesh from file: {filename}")
         V, F = igl.read_triangle_mesh(filename)
+        self._init_from_surface_mesh(V, F)
 
+    def _init_from_surface_mesh(self, V: np.ndarray, F: np.ndarray):
         if len(F.shape) > 1 and F.shape[1] == 4:
             F = igl.boundary_facets(F)
 
@@ -52,34 +51,21 @@ class Mesh(object):
             self.vertices = self._flatten(V)
             self.faces = self._flatten(F)
 
-    def _init_from_surface_mesh(
-        self, V: Union[List[float], List[List[float]], np.array], F: Union[List[float], List[List[float]], np.array]
-    ):
-        if len(F.shape) > 1 and F.shape[1] == 4:
-            F = igl.boundary_facets(F)
+        self.faces = self.faces.astype(np.uint32)
+        self.vertices = self.vertices.astype(np.float32)
 
-        if self.tetrahedralize:
-            VT, T = self._tetrahedralize(V, F)
-            self.tetrahedra = self._flatten(T)
-            self.vertices = self._flatten(VT)
-            self.faces = self._flatten(igl.boundary_facets(VT))
-        else:
-            self.vertices = self._flatten(V)
-            self.faces = self._flatten(F)
-
-    def _init_from_volume_mesh(
-        self, V: Union[List[float], List[List[float]], np.array], T: Union[List[float], List[List[float]], np.array]
-    ):
+    def _init_from_volume_mesh(self, V: np.ndarray, T: np.ndarray):
         self.vertices = self._flatten(V)
         self.faces = self._flatten(igl.boundary_facets(T))
         self.tetrahedra = T
 
     def _flatten(self, matrix):
-        if len(matrix.shape) > 1 and matrix.shape[1] == 1:
+        assert matrix.ndim <= 2, "Too many matrix dimensions!"
+        if matrix.ndim == 1:
             return matrix
         return matrix.reshape(-1)
 
-    def _tetrahedralize(self, V: np.array, F: np.array):
+    def _tetrahedralize(self, V: np.ndarray, F: np.ndarray):
         tetrahedralizer = wm.Tetrahedralizer(stop_quality=1000)
         tetrahedralizer.set_mesh(V, F)
         tetrahedralizer.tetrahedralize()
