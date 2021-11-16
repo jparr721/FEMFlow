@@ -45,7 +45,6 @@ class Visualizer(object):
 
         glfw.make_context_current(self.window)
         glClearColor(*self.background_color)
-        glEnable(GL_DEPTH_TEST)
 
         self.input = Input()
 
@@ -163,14 +162,21 @@ class Visualizer(object):
             7,
         ]
         faces = np.array(faces, dtype=np.uint32)
-        # vertices, faces = igl.read_triangle_mesh("femflow/cube.obj")
+        vertices, faces = igl.read_triangle_mesh("femflow/cube.obj")
         mesh = Mesh(vertices, surface=faces)
         # mesh = Mesh("femflow/cube.ply")
-        print("Time: ", glfw.get_time())
-        with Renderer(mesh) as self.renderer:
-            self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
-            self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
-            while not glfw.window_should_close(self.window):
-                glfw.swap_buffers(self.window)
-                glfw.poll_events()
-                self.renderer.render(self.camera)
+
+        glEnable(GL_DEPTH_TEST)
+
+        
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        # print("Time: ", glfw.get_time())
+        # with Renderer(mesh) as self.renderer:
+        #     self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        #     self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
+        #     while not glfw.window_should_close(self.window):
+        #         glfw.swap_buffers(self.window)
+        #         glfw.poll_events()
+        #         self.renderer.render(self.camera)

@@ -54,19 +54,23 @@ class Renderer(object):
 
     def resize(self, width, height, camera: Camera):
         logger.debug(f"Resizing to width: {width}, height: {height}")
+        camera.resize(width, height)
         glViewport(0, 0, width, height)
-        self.shader_program.bind()
-        proj = np.matmul(camera.projection_matrix, camera.view_matrix)
-        self.shader_program.set_matrix_uniform(self.mvp, proj)
-        self.shader_program.release()
+        glMatrixMode(GL_PROJECTION)
+        glMultMatrixf(camera.projection_matrix)
+        glMatrixMode(GL_MODELVIEW)
+        # self.shader_program.bind()
+        # proj = np.matmul(camera.projection_matrix, camera.view_matrix)
+        # self.shader_program.set_matrix_uniform(self.mvp, proj)
+        # self.shader_program.release()
 
     def render(self, camera: Camera):
+        glDisable(GL_DEPTH_TEST)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.reload_buffers()
         self.shader_program.bind()
         proj = np.matmul(camera.projection_matrix, camera.view_matrix)
         self.shader_program.set_matrix_uniform(self.mvp, proj)
-        glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
         self.shader_program.release()
         log_errors(self.render.__name__)
