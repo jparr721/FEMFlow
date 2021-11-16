@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Union
 
 from loguru import logger
 from OpenGL.GL import *
@@ -42,7 +43,10 @@ class ShaderProgram(object):
     def set_matrix_uniform_identity(self):
         glLoadIdentity()
 
-    def set_matrix_uniform(self, location: int, uniform):
+    def set_matrix_uniform(self, location: Union[int, str], uniform):
+        if type(location) == str:
+            location = self.uniform_location(location)
+
         glUniformMatrix4fv(location, 1, GL_FALSE, uniform)
 
     def uniform_location(self, name: str) -> int:

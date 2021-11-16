@@ -23,7 +23,8 @@ class Renderer(object):
         self.shader_program.link()
         self.shader_program.bind()
 
-        self.mvp = self.shader_program.uniform_location("mvp")
+        self.projection = self.shader_program.uniform_location("projection")
+        self.view = self.shader_program.uniform_location("view")
         self.mesh = mesh
 
         # Buffers
@@ -36,6 +37,7 @@ class Renderer(object):
 
         self.shader_program.release()
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glEnable(GL_DEPTH_TEST)
 
         # TODO(@jparr721) Add dirty states for rendering.
 
@@ -54,28 +56,32 @@ class Renderer(object):
 
     def resize(self, width, height, camera: Camera):
         logger.debug(f"Resizing to width: {width}, height: {height}")
+        camera.resize(width, height)
         glViewport(0, 0, width, height)
         self.shader_program.bind()
-        proj = np.matmul(camera.projection_matrix, camera.view_matrix)
-        self.shader_program.set_matrix_uniform(self.mvp, proj)
+        self.shader_program.set_matrix_uniform(self.projection, camera.projection_matrix)
+        self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
         self.shader_program.release()
 
     def render(self, camera: Camera):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
         self.reload_buffers()
         self.shader_program.bind()
-        proj = np.matmul(camera.projection_matrix, camera.view_matrix)
-        self.shader_program.set_matrix_uniform(self.mvp, proj)
-        glBindVertexArray(self.vao)
+
+        self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
         glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
         self.shader_program.release()
+
         log_errors(self.render.__name__)
 
     def reload_buffers(self):
         assert self.mesh is not None, "No mesh found! Cannot initialize buffers!"
+
         self._bind_vbo("position", self.position_vbo, 3, self.mesh.vertices)
-        self._bind_vbo("color", self.color_vbo, 4, self.mesh.colors)
+        self._bind_vbo("color", self.color_vbo, 3, self.mesh.colors)
         self._bind_ibo(self.mesh.faces)
+
         log_errors(self.reload_buffers.__name__)
 
     def _build_buffers(self):
@@ -89,10 +95,7 @@ class Renderer(object):
         self.color_vbo = glGenBuffers(1)
         self.faces_ibo = glGenBuffers(1)
 
-        self._bind_vbo("position", self.position_vbo, 3, self.mesh.vertices)
-        self._bind_vbo("color", self.color_vbo, 4, self.mesh.colors)
-        self._bind_ibo(self.mesh.faces)
-
+        self.reload_buffers()
         log_errors(self._build_buffers.__name__)
 
     def _bind_vbo(self, name: str, buffer: int, stride: int, data: np.ndarray, refresh: bool = True):
@@ -100,9 +103,7 @@ class Renderer(object):
         glBindBuffer(GL_ARRAY_BUFFER, buffer)
         if refresh:
             glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_DYNAMIC_DRAW)
-
-        glVertexAttribPointer(handle, stride, GL_FLOAT, GL_FALSE, stride * data.itemsize * 2, ctypes.c_void_p(0))
-
+        glVertexAttribPointer(handle, stride, GL_FLOAT, GL_FALSE, stride * data.itemsize, ctypes.c_void_p(0))
         glEnableVertexAttribArray(handle)
 
     def _bind_ibo(self, data: np.ndarray):

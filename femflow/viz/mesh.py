@@ -4,13 +4,10 @@ import igl
 import numpy as np
 import wildmeshing as wm
 from loguru import logger
-from OpenGL.GL import *
 
 
 class Mesh(object):
     def __init__(self, data: np.ndarray, *, surface=None, volumes=None, tetrahedralize=False):
-        self.DEFAULT_MESH_COLOR = np.array([1, 0, 0, 1], dtype=np.float32)
-
         self.faces = None
         self.vertices = None
         self.tetrahedra = None
@@ -27,7 +24,7 @@ class Mesh(object):
             self.faces = self._flatten(surface)
             self.tetrahedra = self._flatten(volumes)
 
-        self.colors = np.tile(self.DEFAULT_MESH_COLOR, len(self.vertices / 3)).astype(np.float32)
+        self.colors = np.tile(np.random.rand(3), len(self.vertices / 3)).astype(np.float32)
         self.rest_positions = self.vertices
 
     def update(self, displacements: np.array):
