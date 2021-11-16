@@ -22,7 +22,7 @@ class Input(object):
             camera.panning = True
         else:
             camera.panning = False
-        self.mouse_move(xpos, ypos, camera)
+        self.mouse_move(xpos, -ypos, camera)
 
     def handle_mouse(self, window, button: int, action: int, mods: int, camera: Camera):
         if button == glfw.MOUSE_BUTTON_LEFT:

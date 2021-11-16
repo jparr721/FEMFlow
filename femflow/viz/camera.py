@@ -109,7 +109,7 @@ class Camera(object):
         zoom_sensitivity=0.1,
         min_fov=10.0,
         max_fov=120.0,
-        fov=65.0,
+        fov=45.0,
         min_radius=0.1,
         max_radius=1000.0,
         aspect_ratio=(4.0 / 3.0),
@@ -137,7 +137,7 @@ class Camera(object):
         self._view_matrix = np.eye(4)
         self._projection_matrix = np.eye(4)
 
-        self.eye = np.array([0, 0, 5])
+        self.eye = np.array([0, 0, -5])
         self.center = np.zeros(3)
         self.up = np.array([0, 1, 0])
 
@@ -225,14 +225,14 @@ class Camera(object):
         elif self.fov < self.min_fov:
             self.fov = self.min_fov
 
-        self.aspect_ratio = self.width / self.height
-        self._projection_matrix = pyrr.matrix44.create_perspective_projection(
+        self._projection_matrix = pyrr.matrix44.create_perspective_projection_matrix(
             self.fov, self.aspect_ratio, self.near_plane, self.far_plane
-        ).T
+        )
+        print(self._projection_matrix)
 
     @staticmethod
     def look_at(eye: np.ndarray, at: np.ndarray, up: np.ndarray):
-        return pyrr.matrix44.create_look_at(eye, at, up).T
+        return pyrr.matrix44.create_look_at(eye, at, up)
 
     @staticmethod
     def _spherical_to_cartesian(r: float, theta: float, phi: float):

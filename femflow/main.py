@@ -88,6 +88,7 @@
 #     with Visualizer() as visualizer:
 #         visualizer.launch()
 
+
 import os
 
 import glfw
@@ -103,38 +104,21 @@ from viz.shader_program import ShaderProgram
 camera = Camera()
 camera.resize(1280, 720)
 
-vertex_src = """
-# version 330
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec3 a_color;
-uniform mat4 mvp;
-out vec3 v_color;
-void main()
-{
-    gl_Position = mvp * vec4(a_position, 1.0);
-    v_color = a_color;
-}
-"""
-
-fragment_src = """
-# version 330
-in vec3 v_color;
-out vec4 out_color;
-void main()
-{
-    out_color = vec4(v_color, 1.0);
-}
-"""
-
 input = Input()
 
 
 def window_resize(window, width, height):
     glViewport(0, 0, width, height)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    camera.resize(width, height)
+    glMultMatrixf(camera.projection_matrix)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
 
 
 def scroll_callback(window, xoffset, yoffset):
-    input.scroll_event(window, xoffset, yoffset, camera)
+    input.scroll_event(window, xoffset, -yoffset, camera)
 
 
 def mouse_move_callback(window, xpos, ypos):
@@ -146,7 +130,7 @@ if not glfw.init():
     raise Exception("glfw can not be initialized!")
 
 # creating the window
-window = glfw.create_window(1280, 720, "My OpenGL window", None, None)
+window = glfw.create_window(1200, 800, "My OpenGL window", None, None)
 
 # check if window was created
 if not window:
@@ -165,53 +149,137 @@ glfw.set_cursor_pos_callback(window, mouse_move_callback)
 glfw.make_context_current(window)
 
 vertices = [
-    -0.5,
-    -0.5,
-    0.5,
+    # -0.5,
+    # -0.5,
+    # 0.5,
+    # 0.5,
+    # -0.5,
+    # 0.5,
+    # 0.5,
+    # 0.5,
+    # 0.5,
+    # -0.5,
+    # 0.5,
+    # 0.5,
+    # -0.5,
+    # -0.5,
+    # -0.5,
+    # 0.5,
+    # -0.5,
+    # -0.5,
+    # 0.5,
+    # 0.5,
+    # -0.5,
+    # -0.5,
+    # 0.5,
+    # -0.5,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
     1.0,
-    0.0,
-    0.0,
-    0.5,
-    -0.5,
-    0.5,
-    0.0,
-    1.0,
-    0.0,
-    0.5,
-    0.5,
-    0.5,
-    0.0,
-    0.0,
-    1.0,
-    -0.5,
-    0.5,
-    0.5,
-    1.0,
-    1.0,
-    1.0,
-    -0.5,
-    -0.5,
-    -0.5,
-    1.0,
-    0.0,
-    0.0,
-    0.5,
-    -0.5,
-    -0.5,
-    0.0,
-    1.0,
-    0.0,
-    0.5,
-    0.5,
-    -0.5,
-    0.0,
-    0.0,
-    1.0,
-    -0.5,
-    0.5,
-    -0.5,
+    -1.0,
     1.0,
     1.0,
+    1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    1.0,
+    -1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    -1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    1.0,
+    1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    -1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    -1.0,
+    1.0,
+    1.0,
+    1.0,
+    -1.0,
     1.0,
 ]
 
@@ -222,48 +290,42 @@ indices = np.array(indices, dtype=np.uint32)
 
 FRAG_SHADER_PATH = os.path.join(os.getcwd(), "femflow", "core.frag.glsl")
 VERTEX_SHADER_PATH = os.path.join(os.getcwd(), "femflow", "core.vs.glsl")
-shader_program = ShaderProgram()
-shader_program.add_shader(GL_VERTEX_SHADER, VERTEX_SHADER_PATH)
-shader_program.add_shader(GL_FRAGMENT_SHADER, FRAG_SHADER_PATH)
-shader_program.link()
 
-# shader = compileProgram(compileShader(vertex_src, GL_VERTEX_SHADER), compileShader(fragment_src, GL_FRAGMENT_SHADER))
-
-# Vertex Buffer Object
-VBO = glGenBuffers(1)
-glBindBuffer(GL_ARRAY_BUFFER, VBO)
-glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
-
-# Element Buffer Object
-EBO = glGenBuffers(1)
-glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
-glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
-
-glEnableVertexAttribArray(0)
-glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(0))
-
-glEnableVertexAttribArray(1)
-glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(12))
-
-shader_program.bind()
-glClearColor(0, 0.1, 0.1, 1)
 glEnable(GL_DEPTH_TEST)
 
-mvp = shader_program.uniform_location("mvp")
-
 # the main application loop
+colors = np.tile(np.random.rand(3), (len(vertices) // 3, 1))
 while not glfw.window_should_close(window):
     glfw.poll_events()
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    # rot_x = pyrr.Matrix44.from_x_rotation(0.5 * glfw.get_time())
-    # rot_y = pyrr.Matrix44.from_y_rotation(0.8 * glfw.get_time())
+    glPushMatrix()
+    glMultMatrixf(camera.view_matrix)
 
-    # shader_program.set_matrix_uniform(mvp, pyrr.matrix44.multiply(rot_x, rot_y))
-    shader_program.set_matrix_uniform(mvp, np.matmul(camera.projection_matrix, camera.view_matrix))
-    # shader_program.set_matrix_uniform(mvp, camera.projection_matrix)
-    glDrawElements(GL_TRIANGLES, len(indices), GL_UNSIGNED_INT, None)
+    glBegin(GL_TRIANGLES)
+
+    for i in range(0, len(vertices), 3):
+        pos = vertices[i : i + 3]
+        glColor3f(*colors[i // 3])
+        glVertex3f(*pos)
+
+    glEnd()
+
+    glLineWidth(4)
+    glBegin(GL_LINES)
+    glColor3f(1.0, 0.0, 0.0)
+    glVertex3f(0.0, 0.0, 0.0)
+    glVertex3f(1.0, 0.0, 0.0)
+    glColor3f(0.0, 1.0, 0.0)
+    glVertex3f(0.0, 0.0, 0.0)
+    glVertex3f(0.0, 1.0, 0.0)
+    glColor3f(0.0, 0.0, 1.0)
+    glVertex3f(0.0, 0.0, 0.0)
+    glVertex3f(0.0, 0.0, 1.0)
+    glEnd()
+
+    glPopMatrix()
+    glFlush()
 
     glfw.swap_buffers(window)
 
