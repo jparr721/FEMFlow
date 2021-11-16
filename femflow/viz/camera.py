@@ -1,101 +1,6 @@
 import numpy as np
 import pyrr
-from loguru import logger
-from numerics.linear_algebra import angle_axis, normalized, quaternion_multiply, rotation_as_quat
-from scipy.spatial.transform import Rotation as R
-
-# class Camera(object):
-#     def __init__(self, width, height):
-#         self.width = width
-#         self.height = height
-
-#         self.base_zoom = 1.0
-#         self.zoom = 1.0
-#         self.view_angle = 45.0
-#         self.near = 1.0
-#         self.far = 100.0
-#         self.base_translation = np.zeros(3)
-#         self.translation = np.zeros(3)
-#         self.eye = np.array([0, 0, 5])
-#         self.center = np.zeros(3)
-#         self.up = np.array([0, 1, 0])
-
-#         self.view_matrix = np.eye(4, dtype=np.float32)
-#         self.projection_matrix = np.eye(4, dtype=np.float32)
-#         self.normal_matrix = np.eye(4, dtype=np.float32)
-
-#         self.trackball_angle = R.identity()
-
-#     def update(self):
-#         self.view_matrix = self.look_at(self.eye, self.center, self.up)
-#         t = self.base_translation + self.translation
-#         q_scale = self.trackball_angle.as_matrix() * (self.zoom * self.base_zoom)
-#         t *= q_scale.diagonal()
-#         q_mat = np.eye(4)
-#         q_mat[:3, :3] = q_scale
-#         q_mat[:3, 3] = t
-#         self.view_matrix *= q_mat
-#         self.normal_matrix = np.linalg.inv(self.view_matrix).T
-
-#         fh = np.tan(self.view_angle / 360.0 * np.pi) * self.near
-#         fw = fh * self.width / self.height
-#         self.projection_matrix = self.frustum(-fw, fw, -fh, fh, self.near, self.far)
-
-#     @staticmethod
-#     def frustum(left, right, bottom, top, near_val, far_val):
-#         P = np.zeros((4, 4), order="F")
-#         P[0, 0] = (2.0 * near_val) / (right - left)
-#         P[1, 1] = (2.0 * near_val) / (top - bottom)
-#         P[0, 2] = (right + left) / (right - left)
-#         P[1, 2] = (top + bottom) / (top - bottom)
-#         P[2, 2] = -(far_val + near_val) / (far_val - near_val)
-#         P[3, 2] = -1.0
-#         P[2, 3] = -(2.0 * far_val * near_val) / (far_val - near_val)
-
-#         return P
-
-#     @staticmethod
-#     def look_at(eye: np.ndarray, center: np.ndarray, up: np.ndarray) -> np.ndarray:
-#         f = normalized(center - eye)
-#         s = normalized(np.cross(f, up))
-#         u = np.cross(s, f)
-
-#         ret = np.eye(4)
-
-#         ret[0, 0] = s[0]
-#         ret[0, 1] = s[1]
-#         ret[0, 2] = s[2]
-#         ret[1, 0] = u[0]
-#         ret[1, 1] = u[1]
-#         ret[1, 2] = u[2]
-#         ret[2, 0] = -f[0]
-#         ret[2, 1] = -f[1]
-#         ret[2, 2] = -f[2]
-#         ret[0, 3] = -np.dot(s, eye)
-#         ret[1, 3] = -np.dot(u, eye)
-#         ret[2, 3] = np.dot(f, eye)
-
-#         return ret
-
-#     @staticmethod
-#     def two_axis_valudator_fixed_up(
-#         w: int, h: int, speed: float, down_quat: np.ndarray, down_x: int, down_y: int, mouse_x: int, mouse_y: int
-#     ) -> np.ndarray:
-#         axis = np.array([0, 1, 0])
-
-#         aa = angle_axis(np.pi * (mouse_x - down_x) / w * speed / 2.0, normalized(axis))
-#         x_axis_rot = rotation_as_quat(R.from_matrix(aa))
-
-#         quat = normalized(quaternion_multiply(down_quat, x_axis_rot))
-
-#         axis = np.array([1, 0, 0])
-#         aa = angle_axis(np.pi * (mouse_y - down_y) / h * speed / 2.0, normalized(axis))
-#         y_axis_rot = rotation_as_quat(R.from_matrix(aa))
-
-#         quat = quaternion_multiply(y_axis_rot, quat)
-#         quat = normalized(quat)
-
-#         return quat
+from numerics.linear_algebra import normalized
 
 
 class Camera(object):
@@ -109,7 +14,7 @@ class Camera(object):
         zoom_sensitivity=0.1,
         min_fov=10.0,
         max_fov=120.0,
-        fov=45.0,
+        fov=65.0,
         min_radius=0.1,
         max_radius=1000.0,
         aspect_ratio=(4.0 / 3.0),
@@ -137,7 +42,7 @@ class Camera(object):
         self._view_matrix = np.eye(4)
         self._projection_matrix = np.eye(4)
 
-        self.eye = np.array([0, 0, -5])
+        self.eye = np.array([0, 0, 0])
         self.center = np.zeros(3)
         self.up = np.array([0, 1, 0])
 
@@ -228,7 +133,6 @@ class Camera(object):
         self._projection_matrix = pyrr.matrix44.create_perspective_projection_matrix(
             self.fov, self.aspect_ratio, self.near_plane, self.far_plane
         )
-        print(self._projection_matrix)
 
     @staticmethod
     def look_at(eye: np.ndarray, at: np.ndarray, up: np.ndarray):

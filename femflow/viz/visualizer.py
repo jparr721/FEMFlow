@@ -168,15 +168,13 @@ class Visualizer(object):
 
         glEnable(GL_DEPTH_TEST)
 
-        
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # print("Time: ", glfw.get_time())
-        # with Renderer(mesh) as self.renderer:
-        #     self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
-        #     self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
-        #     while not glfw.window_should_close(self.window):
-        #         glfw.swap_buffers(self.window)
-        #         glfw.poll_events()
-        #         self.renderer.render(self.camera)
+        print("Time: ", glfw.get_time())
+        with Renderer(mesh) as self.renderer:
+            self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+            self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
+            while not glfw.window_should_close(self.window):
+                glfw.swap_buffers(self.window)
+                glfw.poll_events()
+                self.renderer.render(self.camera)
