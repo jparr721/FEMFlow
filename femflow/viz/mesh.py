@@ -4,16 +4,10 @@ import igl
 import numpy as np
 import wildmeshing as wm
 from loguru import logger
-from OpenGL.GL import *
 
 
 class Mesh(object):
     def __init__(self, data: np.ndarray, *, surface=None, volumes=None, tetrahedralize=False):
-        self.RED = np.array([1, 0, 0, 1], dtype=np.float32)
-        self.GREEN = np.array([0, 1, 0, 1], dtype=np.float32)
-        self.BLUE = np.array([0, 0, 1, 1], dtype=np.float32)
-        self.DEFAULT_MESH_COLOR = np.array([1, 0, 0, 1], dtype=np.float32)
-
         self.faces = None
         self.vertices = None
         self.tetrahedra = None
