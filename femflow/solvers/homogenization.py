@@ -1,6 +1,5 @@
 import copy
 import math
-from collections import namedtuple
 from typing import Tuple, Union
 
 import ilupp
@@ -57,7 +56,66 @@ class Homogenization(Solver):
         dy = self.cell_len_y / nely
         dz = self.cell_len_z / nelz
 
+        # The stiffness matrix for linear FEA is broken down into two parts, one for lambda
+        # and the other for mu, we'll separately compute them and then combine.
         ke_lambda, ke_mu, fe_lambda, fe_mu = self.compute_hexahedron(dx / 2, dy / 2, dz / 2)
+
+        # Compute baseline degrees of freedom
+        edof = self._compute_degrees_of_freedom(nel)
+        # Impose periodic boundary conditions
+        unique_nodes = self._compute_unique_nodes(nel)
+        # Refine degrees of freedom to be only the active components (for void based meshes)
+        edof = self._compute_unique_degrees_of_freedom(edof, unique_nodes)
+        # Get rid of the unique nodes to save memory
+        del unique_nodes
+        # Number of degrees of freedom is 3 * elements (in euclidean coordinates in R3)
+        ndof = 3 * nel
+
+        if self.void_material:
+            self.lambda_ = self.lambda_ * ((self.voxel == 1).astype(int))
+            self.mu = self.mu * ((self.voxel == 1).astype(int))
+        else:
+            # Material properties for the composite vectors. We just sum them
+            self.lambda_ = self.lambda_[0] * ((self.voxel == 1).astype(int)) + self.lambda_[1] * (
+                (self.voxel == 2).astype(int)
+            )
+            self.mu = self.mu[0] * ((self.voxel == 1).astype(int)) + self.mu[1] * ((self.voxel == 2).astype(int))
+
+        K = self._assemble_K(edof, ke_lambda, ke_mu, ndof)
+        F = self._assemble_load(edof, fe_lambda, fe_mu, nel, ndof)
+        ke = ke_mu + ke_lambda
+        fe = fe_mu + fe_lambda
+        del fe_mu, fe_lambda
+
+        X = self._compute_displacement(K, F, edof, ndof)
+
+        # Start homogenization
+        # Displacement vectors from unit strain cases
+        X0 = np.zeros((nel, 24, 6))
+
+        # Element displacements for the 6 load tests
+        X0_e = np.zeros((24, 6))
+
+        indices = np.concatenate([np.array([3]), np.arange(6, 11), np.arange(12, 24)])
+        X0_e[indices, :] = np.linalg.lstsq(ke[indices, :][:, indices], fe[indices, :])[0]
+        X0[:, :, 0] = np.kron(X0_e[:, 0].transpose(), np.ones((nel, 1)))  # epsilon0_11 = (1,0,0,0,0,0)
+        X0[:, :, 1] = np.kron(X0_e[:, 1].transpose(), np.ones((nel, 1)))  # epsilon0_22 = (0,1,0,0,0,0)
+        X0[:, :, 2] = np.kron(X0_e[:, 2].transpose(), np.ones((nel, 1)))  # epsilon0_33 = (0,0,1,0,0,0)
+        X0[:, :, 3] = np.kron(X0_e[:, 3].transpose(), np.ones((nel, 1)))  # epsilon0_12 = (0,0,0,1,0,0)
+        X0[:, :, 4] = np.kron(X0_e[:, 4].transpose(), np.ones((nel, 1)))  # epsilon0_23 = (0,0,0,0,1,0)
+        X0[:, :, 5] = np.kron(X0_e[:, 5].transpose(), np.ones((nel, 1)))  # epsilon0_13 = (0,0,0,0,0,1)
+
+        # Fill Constitutive Tensor
+        volume = self.cell_len_x * self.cell_len_y * self.cell_len_z
+
+        edof -= 1
+        for i in range(6):
+            for j in range(6):
+                dX = X0[:, :, j] - X[edof, j]
+                sum_L = np.sum((np.matmul(X0[:, :, i] - X[edof, i], ke_lambda)) * dX, 1).reshape(nelx, nely, nelz)
+                sum_M = np.sum((np.matmul(X0[:, :, i] - X[edof, i], ke_mu)) * dX, 1).reshape(nelx, nely, nelz)
+                self.constitutive_tensor[i][j] = 1 / volume * np.sum(self.lambda_ * sum_L + self.mu * sum_M)
+        logger.info("Homgenization complete")
 
     def _compute_degrees_of_freedom(self, n_el):
         n_el_x, n_el_y, n_el_z = self.voxel.shape
@@ -127,6 +185,34 @@ class Homogenization(Solver):
         edof = np.squeeze(edof, axis=2)
         return edof.astype(int)
 
+    def _compute_displacement(self, K, F, edof, ndof):
+        # If we have a void-based single-material mesh, we have limited active dofs
+        if self.void_material:
+            activedofs = edof[np.where(self.voxel == 1)]
+            activedofs = np.sort(np.unique(activedofs))
+        else:
+            activedofs = copy.deepcopy(edof)
+            activedofs = np.sort(np.unique(self._flat_1d(activedofs)))
+
+        # Subtract one from the dofs so indexing does not break
+        activedofs -= 1
+
+        end = activedofs.shape[0]
+        K_sub = K[3:end, 3:end]
+        L = self.ichol(K_sub)
+
+        X = np.zeros((ndof, 6))
+        for i in range(6):
+            F_sub = F[3:end, i].todense()
+            result, info = cg(A=K_sub, b=F_sub, tol=1e-10, maxiter=300, M=L * L.transpose())
+
+            if info > 0:
+                raise RuntimeError("IChol solver failed")
+
+            X[activedofs[3:end], i] = result
+
+        return X
+
     def _assemble_K(self, edof, ke_lambda, ke_mu, ndof):
         # Index vectors
         stiffness_index_i = self._flat_1d(np.kron(edof, np.ones((24, 1))).transpose())
@@ -164,35 +250,6 @@ class Homogenization(Solver):
         )
         load_entries = self._flat_1d(load_entries)
         return self.sparse(load_index_i, load_index_j, load_entries, ndof, 6)
-
-    def _compute_displacement(self, K, F, edof, ndof):
-
-        # If we have a void-based single-material mesh, we have limited active dofs
-        if self.void_material:
-            activedofs = edof[np.where(self.voxel == 1)]
-            activedofs = np.sort(np.unique(activedofs))
-        else:
-            activedofs = copy.deepcopy(edof)
-            activedofs = np.sort(np.unique(self._flat_1d(activedofs)))
-
-        # Subtract one from the dofs so indexing does not break
-        activedofs -= 1
-
-        end = activedofs.shape[0]
-        K_sub = K[3:end, 3:end]
-        L = self._ichol(K_sub)
-
-        X = np.zeros((ndof, 6))
-        for i in range(6):
-            F_sub = F[3:end, i].todense()
-            result, info = cg(A=K_sub, b=F_sub, tol=1e-10, maxiter=300, M=L * L.transpose())
-
-            if info > 0:
-                raise RuntimeError("IChol solver failed")
-
-            X[activedofs[3:end], i] = result
-
-        return X
 
     @staticmethod
     def _flat_2d(v):
@@ -306,7 +363,7 @@ class Homogenization(Solver):
                         [[-a, a, a, -a, -a, a, a, -a], [-b, -b, b, b, -b, -b, b, b], [-c, -c, -c, -c, c, c, c, c]]
                     ).transpose()
 
-                    # Compute the jacobian
+                    # Compute the jacobian to transform the coordinates to the deformed space (6 axial tests)
                     J = np.matmul(qq, dims)
 
                     qxyz = np.linalg.lstsq(J, qq)[0]
