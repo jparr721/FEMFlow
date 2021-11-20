@@ -36,7 +36,7 @@ class Renderer(object):
             self._build_buffers()
 
         self.shader_program.release()
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         glEnable(GL_DEPTH_TEST)
 
         # TODO(@jparr721) Add dirty states for rendering.
@@ -71,6 +71,7 @@ class Renderer(object):
 
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
         glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_LINES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
         self.shader_program.release()
 
         log_errors(self.render.__name__)
