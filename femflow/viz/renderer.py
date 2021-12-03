@@ -1,9 +1,7 @@
 import ctypes
 import os
 
-import imgui
 import numpy as np
-from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
 from OpenGL.GLU import *

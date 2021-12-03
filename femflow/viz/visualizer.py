@@ -1,11 +1,13 @@
 import os
+import tkinter as tk
+from tkinter import filedialog
 
 import glfw
 import imgui
-import numpy as np
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
+from utils.filesystem import file_dialog
 
 from .camera import Camera
 from .input import Input
@@ -40,8 +42,6 @@ class Visualizer(object):
 
         assert self.window, "GLFW failed to open the window"
 
-        self.imgui_impl = None
-
         glfw.make_context_current(self.window)
         self.imgui_impl = GlfwRenderer(self.window, attach_callbacks=True)
 
@@ -75,14 +75,28 @@ class Visualizer(object):
 
     def window_size_callback(self, window, width, height):
         self.camera.resize(width, height)
+        self.imgui_impl.io.display_size = width, height
 
         if self.renderer is not None:
             self.renderer.resize(width, height, self.camera)
 
+    def menu_window(self):
+        imgui.begin("FEMFlow Options")
+        if imgui.begin_menu_bar():
+            if imgui.begin_menu(label="Menu"):
+                imgui.end_menu()
+
+        if imgui.button(label="Load Mesh"):
+            file_dialog.file_dialog_open()
+        imgui.same_line()
+        if imgui.button(label="Save Mesh"):
+            file_dialog.file_dialog_save_mesh(self.mesh)
+        imgui.end()
+
     def launch(self):
         folder = os.path.dirname(os.path.abspath(__file__))
-        mesh = Mesh(f"{folder}/models/cube.obj")
-        with Renderer(mesh) as self.renderer:
+        self.mesh = Mesh(f"{folder}/models/cube.obj")
+        with Renderer(self.mesh) as self.renderer:
             self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
             self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
             while not glfw.window_should_close(self.window):
@@ -90,13 +104,7 @@ class Visualizer(object):
                 self.imgui_impl.process_inputs()
 
                 imgui.new_frame()
-
-                imgui.begin("Custom window", True)
-                imgui.text("Bar")
-                imgui.text_ansi("B\033[31marA\033[mnsi ")
-                imgui.text_ansi_colored("Eg\033[31mgAn\033[msi ", 0.2, 1.0, 0.0)
-                imgui.extra.text_ansi_colored("Eggs", 0.2, 1.0, 0.0)
-                imgui.end()
+                self.menu_window()
 
                 self.renderer.render(self.camera)
                 imgui.render()
