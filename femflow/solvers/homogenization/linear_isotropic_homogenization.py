@@ -6,7 +6,7 @@ import ilupp
 import numpy as np
 import numpy.matlib
 from loguru import logger
-from scipy.sparse import csr_matrix
+from numerics.linear_algebra import sparse
 from scipy.sparse.linalg import cg
 
 
@@ -223,7 +223,7 @@ class Homogenization(object):
 
         stiffness_entries = self._flat_1d(stiffness_entries)
 
-        K = self.sparse(stiffness_index_i, stiffness_index_j, stiffness_entries, ndof, ndof)
+        K = sparse(stiffness_index_i, stiffness_index_j, stiffness_entries, ndof, ndof)
         K = 1 / 2 * (K + K.transpose())
         return K
 
@@ -247,7 +247,7 @@ class Homogenization(object):
             self._flat_2d(fe_mu), self._flat_2d(self.mu).conj().transpose()
         )
         load_entries = self._flat_1d(load_entries)
-        return self.sparse(load_index_i, load_index_j, load_entries, ndof, 6)
+        return sparse(load_index_i, load_index_j, load_entries, ndof, 6)
 
     @staticmethod
     def _flat_2d(v):
@@ -265,25 +265,6 @@ class Homogenization(object):
     def ichol(A):
         solver = ilupp.IChol0Preconditioner(A)
         return solver.factors()[0]
-
-    @staticmethod
-    def sparse(i, j, v, m, n):
-        """
-        Create and compressing a matrix that have many zeros
-        Parameters:
-            i: 1-D array representing the index 1 values
-                Size n1
-            j: 1-D array representing the index 2 values
-                Size n1
-            v: 1-D array representing the values
-                Size n1
-            m: integer representing x size of the matrix >= n1
-            n: integer representing y size of the matrix >= n1
-        Returns:
-            s: 2-D array
-                Matrix full of zeros excepting values v at indexes i, j
-        """
-        return csr_matrix((v, (i, j)), shape=(m, n))
 
     @staticmethod
     def compute_hexahedron(a: float, b: float, c: float):

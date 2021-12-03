@@ -1,7 +1,8 @@
-from typing import Tuple
+from typing import Any, List, Tuple, Union
 
 import numpy as np
 import scipy as sp
+from scipy.sparse.csr import csr_matrix
 from scipy.spatial.transform import Rotation as R
 
 
@@ -77,3 +78,34 @@ def rotation_as_quat(rot: R) -> np.ndarray:
     """
     x, y, z, w = rot.as_quat()
     return np.array([w, x, y, z])
+
+
+def sparse(
+    i: Union[np.ndarray, List[int]], j: Union[np.ndarray, List[int]], v: Union[np.ndarray, List[Any]], m: int, n: int
+) -> csr_matrix:
+    """Computes a sparse matrix from an input set of indices in 2D and their values as a bijection followed by the shape
+
+    Args:
+        i (Union[np.ndarray, List[int]]): Input index x
+        j (Union[np.ndarray, List[int]]): Input indices y
+        v (Union[np.ndarray, List[Any]]): Input indices y
+        m (int): Shape m
+        n (int): Shape n
+
+    Returns:
+        csr_matrix: The csr matrix output
+    """
+    return csr_matrix((v, (i, j)), shape=(m, n))
+
+
+def fast_diagonal_inverse(mat: Union[csr_matrix, np.ndarray]) -> None:
+    """Computes the fast diagonal inverse of a sparse or dense matrix. To save cycles, this function does _not_
+    check if the matrix is a true diagonal.
+
+    Args:
+        mat (Union[csr_matrix, np.ndarray]): [description]
+    """
+    assert mat.shape[0] == mat.shape[1], "Matrix must be square!"
+
+    for i in range(mat.shape[0]):
+        mat[i, i] = 1 / mat[i, i]
