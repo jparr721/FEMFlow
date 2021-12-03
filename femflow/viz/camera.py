@@ -184,7 +184,7 @@ class Camera(object):
         )
 
     @staticmethod
-    def _spherical_to_cartesian(r: float, theta: float, phi: float):
+    def spherical_to_cartesian(r: float, theta: float, phi: float) -> np.ndarray:
         sin_phi = np.sin(phi)
         cos_phi = np.cos(phi)
 
@@ -198,7 +198,7 @@ class Camera(object):
         return vec
 
     @staticmethod
-    def _sperical_to_cartesian_dPhi(r: float, theta: float, phi: float):
+    def sperical_to_cartesian_dPhi(r: float, theta: float, phi: float) -> np.ndarray:
         sin_phi = np.sin(phi)
         cos_phi = np.cos(phi)
 
@@ -213,8 +213,8 @@ class Camera(object):
 
     def _compile(self):
         self.center = np.zeros(3)
-        self.eye = self._spherical_to_cartesian(self.r, self.theta, self.phi)
-        self.up = normalized(self._sperical_to_cartesian_dPhi(self.r, self.theta, self.phi))
+        self.eye = self.spherical_to_cartesian(self.r, self.theta, self.phi)
+        self.up = normalized(self.sperical_to_cartesian_dPhi(self.r, self.theta, self.phi))
 
         # --------------------------------------------------------------------------------
         # Invert the up direction (since the spherical coordinates have phi
