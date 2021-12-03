@@ -1,5 +1,4 @@
 import numpy as np
-import pyrr
 from numerics.linear_algebra import normalized
 
 
@@ -129,18 +128,60 @@ class Camera(object):
         self._compile()
 
     def set_perspective(self):
+        """Set the projection matrix from the persepctive values. Stolen from pyrr.
+        """
         if self.fov > self.max_fov:
             self.fov = self.max_fov
         elif self.fov < self.min_fov:
             self.fov = self.min_fov
 
-        self._projection_matrix = pyrr.matrix44.create_perspective_projection_matrix(
-            self.fov, self.aspect_ratio, self.near_plane, self.far_plane
+        ymax = self.near_plane * np.tan(self.fov * np.pi / 360.0)
+        xmax = ymax * self.aspect_ratio
+
+        left = -xmax
+        right = xmax
+        bottom = -ymax
+        top = ymax
+
+        A = (right + left) / (right - left)
+        B = (top + bottom) / (top - bottom)
+        C = -(self.far_plane + self.near_plane) / (self.far_plane - self.near_plane)
+        D = -2.0 * self.far_plane * self.near_plane / (self.far_plane - self.near_plane)
+        E = 2.0 * self.near_plane / (right - left)
+        F = 2.0 * self.near_plane / (top - bottom)
+
+        self._projection_matrix = np.array(
+            ((E, 0.0, 0.0, 0.0), (0.0, F, 0.0, 0.0), (A, B, C, -1.0), (0.0, 0.0, D, 0.0))
         )
 
     @staticmethod
-    def look_at(eye: np.ndarray, at: np.ndarray, up: np.ndarray):
-        return pyrr.matrix44.create_look_at(eye, at, up)
+    def look_at(eye: np.ndarray, at: np.ndarray, up: np.ndarray) -> np.ndarray:
+        """Create look at matrix, stolen from pyrr so I can modify it.
+
+        Args:
+            eye (np.ndarray): The eye position
+            at (np.ndarray): What we're looking at
+            up (np.ndarray): The up direction
+
+        Returns:
+            np.ndarray: The look at matrix
+        """
+        eye = np.asarray(eye)
+        target = np.asarray(at)
+        up = np.asarray(up)
+
+        forward = normalized(target - eye)
+        side = normalized(np.cross(forward, up))
+        up = normalized(np.cross(side, forward))
+
+        return np.array(
+            (
+                (side[0], up[0], -forward[0], 0.0),
+                (side[1], up[1], -forward[1], 0.0),
+                (side[2], up[2], -forward[2], 0.0),
+                (-np.dot(side, eye), -np.dot(up, eye), np.dot(forward, eye), 1.0),
+            ),
+        )
 
     @staticmethod
     def _spherical_to_cartesian(r: float, theta: float, phi: float):
