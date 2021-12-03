@@ -1,7 +1,6 @@
 import os
 
 import glfw
-import igl
 import imgui
 import numpy as np
 from imgui.integrations.glfw import GlfwRenderer
@@ -28,6 +27,7 @@ class Visualizer(object):
 
         logger.info("GLFW Initialized.")
 
+        imgui.create_context()
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
@@ -40,12 +40,16 @@ class Visualizer(object):
 
         assert self.window, "GLFW failed to open the window"
 
+        self.imgui_impl = None
+
+        glfw.make_context_current(self.window)
+        self.imgui_impl = GlfwRenderer(self.window, attach_callbacks=True)
+
         glfw.set_mouse_button_callback(self.window, self.mouse_callback)
         glfw.set_scroll_callback(self.window, self.scroll_callback)
         glfw.set_cursor_pos_callback(self.window, self.mouse_move_callback)
         glfw.set_window_size_callback(self.window, self.window_size_callback)
 
-        glfw.make_context_current(self.window)
         glClearColor(*self.background_color)
 
         self.input = Input()
@@ -54,6 +58,9 @@ class Visualizer(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        logger.info("Destroying imgui")
+        self.imgui_impl.shutdown()
+
         logger.info("Destroying glfw")
         glfw.terminate()
 
@@ -79,6 +86,20 @@ class Visualizer(object):
             self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
             self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
             while not glfw.window_should_close(self.window):
-                glfw.swap_buffers(self.window)
                 glfw.poll_events()
+                self.imgui_impl.process_inputs()
+
+                imgui.new_frame()
+
+                imgui.begin("Custom window", True)
+                imgui.text("Bar")
+                imgui.text_ansi("B\033[31marA\033[mnsi ")
+                imgui.text_ansi_colored("Eg\033[31mgAn\033[msi ", 0.2, 1.0, 0.0)
+                imgui.extra.text_ansi_colored("Eggs", 0.2, 1.0, 0.0)
+                imgui.end()
+
                 self.renderer.render(self.camera)
+                imgui.render()
+                self.imgui_impl.render(imgui.get_draw_data())
+                glfw.swap_buffers(self.window)
+
