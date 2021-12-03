@@ -1,6 +1,3 @@
-# import numpy as np
-
-# from solver import Solver
 import copy
 from collections import namedtuple
 from typing import Dict, List, Tuple
@@ -47,7 +44,7 @@ def tet_volume(a, b, c, d):
     x3, y3, z3 = c
     x4, y4, z4 = d
 
-    x = np.array([[1, x1, y1, z1], [1, x2, y2, z2], [1, x3, y3, z3], [1, x4, y4, z4],])
+    x = np.array([[1, x1, y1, z1], [1, x2, y2, z2], [1, x3, y3, z3], [1, x4, y4, z4]])
 
     return np.linalg.det(x) / 6
 
@@ -61,7 +58,7 @@ def assemble_shape_fn_matrix(a, b, c, d):
         )
 
     def _shape_fn(p0, p1, p2, p3, p4, p5) -> float:
-        return np.linalg.det(np.array([[1, p0, p1], [1, p2, p3], [1, p4, p5],]))
+        return np.linalg.det(np.array([[1, p0, p1], [1, p2, p3], [1, p4, p5]]))
 
     x1, y1, z1 = a
     x2, y2, z2 = b
@@ -293,13 +290,15 @@ def assemble_boundary_forces(K: csr_matrix, boundary_conditions: Dict[int, np.nd
     return index_slice(K, I_e), F_e
 
 
-def solve_galerkin_fem(K: csr_matrix, K_e: np.ndarray, F_e: np.ndarray):
-    pass
+def compute_U(
+    K: csr_matrix, K_e: np.ndarray, F_e: np.ndarray, boundary_conditions: Dict[int, np.ndarray]
+) -> np.ndarray:
+    U_e = np.linalg.solve(K_e, F_e)
+    U = np.zeros(K.shape[0])
+    i = 0
+    for node in boundary_conditions.keys():
+        segment = node * 3
+        U[segment : segment + 3] = U_e[i : i + 3]
+        i += 3
 
-
-class LinearGalerkinFEA(Solver):
-    def __init__(self):
-        pass
-
-    def solve(self):
-        pass
+    return U

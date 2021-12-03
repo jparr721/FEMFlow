@@ -8,10 +8,10 @@ from loguru import logger
 
 class Mesh(object):
     def __init__(self, data: np.ndarray, *, faces=None, tetrahedra=None, colors=None, tetrahedralize=False):
-        self.faces = None
         self.vertices = None
-        self.tetrahedra = None
-        self.colors = None
+        self.faces = faces
+        self.tetrahedra = tetrahedra
+        self.colors = colors
         self.tetrahedralize = tetrahedralize
 
         if type(data) == str:
@@ -30,6 +30,18 @@ class Mesh(object):
 
     def update(self, displacements: np.array):
         self.vertices = self.rest_positions + displacements
+
+    def axis_max(self, axis: int) -> float:
+        mv = -1
+        for i in range(axis, len(self.vertices), 3):
+            mv = max(mv, self.vertices[i])
+        return mv
+
+    def axis_min(self, axis: int) -> float:
+        mv = 1e10
+        for i in range(axis, len(self.vertices), 3):
+            mv = min(mv, self.vertices[i])
+        return mv
 
     def _init_from_file(self, filename: str):
         logger.info(f"Loading mesh from file: {filename}")

@@ -9,10 +9,8 @@ from loguru import logger
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import cg
 
-from solver import Solver
 
-
-class Homogenization(Solver):
+class Homogenization(object):
     def __init__(
         self,
         cell_len: Union[int, Tuple[int, int, int]],

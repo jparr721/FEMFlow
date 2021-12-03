@@ -1,3 +1,5 @@
+import os
+
 import glfw
 import igl
 import imgui
@@ -71,7 +73,8 @@ class Visualizer(object):
             self.renderer.resize(width, height, self.camera)
 
     def launch(self):
-        mesh = Mesh("femflow/cuboid.obj")
+        folder = os.path.dirname(os.path.abspath(__file__))
+        mesh = Mesh(f"{folder}/models/cube.obj")
         with Renderer(mesh) as self.renderer:
             self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
             self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)

@@ -57,6 +57,11 @@ class Renderer(object):
     def resize(self, width, height, camera: Camera):
         logger.debug(f"Resizing to width: {width}, height: {height}")
         camera.resize(width, height)
+        camera.snap_to_mesh(
+            self.mesh.axis_max(2),
+            (self.mesh.axis_max(0) - self.mesh.axis_min(1)) / 2,
+            (self.mesh.axis_max(1) - self.mesh.axis_min(1)) / 2,
+        )
         glViewport(0, 0, width, height)
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.projection, camera.projection_matrix)
