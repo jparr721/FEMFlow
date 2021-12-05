@@ -39,32 +39,12 @@ def angle_between_vectors(a: np.array, b: np.array) -> float:
     return np.arccos(np.clip(np.dot(a, b), -1.0, 1.0))
 
 
-def joint_point_point_angle_rad(root: np.array, n1: np.array, n2: np.array) -> float:
-    n1d = normalized(n1 - root)
-    n2d = normalized(n2 - root)
-    return angle_between_vectors(n1d, n2d)
-
-
 def distance(a: np.array, b: np.array) -> float:
     return np.linalg.norm(a - b)
 
 
 def angle_axis(angle, axis):
     return sp.linalg.expm(np.cross(np.eye(3), normalized(axis) * angle))
-
-
-def quaternion_multiply(a, b) -> np.ndarray:
-    a_w, a_x, a_y, a_z = a
-    b_w, b_x, b_y, b_z = b
-    return np.array(
-        [
-            a_w * b_w - a_x * b_x - a_y * b_y - a_z * b_z,
-            a_w * b_x + a_x * b_w + a_y * b_z - a_z * b_y,
-            a_w * b_y + a_y * b_w + a_z * b_x - a_x * b_z,
-            a_w * b_z + a_z * b_w + a_x * b_y - a_y * b_x,
-        ],
-        dtype=np.float64,
-    )
 
 
 def rotation_as_quat(rot: R) -> np.ndarray:
@@ -98,14 +78,19 @@ def sparse(
     return csr_matrix((v, (i, j)), shape=(m, n))
 
 
-def fast_diagonal_inverse(mat: Union[csr_matrix, np.ndarray]) -> None:
+def fast_diagonal_inverse(mat: Union[csr_matrix, np.ndarray]) -> Union[csr_matrix, np.ndarray]:
     """Computes the fast diagonal inverse of a sparse or dense matrix. To save cycles, this function does _not_
     check if the matrix is a true diagonal.
 
     Args:
-        mat (Union[csr_matrix, np.ndarray]): [description]
+        mat (Union[csr_matrix, np.ndarray]): The input matrix which is dense or sparse
+
+    Returns:
+        Union[csr_matrix, np.ndarray]: The output matrix which is dense or sparse
     """
     assert mat.shape[0] == mat.shape[1], "Matrix must be square!"
 
     for i in range(mat.shape[0]):
         mat[i, i] = 1 / mat[i, i]
+
+    return mat

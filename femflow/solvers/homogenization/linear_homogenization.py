@@ -5,27 +5,18 @@ from typing import Tuple, Union
 import ilupp
 import numpy as np
 import numpy.matlib
+from femflow.numerics.linear_algebra import sparse
 from loguru import logger
-from numerics.linear_algebra import sparse
 from scipy.sparse.linalg import cg
 
 
-class Homogenization(object):
+class LinearHomogenization(object):
     def __init__(
-        self,
-        cell_len: Union[int, Tuple[int, int, int]],
-        lambda_: Union[float, Tuple[float, float]],
-        mu: Union[float, Tuple[float, float]],
-        voxel: np.ndarray,
+        self, lambda_: Union[float, Tuple[float, float]], mu: Union[float, Tuple[float, float]], voxel: np.ndarray,
     ):
         assert voxel.ndim == 3, "Voxel input must be uniform 3D"
 
-        if type(cell_len) == tuple:
-            self.cell_len_x, self.cell_len_y, self.cell_len_z = cell_len
-        else:
-            self.cell_len_x = cell_len
-            self.cell_len_y = cell_len
-            self.cell_len_z = cell_len
+        self.cell_len_x, self.cell_len_y, self.cell_len_z = voxel.shape
 
         self.lambda_ = lambda_
         self.mu = mu
@@ -186,8 +177,19 @@ class Homogenization(object):
     def _compute_displacement(self, K, F, edof, ndof):
         # If we have a void-based single-material mesh, we have limited active dofs
         if self.void_material:
-            activedofs = edof[np.where(self.voxel == 1)]
-            activedofs = np.sort(np.unique(activedofs))
+            # activedofs = edof[self._flat_1d((self.voxel == 1).astype(int))]
+            indices = (self.voxel == 1).astype(int).flatten()
+
+            activedofs = np.zeros((indices.size, edof.shape[1]))
+
+            for i in range(indices.size):
+                if indices[i] == 1:
+                    activedofs[i] = edof[i, :]
+
+            activedofs = np.sort(np.unique(activedofs)).astype(np.int32)
+            activedofs = list(activedofs)
+            del activedofs[0]
+            activedofs = np.array(activedofs)
         else:
             activedofs = copy.deepcopy(edof)
             activedofs = np.sort(np.unique(self._flat_1d(activedofs)))
@@ -195,14 +197,13 @@ class Homogenization(object):
         # Subtract one from the dofs so indexing does not break
         activedofs -= 1
 
-        end = activedofs.shape[0]
-        K_sub = K[3:end, 3:end]
+        end = activedofs.size
+        K_sub = K[np.ix_(activedofs[3:end], activedofs[3:end])]
         L = self.ichol(K_sub)
-
         X = np.zeros((ndof, 6))
+
         for i in range(6):
-            F_sub = F[3:end, i].todense()
-            result, info = cg(A=K_sub, b=F_sub, tol=1e-10, maxiter=300, M=L * L.transpose())
+            result, info = cg(A=K_sub, b=F[activedofs[3:end], i].todense(), tol=1e-10, maxiter=1000, M=L * L.T)
 
             if info > 0:
                 raise RuntimeError("IChol solver failed")
@@ -217,9 +218,18 @@ class Homogenization(object):
         stiffness_index_i -= 1
         stiffness_index_j = self._flat_1d(np.kron(edof, np.ones((1, 24))).transpose())
         stiffness_index_j -= 1
-        stiffness_entries = np.matmul(
-            self._flat_2d(ke_lambda), self._flat_2d(self.lambda_).conj().transpose()
-        ) + np.matmul(self._flat_2d(ke_mu), self._flat_2d(self.mu).conj().transpose())
+        # stiffness_entries = np.matmul(
+        # 	self._flat_2d(ke_lambda), self._flat_2d(self.lambda_).conj().transpose()
+        # ) + np.matmul(self._flat_2d(ke_mu), self._flat_2d(self.mu).conj().transpose())
+
+        entry_lambda = np.multiply(
+            np.expand_dims(ke_lambda.flatten("F"), axis=1), np.expand_dims(self.lambda_.flatten(), axis=1).conj().T
+        )
+        entry_mu = np.multiply(
+            np.expand_dims(ke_mu.flatten("F"), axis=1), np.expand_dims(self.mu.flatten(), axis=1).conj().T
+        )
+
+        stiffness_entries = entry_lambda + entry_mu
 
         stiffness_entries = self._flat_1d(stiffness_entries)
 
@@ -243,10 +253,17 @@ class Homogenization(object):
             )
         )
         load_index_j -= 1
-        load_entries = np.matmul(self._flat_2d(fe_lambda), self._flat_2d(self.lambda_).conj().transpose(),) + np.matmul(
-            self._flat_2d(fe_mu), self._flat_2d(self.mu).conj().transpose()
+
+        entry_lambda = np.multiply(
+            np.expand_dims(fe_lambda.flatten("F"), axis=1), np.expand_dims(self.lambda_.flatten(), axis=1).conj().T
         )
-        load_entries = self._flat_1d(load_entries)
+        entry_mu = np.multiply(
+            np.expand_dims(fe_mu.flatten("F"), axis=1), np.expand_dims(self.mu.flatten(), axis=1).conj().T
+        )
+
+        load_entries = entry_lambda + entry_mu
+
+        load_entries = load_entries.flatten("F")
         return sparse(load_index_i, load_index_j, load_entries, ndof, 6)
 
     @staticmethod

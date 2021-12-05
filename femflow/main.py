@@ -1,12 +1,4 @@
-import glfw
-import imgui
-import OpenGL
-from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
-
-OpenGL.ERROR_LOGGING = True
-OpenGL.FULL_LOGGING = True
-from OpenGL.GL import *
 
 from viz.visualizer import Visualizer
 
