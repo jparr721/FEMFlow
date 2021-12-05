@@ -14,8 +14,8 @@ from .shader_program import ShaderProgram
 
 class Renderer(object):
     def __init__(self, mesh: Mesh = None):
-        self.FRAG_SHADER_PATH = os.path.join(os.getcwd(), "femflow", "core.frag.glsl")
-        self.VERTEX_SHADER_PATH = os.path.join(os.getcwd(), "femflow", "core.vs.glsl")
+        self.FRAG_SHADER_PATH = os.path.join(os.getcwd(), "femflow", "viz", "shaders", "core.frag.glsl")
+        self.VERTEX_SHADER_PATH = os.path.join(os.getcwd(), "femflow", "viz", "shaders", "core.vs.glsl")
 
         self.shader_program = ShaderProgram()
         self.shader_program.add_shader(GL_VERTEX_SHADER, self.VERTEX_SHADER_PATH)

@@ -1,6 +1,4 @@
 import os
-import tkinter as tk
-from tkinter import filedialog
 
 import glfw
 import imgui
@@ -110,4 +108,3 @@ class Visualizer(object):
                 imgui.render()
                 self.imgui_impl.render(imgui.get_draw_data())
                 glfw.swap_buffers(self.window)
-
