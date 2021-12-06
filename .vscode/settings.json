@@ -3,5 +3,25 @@
         "femflow"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#98d4f2",
+        "activityBar.activeBorder": "#ea55b8",
+        "activityBar.background": "#98d4f2",
+        "activityBar.foreground": "#15202b",
+        "activityBar.inactiveForeground": "#15202b99",
+        "activityBarBadge.background": "#ea55b8",
+        "activityBarBadge.foreground": "#15202b",
+        "sash.hoverBorder": "#98d4f2",
+        "statusBar.background": "#6bc1ec",
+        "statusBar.foreground": "#15202b",
+        "statusBarItem.hoverBackground": "#3eaee6",
+        "statusBarItem.remoteBackground": "#6bc1ec",
+        "statusBarItem.remoteForeground": "#15202b",
+        "titleBar.activeBackground": "#6bc1ec",
+        "titleBar.activeForeground": "#15202b",
+        "titleBar.inactiveBackground": "#6bc1ec99",
+        "titleBar.inactiveForeground": "#15202b99"
+    },
+    "peacock.color": "#6bc1ec"
 }
