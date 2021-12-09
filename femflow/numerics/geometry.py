@@ -1,4 +1,5 @@
 import numpy as np
+from loguru import logger
 
 from .linear_algebra import normalized
 
@@ -14,14 +15,16 @@ def per_face_normals(v: np.ndarray, f: np.ndarray, z: np.ndarray = np.zeros(3)) 
     Returns:
         np.ndarray: The normal matrix (n x 3)
     """
+    assert v.ndim == 2, "V must be a matrix"
+    assert f.ndim == 2, "F must be a matrix"
     assert z.shape[0] == 3 and z.ndim == 1, "Z must be a vector 3"
-    n = np.zeros(f.shape[0], 3)
+    n = np.zeros((f.shape[0], 3))
 
     for i, row in enumerate(f):
         x, y, z = row
-        u = v[y] - v[x]
-        v = v[z] - v[x]
-        normal = np.cross(u, v)
+        p1 = v[y] - v[x]
+        p2 = v[z] - v[x]
+        normal = np.cross(p1, p2)
 
         # Degenerate normal
         if np.linalg.norm(normal) == 0:

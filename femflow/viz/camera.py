@@ -88,8 +88,8 @@ class Camera(object):
         return -self.up
 
     def snap_to_mesh(self, max_z: float, midx: float, midy: float):
-        self.r = 2 * max_z
-        self.displacement = np.array([midx, midy, max_z])
+        self.r = 4 * max_z
+        self.displacement = np.array([0, 0, -2 * max_z])
 
     def resize(self, width: int, height: int):
         self.width = width

@@ -93,7 +93,8 @@ class Visualizer(object):
 
     def launch(self):
         folder = os.path.dirname(os.path.abspath(__file__))
-        self.mesh = Mesh(f"{folder}/models/cube.obj")
+        tex = f"{folder}/assets/cube_texture.jpg"
+        self.mesh = Mesh(f"{folder}/models/cube.obj", textures=tex)
         with Renderer(self.mesh) as self.renderer:
             self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
             self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
@@ -107,4 +108,5 @@ class Visualizer(object):
                 self.renderer.render(self.camera)
                 imgui.render()
                 self.imgui_impl.render(imgui.get_draw_data())
+
                 glfw.swap_buffers(self.window)

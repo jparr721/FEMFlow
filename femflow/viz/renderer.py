@@ -27,9 +27,13 @@ class Renderer(object):
         self.view = self.shader_program.uniform_location("view")
         self.mesh = mesh
 
-        # Buffers
+        # Vertex Buffers
         self.position_vbo = -1
-        self.color_vbo = -1
+        self.tex_vbo = -1
+        # self.color_vbo = -1
+        self.normal_vbo = -1
+
+        # Index Buffers
         self.faces_ibo = -1
 
         if mesh is not None:
@@ -47,7 +51,7 @@ class Renderer(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         logger.info("Destroying buffer objects")
         self.shader_program.destroy()
-        glDeleteBuffers(1, [self.position_vbo, self.color_vbo, self.faces_ibo])
+        glDeleteBuffers(1, [self.position_vbo, self.tex_vbo, self.normal_vbo, self.faces_ibo])
         glDeleteVertexArrays(1, [self.vao])
 
     def set_mesh(self, mesh: Mesh):
@@ -85,7 +89,11 @@ class Renderer(object):
         assert self.mesh is not None, "No mesh found! Cannot initialize buffers!"
 
         self._bind_vbo("position", self.position_vbo, 3, self.mesh.vertices)
-        self._bind_vbo("color", self.color_vbo, 3, self.mesh.colors)
+        # self._bind_vbo("color", self.color_vbo, 3, self.mesh.colors)
+        self._bind_texture(
+            "texture_coordinates", self.mesh.textures, self.mesh.textures_u, self.mesh.textures_v, GL_REPEAT, GL_LINEAR
+        )
+        self._bind_vbo("normal", self.normal_vbo, 3, self.mesh.normals)
         self._bind_ibo(self.mesh.faces)
 
         log_errors(self.reload_buffers.__name__)
@@ -98,11 +106,36 @@ class Renderer(object):
         glBindVertexArray(self.vao)
 
         self.position_vbo = glGenBuffers(1)
-        self.color_vbo = glGenBuffers(1)
+        # self.color_vbo = glGenBuffers(1)
+        self.normal_vbo = glGenBuffers(1)
+        self.tex_vbo = glGenTextures(1)
         self.faces_ibo = glGenBuffers(1)
 
         self.reload_buffers()
         log_errors(self._build_buffers.__name__)
+
+    def _bind_texture(
+        self,
+        name: str,
+        data: np.ndarray,
+        tex_u: int,
+        tex_v: int,
+        tex_wrap: GLint,
+        tex_filter: GLint,
+        refresh: bool = True,
+    ):
+        handle = glGetAttribLocation(self.shader_program.id, name)
+        if refresh:
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, self.tex_vbo)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, tex_wrap)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tex_wrap)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, tex_filter)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, tex_filter)
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_u, tex_v, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+            # glUniform1i(handle, 0)
+        # glEnable(GL_TEXTURE_2D)
 
     def _bind_vbo(self, name: str, buffer: int, stride: int, data: np.ndarray, refresh: bool = True):
         handle = glGetAttribLocation(self.shader_program.id, name)

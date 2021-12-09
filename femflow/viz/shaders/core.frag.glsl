@@ -1,6 +1,22 @@
 #version 330
 
-in vec4 v_color;
+in vec2 texture_coordinatesi;
+in vec3 frag_normal;
+
 out vec4 frag_color;
 
-void main() { frag_color = v_color; }
+uniform sampler2D sampler_texture;
+
+void main() {
+  vec3 ambient_light_intensity = vec3(0.3f, 0.2f, 0.4f);
+  vec3 sun_light_intensity = vec3(0.9f, 0.9f, 0.9f);
+  vec3 sun_light_direction = normalize(vec3(-2.0f, -2.0f, 0.0f));
+
+  vec4 texel = texture(sampler_texture, texture_coordinatesi);
+
+  vec3 light_intensity =
+      ambient_light_intensity +
+      sun_light_intensity * max(dot(frag_normal, sun_light_direction), 0.0f);
+
+  frag_color = vec4(texel.rgb * light_intensity, texel.a);
+}
