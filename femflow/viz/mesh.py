@@ -1,9 +1,4 @@
-from typing import List, Tuple
-
-import igl
 import numpy as np
-import wildmeshing as wm
-from loguru import logger
 from meshing.loader import load_mesh_file, load_obj_file
 from PIL import Image
 
