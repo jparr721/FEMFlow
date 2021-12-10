@@ -95,6 +95,7 @@ class Visualizer(object):
         folder = os.path.dirname(os.path.abspath(__file__))
         tex = Texture.from_file(f"{folder}/assets/cube_texture.jpg")
         self.mesh = Mesh.from_file(f"{folder}/models/cube.obj")
+        self.mesh.textures = tex
         self.renderer = Renderer(self.mesh)
         self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)

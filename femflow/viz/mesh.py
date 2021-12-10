@@ -4,8 +4,9 @@ from PIL import Image
 
 
 class Texture(object):
-    def __init__(self, data: np.ndarray, u: int, v: int):
+    def __init__(self, data: np.ndarray, tc: np.ndarray, u: int, v: int):
         self.data = data
+        self.tc = tc
         self.u = u
         self.v = v
 
@@ -18,7 +19,7 @@ class Texture(object):
         image = Image.open(image_file)
         data = np.array(image.transpose(Image.FLIP_TOP_BOTTOM).getdata(), dtype=np.uint8)
         u, v = image.width, image.height
-        return Texture(data, u, v)
+        return Texture(data, np.array([]), u, v)
 
 
 class Mesh(object):
@@ -29,7 +30,7 @@ class Mesh(object):
         tetrahedra: np.ndarray = np.array([]),
         colors: np.ndarray = np.array([]),
         normals: np.ndarray = np.array([]),
-        textures: Texture = Texture(np.array([]), 0, 0),
+        textures: Texture = Texture(np.array([]), np.array([]), 0, 0),
     ):
         self.vertices = self.as_vector(vertices).astype(np.float32)
         self.faces = self.as_vector(faces).astype(np.uint32)
@@ -44,8 +45,10 @@ class Mesh(object):
     @staticmethod
     def from_file(filename: str):
         if filename.lower().endswith(".obj"):
-            v, n, f = load_obj_file(filename)
-            return Mesh(vertices=v, normals=n, faces=f)
+            v, tc, n, f = load_obj_file(filename, include_uv=True)
+            mesh = Mesh(vertices=v, normals=n, faces=f)
+            mesh.textures.tc = tc
+            return mesh
         if filename.lower().endswith(".mesh"):
             v, t, n, f = load_mesh_file(filename)
             return Mesh(vertices=v, tetrahedra=t, normals=n, faces=f)

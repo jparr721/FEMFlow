@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 import igl
 import numpy as np
@@ -25,11 +25,13 @@ def load_mesh_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, n
     return v, t, n, f
 
 
-def load_obj_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def load_obj_file(
+    filename: str, include_uv=False
+) -> Union[Tuple[np.ndarray, np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     if not filename.lower().endswith(".obj"):
         raise ValueError("Input filename is not a .obj file")
 
-    v, _, n, f, _, _ = igl.read_obj(filename)
+    v, tc, n, f, _, _ = igl.read_obj(filename)
 
     if v is None:
         raise ValueError("Mesh file contains no vertices")
@@ -40,4 +42,6 @@ def load_obj_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     f = f.astype(np.uint32)
 
+    if include_uv:
+        return v, tc, n, f
     return v, n, f
