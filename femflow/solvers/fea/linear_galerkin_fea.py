@@ -95,16 +95,16 @@ def assemble_shape_fn_matrix(a, b, c, d):
 
 
 def assemble_element_stiffness_matrix(
-    tet_indices: np.array, tets: np.array, B: np.ndarray, D: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
+    tet_indices: np.ndarray, tets: np.ndarray, B: np.ndarray, D: np.ndarray
+) -> ElementStiffness:
     i0, i1, i2, i3 = tet_indices
     p1, p2, p3, p4 = tets[i0], tets[i1], tets[i2], tets[i3]
     V = tet_volume(p1, p2, p3, p4)
     e_stiffness = np.matmul(np.matmul(V * B.T, D), B)
-    return (e_stiffness, tet_indices)
+    return ElementStiffness(e_stiffness, tet_indices)
 
 
-def assemble_global_stiffness_matrix(elements: List[Tuple[np.ndarray, np.ndarray]], rows: int) -> csr_matrix:
+def assemble_global_stiffness_matrix(elements: List[ElementStiffness], rows: int) -> csr_matrix:
     triplets = []
     for element in elements:
         k, tetrahedral = element
