@@ -1,7 +1,8 @@
 #version 330
 
 in vec2 texture_coordinatesi;
-in vec3 frag_normal;
+in vec3 normali;
+in vec4 colori;
 
 out vec4 frag_color;
 
@@ -16,7 +17,7 @@ void main() {
 
   vec3 light_intensity =
       ambient_light_intensity +
-      sun_light_intensity * max(dot(frag_normal, sun_light_direction), 0.0f);
+      sun_light_intensity * max(dot(normali, sun_light_direction), 0.0f);
 
-  frag_color = vec4(texel.rgb * light_intensity, texel.a);
+  frag_color = vec4(colori.rgb * light_intensity, colori.a);
 }

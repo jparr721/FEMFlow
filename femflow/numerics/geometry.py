@@ -1,5 +1,8 @@
+from collections import namedtuple
+
+import igl
 import numpy as np
-from loguru import logger
+import wildmeshing as wm
 
 from .linear_algebra import normalized
 
@@ -32,4 +35,16 @@ def per_face_normals(v: np.ndarray, f: np.ndarray, z: np.ndarray = np.zeros(3)) 
         else:
             n[i, :] = normalized(normal)
 
-    return n
+    return n.astype(np.float32)
+
+
+TetMesh = namedtuple("TetMesh", ["vertices", "tetrahedra", "faces"])
+
+
+def tetrahedralize_surface_mesh(v: np.ndarray, f: np.ndarray, stop_quality=1000) -> TetMesh:
+    tetrahedralizer = wm.Tetrahedralizer(stop_quality=stop_quality)
+    tetrahedralizer.set_mesh(v, f)
+    tetrahedralizer.tetrahedralize()
+    v, t = tetrahedralizer.get_tet_mesh()
+    f = igl.boundary_facets(t)
+    return TetMesh(v, t, f)

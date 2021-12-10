@@ -1,0 +1,2 @@
+class Scene(object):
+    pass

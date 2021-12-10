@@ -27,7 +27,7 @@ class Shader(object):
         glShaderSource(self.id, shader_source)
         glCompileShader(self.id)
 
-        not_linked = glGetShaderiv(self.id, GL_COMPILE_STATUS)
+        glGetShaderiv(self.id, GL_COMPILE_STATUS)
         log_len = glGetShaderiv(self.id, GL_INFO_LOG_LENGTH)
         if log_len:
             message = glGetShaderInfoLog(self.id)

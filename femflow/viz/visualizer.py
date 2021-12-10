@@ -9,7 +9,7 @@ from utils.filesystem import file_dialog
 
 from .camera import Camera
 from .input import Input
-from .mesh import Mesh
+from .mesh import Mesh, Texture
 from .renderer import Renderer
 
 
@@ -93,20 +93,21 @@ class Visualizer(object):
 
     def launch(self):
         folder = os.path.dirname(os.path.abspath(__file__))
-        tex = f"{folder}/assets/cube_texture.jpg"
-        self.mesh = Mesh(f"{folder}/models/cube.obj", textures=tex)
-        with Renderer(self.mesh) as self.renderer:
-            self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
-            self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
-            while not glfw.window_should_close(self.window):
-                glfw.poll_events()
-                self.imgui_impl.process_inputs()
+        tex = Texture.from_file(f"{folder}/assets/cube_texture.jpg")
+        self.mesh = Mesh.from_file(f"{folder}/models/cube.obj")
+        self.renderer = Renderer(self.mesh)
+        self.camera.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        self.renderer.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT, self.camera)
+        while not glfw.window_should_close(self.window):
+            glfw.poll_events()
+            self.imgui_impl.process_inputs()
 
-                imgui.new_frame()
-                self.menu_window()
+            imgui.new_frame()
+            self.menu_window()
 
-                self.renderer.render(self.camera)
-                imgui.render()
-                self.imgui_impl.render(imgui.get_draw_data())
+            self.renderer.render(self.camera)
+            imgui.render()
+            self.imgui_impl.render(imgui.get_draw_data())
 
-                glfw.swap_buffers(self.window)
+            glfw.swap_buffers(self.window)
+        self.renderer.destroy()
