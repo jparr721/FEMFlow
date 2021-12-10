@@ -1,6 +1,6 @@
 import copy
 from collections import namedtuple
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
 from scipy.sparse import csr_matrix
