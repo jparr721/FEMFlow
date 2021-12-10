@@ -4,7 +4,6 @@ from typing import Union
 from loguru import logger
 from OpenGL.GL import *
 
-from .gl_util import log_errors
 from .shader import Shader
 
 
@@ -26,7 +25,6 @@ class ShaderProgram(object):
         self.shaders[shader_type] = shader
         glAttachShader(self.id, shader.id)
         self.__report_errors()
-        log_errors(self.add_shader.__name__)
 
     def link(self):
         glLinkProgram(self.id)

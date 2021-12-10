@@ -1,8 +1,5 @@
 from loguru import logger
-from OpenGL.GL import GL_COMPILE_STATUS, GLenum, glCreateShader, glGetShaderInfoLog, glGetShaderiv, glShaderSource
-from OpenGL.raw.GL.VERSION.GL_2_0 import GL_INFO_LOG_LENGTH, glCompileShader
-
-from .gl_util import log_errors
+from OpenGL.GL import *
 
 
 class Shader(object):
@@ -33,7 +30,5 @@ class Shader(object):
             message = glGetShaderInfoLog(self.id)
             logger.error(message)
             return False
-
-        log_errors(self.build.__name__)
 
         return True
