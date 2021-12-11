@@ -1,11 +1,12 @@
 import copy
 from collections import namedtuple
-from typing import Dict, List
+from typing import List, Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
 
 ElementStiffness = namedtuple("ElementStiffness", ["stiffness", "element"])
+BoundaryConditions = dict[int, np.ndarray]
 
 
 def index_slice(X: np.ndarray, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
@@ -275,7 +276,7 @@ def assemble_global_stiffness_matrix(elements: List[ElementStiffness], rows: int
     return csr_matrix((v, (i, j)), shape=(rows, rows)).astype(np.float32)
 
 
-def assemble_boundary_forces(K: csr_matrix, boundary_conditions: Dict[int, np.ndarray]) -> np.ndarray:
+def assemble_boundary_forces(K: csr_matrix, boundary_conditions: BoundaryConditions) -> np.ndarray:
     F_e = np.zeros(len(boundary_conditions) * 3)
     I_e = np.zeros(len(boundary_conditions) * 3)
 
@@ -291,8 +292,8 @@ def assemble_boundary_forces(K: csr_matrix, boundary_conditions: Dict[int, np.nd
 
 
 def compute_U(
-    K: csr_matrix, K_e: np.ndarray, F_e: np.ndarray, boundary_conditions: Dict[int, np.ndarray]
-) -> np.ndarray:
+    K: csr_matrix, K_e: np.ndarray, F_e: np.ndarray, boundary_conditions: BoundaryConditions
+) -> Tuple[np.ndarray, np.ndarray]:
     U_e = np.linalg.solve(K_e, F_e)
     U = np.zeros(K.shape[0])
     i = 0
@@ -301,4 +302,4 @@ def compute_U(
         U[segment : segment + 3] = U_e[i : i + 3]
         i += 3
 
-    return U
+    return U, U_e

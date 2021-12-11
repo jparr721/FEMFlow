@@ -18,7 +18,7 @@ def test_solver():
     displacement = np.zeros(2)
     forces = np.array([0, 10])
     stiffness_matrix = csr_matrix(np.array([[6, -2], [-2, 4]]))
-    mass_matrix = csr_matrix(np.array([[2, 0], [0, 1],]))
+    mass_matrix = csr_matrix(np.array([[2, 0], [0, 1]]))
     e = ExplicitCentralDifferenceMethod(
         0.28, mass_matrix, stiffness_matrix, displacement, forces, rayleigh_lambda=0, rayleigh_mu=0
     )
