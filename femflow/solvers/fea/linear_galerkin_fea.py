@@ -294,6 +294,17 @@ def assemble_boundary_forces(K: csr_matrix, boundary_conditions: BoundaryConditi
 def compute_U(
     K: csr_matrix, K_e: np.ndarray, F_e: np.ndarray, boundary_conditions: BoundaryConditions
 ) -> Tuple[np.ndarray, np.ndarray]:
+    """Solves the static form of this model
+
+    Args:
+        K (csr_matrix): The stiffness matrix
+        K_e (np.ndarray): The element stiffness matrix
+        F_e (np.ndarray): The force-per-active degree of freedom
+        boundary_conditions (BoundaryConditions): The boundary conditions
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Full U and active DOF U.
+    """
     U_e = np.linalg.solve(K_e, F_e)
     U = np.zeros(K.shape[0])
     i = 0
@@ -303,3 +314,23 @@ def compute_U(
         i += 3
 
     return U, U_e
+
+
+def compute_U_from_active_dofs(n_vertices: int, U_e: np.ndarray, boundary_conditions: BoundaryConditions) -> np.ndarray:
+    """Computes U from the active degrees of freedom and boundary conditions.
+
+    Args:
+        n_vertices(int): The number of vertices of U.
+        U_e (np.ndarray): The active DOF displacements
+        boundary_conditions (BoundaryConditions): The boundary conditions to be applied
+
+    Returns:
+        np.ndarray: Full U.
+    """
+    U = np.zeros(n_vertices)
+    i = 0
+    for node in boundary_conditions.keys():
+        segment = node * 3
+        U[segment : segment + 3] = U_e[i : i + 3]
+        i += 3
+    return U

@@ -1,4 +1,5 @@
 import numpy as np
+from loguru import logger
 from meshing.loader import load_mesh_file, load_obj_file
 from PIL import Image
 
@@ -41,6 +42,7 @@ class Mesh(object):
 
         if self.textures.size == 0 and self.colors.size == 0:
             self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(np.float32)
+            logger.info(f"Cube color is: {self.colors[:3]}")
 
     @staticmethod
     def from_file(filename: str):
