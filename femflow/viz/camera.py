@@ -66,6 +66,15 @@ class Camera(object):
         self.theta = np.pi / 2
         self.phi = np.pi / 2
 
+    def reset(self):
+        self.eye = np.array([0, 0, 0])
+        self.center = np.zeros(3)
+        self.up = np.array([0, 1, 0])
+        self.r = 1.0
+        self.theta = np.pi / 2
+        self.phi = np.pi / 2
+        self.displacement = np.zeros(3)
+
     @property
     def view_matrix(self):
         self._compile()

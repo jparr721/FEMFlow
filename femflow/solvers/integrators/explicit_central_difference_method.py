@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import Union
 
 import numpy as np
-from femflow.numerics.linear_algebra import fast_diagonal_inverse
+from numerics.linear_algebra import fast_diagonal_inverse
 from scipy.sparse.csr import csr_matrix
 from scipy.sparse.linalg import inv
 

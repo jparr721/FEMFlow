@@ -10,7 +10,7 @@ from utils.filesystem import file_dialog
 
 from .camera import Camera
 from .input import Input
-from .mesh import Mesh, Texture
+from .mesh import Mesh
 from .renderer import Renderer
 
 logger.add("femflow.log", mode="w+")
@@ -150,7 +150,10 @@ class Visualizer(object):
         imgui.begin("Options", flags=imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_COLLAPSE)
         self.menu_window_focused = imgui.is_window_focused()
         if imgui.button(label="Load Mesh"):
-            file_dialog.file_dialog_open()
+            path = file_dialog.file_dialog_open()
+            self.mesh = Mesh.from_file(path)
+            self.renderer = Renderer(self.mesh)
+            self.renderer.resize(self.window_width, self.window_height, self.camera)
         imgui.same_line()
         if imgui.button(label="Save Mesh"):
             file_dialog.file_dialog_save_mesh(self.mesh)
@@ -179,8 +182,10 @@ class Visualizer(object):
         imgui.end()
 
     def sim_param_menu(self):
+        if not self.sim_parameters_visible:
+            self.sim_parameters_visible = True
         self.sim_parameters_expanded, self.sim_parameters_visible = imgui.collapsing_header(
-            "Parameters", self.sim_parameters_visible
+            "Parameters", self.sim_parameters_visible, imgui.TREE_NODE_DEFAULT_OPEN
         )
         if self.sim_parameters_expanded:
             self.callback_sim_parameters()

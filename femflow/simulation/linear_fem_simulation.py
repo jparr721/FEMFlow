@@ -16,12 +16,42 @@ from solvers.material import hookes_law_isotropic_constitutive_matrix, hookes_la
 
 from .environment import Environment
 
+use_damping = False
+material_type = 0
+material_options = ["isotropic", "orthotropic"]
 
-def make_linear_galerkin_parameter_menu(material_type: str) -> np.ndarray:
-    _, youngs_modulus = imgui.input_text(label="E")
-    _, poissons_ratio = imgui.input_text(label="v")
+
+def make_linear_galerkin_parameter_menu() -> np.ndarray:
+    global use_damping, material_type, material_options
+
+    dt = 0.28
+    mass = 10
+    imgui.text("dt")
+    _, dt = imgui.input_double("", dt)
+    imgui.text("Mass")
+    _, dt = imgui.input_double("", mass)
+
+    _, use_damping = imgui.checkbox("Use Damping", use_damping)
+
+    rayleigh_lambda = 0.0
+    rayleigh_mu = 0.0
+    if use_damping:
+        imgui.text("Rayleigh Lambda")
+        _, rayleigh_lambda = imgui.input_double("", rayleigh_lambda)
+        imgui.text("Rayleigh Mu")
+        _, rayleigh_mu = imgui.input_double("", rayleigh_mu)
+
+    imgui.text("Material Type")
+    _, material_type = imgui.listbox("", material_type, ["isotropic", "orthotropic"])
+
+    constitutive_matrix = np.array([])
+    youngs_modulus = "50000"
+    poissons_ratio = "0.3"
+    _, youngs_modulus = imgui.input_text("E", youngs_modulus, 512)
+    _, poissons_ratio = imgui.input_text("v", poissons_ratio, 512)
     if material_type == "orthotropic":
         try:
+            shear_modulus = "1000,1000,1000"
             _, shear_modulus = imgui.input_text(label="G")
 
             E_vals = youngs_modulus.split(",")
@@ -64,7 +94,9 @@ def make_linear_galerkin_parameter_menu(material_type: str) -> np.ndarray:
             logger.error("Failed to parse youngs modulus, poissions ratio, and shear modulus for orthhotropic material")
             logger.error(f"Stack trace was: {repr(e)}")
 
-        return np.ndarray((*youngs_modulus, *poissons_ratio, *shear_modulus))
+        constitutive_matrix = hookes_law_orthotropic_constitutive_matrix(
+            np.array((*youngs_modulus, *poissons_ratio, *shear_modulus))
+        )
 
     else:
         try:
@@ -74,7 +106,9 @@ def make_linear_galerkin_parameter_menu(material_type: str) -> np.ndarray:
             logger.error("Failed to parse youngs modulus and poissions ratio for isotropic material")
             logger.error(f"Stack trace was: {repr(e)}")
 
-        return np.ndarray((youngs_modulus, poissons_ratio))
+        constitutive_matrix = hookes_law_isotropic_constitutive_matrix(np.array((youngs_modulus, poissons_ratio)))
+
+    return (dt, mass, constitutive_matrix, material_options[material_type], rayleigh_lambda, rayleigh_mu)
 
 
 def make_linear_galerkin_simulation(
@@ -82,41 +116,26 @@ def make_linear_galerkin_simulation(
     point_mass: float,
     v: np.ndarray,
     t: np.ndarray,
-    material_coefficients: np.ndarray,
+    constitutive_matrix: np.ndarray,
     dirilect_boundary_conditions: BoundaryConditions,
-    material_type="isotropic",
     rayleigh_lambda=0.5,
     rayleigh_mu=0.5,
 ) -> Union[Environment, None]:
     def reset_simulation():
-        if not (material_type == "isotropic" or material_type == "orthotropic"):
-            logger.error("Material type specified is invalid! Exiting")
-            return None
-
-        D = None
-        if material_type == "isotropic":
-            D = hookes_law_isotropic_constitutive_matrix(material_coefficients)
-
-        if material_type == "orthotropic":
-            D = hookes_law_orthotropic_constitutive_matrix(material_coefficients)
-
         element_stiffnesses = []
         for row in t:
             B = assemble_shape_fn_matrix(*v[row])
-            element_stiffnesses.append(assemble_element_stiffness_matrix(row, v, B, D))
+            element_stiffnesses.append(assemble_element_stiffness_matrix(row, v, B, constitutive_matrix))
 
         K = assemble_global_stiffness_matrix(element_stiffnesses, 3 * len(v))
         K_e, F_e = assemble_boundary_forces(K, dirilect_boundary_conditions)
 
-        U_e = np.zeros(len(dirilect_boundary_conditions))
+        U_e = np.zeros(len(dirilect_boundary_conditions) * 3)
 
         cd_integrator = ExplicitCentralDifferenceMethod(
             dt, point_mass, K_e, U_e, F_e, rayleigh_lambda=rayleigh_lambda, rayleigh_mu=rayleigh_mu
         )
         return cd_integrator
-
-    def start_simulation():
-        pass
 
     def step_forward(U_e: np.ndarray):
         return compute_U_from_active_dofs(v.size, U_e, dirilect_boundary_conditions)
@@ -124,9 +143,4 @@ def make_linear_galerkin_simulation(
     def integrate(cd_integrator: ExplicitCentralDifferenceMethod, F_e: np.ndarray, U_e: np.ndarray) -> np.ndarray:
         return cd_integrator.integrate(F_e, U_e)
 
-    return Environment(
-        step_function=step_forward,
-        integrator=integrate,
-        reset_function=reset_simulation,
-        start_function=start_simulation,
-    )
+    return Environment(step_function=step_forward, integrator=integrate, reset_function=reset_simulation)
