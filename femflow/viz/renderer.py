@@ -123,7 +123,7 @@ class Renderer(object):
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.projection, camera.projection_matrix)
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
-        # self.shader_program.set_matrix_uniform(self.light, camera.view_matrix)
+        self.shader_program.set_matrix_uniform(self.light, camera.projection_matrix)
         self.shader_program.release()
 
     def rebuild_buffers(self):
@@ -131,18 +131,18 @@ class Renderer(object):
         if self.mesh:
             build_vertex_buffer(0, self.position_vbo, 3, self.mesh.vertices)
             build_vertex_buffer(3, self.color_vbo, 3, self.mesh.colors)
-            # if self.mesh.normals.has_data():
-            #     build_vertex_buffer(self.shader_program.id, 2, self.normal_vbo, 3, self.mesh.normals.data)
+            if self.mesh.normals.size > 0:
+                build_vertex_buffer(2, self.normal_vbo, 3, self.mesh.normals)
 
-            # if self.mesh.textures.has_data():
-            #     build_texture(
-            #         self.texture_vbo,
-            #         self.mesh.textures.data,
-            #         self.mesh.textures.u,
-            #         self.mesh.textures.v,
-            #         GL_REPEAT,
-            #         GL_LINEAR,
-            #     )
+            if self.mesh.textures.size > 0:
+                build_texture(
+                    self.texture_vbo,
+                    self.mesh.textures.data,
+                    self.mesh.textures.u,
+                    self.mesh.textures.v,
+                    GL_REPEAT,
+                    GL_LINEAR,
+                )
 
             build_index_buffer(self.faces_ibo, self.mesh.faces)
 
