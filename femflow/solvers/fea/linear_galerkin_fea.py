@@ -5,8 +5,9 @@ from typing import List, Tuple
 import numpy as np
 from scipy.sparse import csr_matrix
 
+from .boundary_conditions import BoundaryConditions
+
 ElementStiffness = namedtuple("ElementStiffness", ["stiffness", "element"])
-BoundaryConditions = dict[int, np.ndarray]
 
 
 def index_slice(X: np.ndarray, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
