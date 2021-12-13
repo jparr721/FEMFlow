@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Tuple, Union
 
 import imgui
 import numpy as np
@@ -16,40 +16,82 @@ from solvers.material import hookes_law_isotropic_constitutive_matrix, hookes_la
 
 from .environment import Environment
 
-use_damping = False
-material_type = 0
-material_options = ["isotropic", "orthotropic"]
+# Params
+__imgui = {
+    "dt": 0.28,
+    "mass": 10,
+    "youngs_modulus": "50000",
+    "poissons_ratio": "0.3",
+    "shear_modulus": "1000",
+    "use_damping": False,
+    "material_type": 0,
+    "material_options": ["isotropic", "orthotropic"],
+    "rayleigh_lambda": 0.5,
+    "rayleigh_mu": 0.5,
+}
 
 
 def make_linear_galerkin_parameter_menu() -> np.ndarray:
-    global use_damping, material_type, material_options
+    global __imgui
 
-    dt = 0.28
-    mass = 10
     imgui.text("dt")
-    _, dt = imgui.input_double("", dt)
+    _, __imgui["dt"] = imgui.input_double("##dt", __imgui["dt"])
     imgui.text("Mass")
-    _, dt = imgui.input_double("", mass)
+    _, __imgui["mass"] = imgui.input_double("##Mass", __imgui["mass"])
 
-    _, use_damping = imgui.checkbox("Use Damping", use_damping)
+    _, __imgui["use_damping"] = imgui.checkbox("Use Damping", __imgui["use_damping"])
 
-    rayleigh_lambda = 0.0
-    rayleigh_mu = 0.0
-    if use_damping:
+    if __imgui["use_damping"]:
         imgui.text("Rayleigh Lambda")
-        _, rayleigh_lambda = imgui.input_double("", rayleigh_lambda)
+        _, __imgui["rayleigh_lambda"] = imgui.input_double("##lambda", __imgui["rayleigh_lambda"])
         imgui.text("Rayleigh Mu")
-        _, rayleigh_mu = imgui.input_double("", rayleigh_mu)
+        _, __imgui["rayleigh_mu"] = imgui.input_double("##mu", __imgui["rayleigh_mu"])
 
     imgui.text("Material Type")
-    _, material_type = imgui.listbox("", material_type, ["isotropic", "orthotropic"])
+    _, __imgui["material_type"] = imgui.listbox(
+        "##Material Type", __imgui["material_type"], ["isotropic", "orthotropic"]
+    )
 
-    constitutive_matrix = np.array([])
-    youngs_modulus = "50000"
-    poissons_ratio = "0.3"
-    _, youngs_modulus = imgui.input_text("E", youngs_modulus, 512)
-    _, poissons_ratio = imgui.input_text("v", poissons_ratio, 512)
+    imgui.text("E")
+    _, __imgui["youngs_modulus"] = imgui.input_text("##E", __imgui["youngs_modulus"], 512)
+    imgui.text("v")
+    _, __imgui["poissons_ratio"] = imgui.input_text("##v", __imgui["poissons_ratio"], 512)
+    if __imgui["material_type"] == "orthotropic":
+        imgui.text("G")
+        _, __imgui["shear_modulus"] = imgui.input_text("##G", __imgui["shear_modulus"], 512)
+
+    material_coefficients = (__imgui["youngs_modulus"], __imgui["poissons_ratio"], __imgui["shear_modulus"])
+
+    if imgui.button(label="Load"):
+        logger.info("Loading Simulation With Saved Parameters")
+        print(
+            __imgui["dt"],
+            __imgui["mass"],
+            material_coefficients,
+            __imgui["material_options"][__imgui["material_type"]],
+            __imgui["rayleigh_lambda"],
+            __imgui["rayleigh_mu"],
+        )
+
+
+def make_linear_galerkin_simulation(
+    dt: float,
+    point_mass: float,
+    v: np.ndarray,
+    t: np.ndarray,
+    material_type: str,
+    material_coefficients: Union[Tuple[str, str], Tuple[str, str, str]],
+    dirilect_boundary_conditions: BoundaryConditions,
+    rayleigh_lambda=0.5,
+    rayleigh_mu=0.5,
+) -> Union[Environment, None]:
     if material_type == "orthotropic":
+        if len(material_coefficients) != 3:
+            logger.error("Unable to properly deconstruct material coefficients!")
+            logger.error(f"Got options: {material_coefficients}")
+            return None
+
+        youngs_modulus, poissons_ratio, shear_modulus = material_coefficients
         try:
             shear_modulus = "1000,1000,1000"
             _, shear_modulus = imgui.input_text(label="G")
@@ -93,34 +135,27 @@ def make_linear_galerkin_parameter_menu() -> np.ndarray:
         except Exception as e:
             logger.error("Failed to parse youngs modulus, poissions ratio, and shear modulus for orthhotropic material")
             logger.error(f"Stack trace was: {repr(e)}")
+            return None
 
         constitutive_matrix = hookes_law_orthotropic_constitutive_matrix(
             np.array((*youngs_modulus, *poissons_ratio, *shear_modulus))
         )
 
     else:
+        if len(material_coefficients) != 2:
+            logger.error("Unable to properly deconstruct material coefficients!")
+            logger.error(f"Got options: {material_coefficients}")
+        youngs_modulus, poissons_ratio = material_coefficients
         try:
-            youngs_modulus = float(youngs_modulus)
-            poissons_ratio = float(poissons_ratio)
+            material_coefficients = (youngs_modulus, poissons_ratio)
+            constitutive_matrix = hookes_law_isotropic_constitutive_matrix(
+                np.array((float(youngs_modulus), float(poissons_ratio)))
+            )
         except Exception as e:
             logger.error("Failed to parse youngs modulus and poissions ratio for isotropic material")
             logger.error(f"Stack trace was: {repr(e)}")
+            return None
 
-        constitutive_matrix = hookes_law_isotropic_constitutive_matrix(np.array((youngs_modulus, poissons_ratio)))
-
-    return (dt, mass, constitutive_matrix, material_options[material_type], rayleigh_lambda, rayleigh_mu)
-
-
-def make_linear_galerkin_simulation(
-    dt: float,
-    point_mass: float,
-    v: np.ndarray,
-    t: np.ndarray,
-    constitutive_matrix: np.ndarray,
-    dirilect_boundary_conditions: BoundaryConditions,
-    rayleigh_lambda=0.5,
-    rayleigh_mu=0.5,
-) -> Union[Environment, None]:
     def reset_simulation():
         element_stiffnesses = []
         for row in t:

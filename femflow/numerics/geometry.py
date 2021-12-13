@@ -42,9 +42,28 @@ TetMesh = namedtuple("TetMesh", ["vertices", "tetrahedra", "faces"])
 
 
 def tetrahedralize_surface_mesh(v: np.ndarray, f: np.ndarray, stop_quality=1000) -> TetMesh:
+    """Computes a tetrahedral mesh from a surface mesh, recomputes faces and returns them. The types are automatically
+    converted the the appropriate value.
+
+    Args:
+        v (np.ndarray): The vertices, (n x 3)
+        f (np.ndarray): The faces, (n x 3)
+        stop_quality (int, optional): The stop quality of the tet wild alg. Defaults to 1000.
+
+    Returns:
+        TetMesh: Tetmesh of the surface.
+    """
+    if v.ndim != 2:
+        raise ValueError("Vertices must be a matrix")
+    if f.ndim != 2:
+        raise ValueError("Faces must be a matrix")
+
     tetrahedralizer = wm.Tetrahedralizer(stop_quality=stop_quality)
     tetrahedralizer.set_mesh(v, f)
     tetrahedralizer.tetrahedralize()
     v, t = tetrahedralizer.get_tet_mesh()
     f = igl.boundary_facets(t)
+    v = v.astype(np.float32)
+    t = t.astype(np.uint32)
+    f = f.astype(np.uint32)
     return TetMesh(v, t, f)

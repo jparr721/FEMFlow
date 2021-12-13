@@ -15,6 +15,12 @@ from .renderer import Renderer
 
 logger.add("femflow.log", mode="w+")
 
+RED = [1, 0, 0]
+GREEN = [
+    0,
+    1,
+]
+
 
 class Visualizer(object):
     def __init__(
@@ -53,6 +59,8 @@ class Visualizer(object):
             else callback_reset_sim_button_pressed
         )
         # IMGUI
+
+        self.simulation_environment = None
 
         assert glfw.init(), "GLFW is not initialized!"
 
@@ -187,8 +195,13 @@ class Visualizer(object):
         self.sim_parameters_expanded, self.sim_parameters_visible = imgui.collapsing_header(
             "Parameters", self.sim_parameters_visible, imgui.TREE_NODE_DEFAULT_OPEN
         )
+        imgui.text_colored(
+            f"Sim Status: {'Not Loaded' if self.simulation_environment is None else 'Loaded'}",
+            *(RED if self.simulation_environment is None else GREEN),
+        )
         if self.sim_parameters_expanded:
-            self.callback_sim_parameters()
+            self.simulation_environment = self.callback_sim_parameters()
+
             if imgui.button(label="Start Sim"):
                 self.callback_start_sim_button_pressed()
             imgui.same_line()
