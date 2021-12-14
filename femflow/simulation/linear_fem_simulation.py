@@ -3,16 +3,18 @@ from collections import defaultdict
 import imgui
 import numpy as np
 from loguru import logger
-from solvers.fea.boundary_conditions import basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions
-from solvers.fea.linear_galerkin_fea import (
-    assemble_boundary_forces,
-    assemble_element_stiffness_matrix,
-    assemble_global_stiffness_matrix,
-    assemble_shape_fn_matrix,
-    compute_U_from_active_dofs,
-)
-from solvers.integrators.explicit_central_difference_method import ExplicitCentralDifferenceMethod
-from solvers.material import hookes_law_isotropic_constitutive_matrix, hookes_law_orthotropic_constitutive_matrix
+from solvers.fea.boundary_conditions import (
+    basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions)
+from solvers.fea.linear_galerkin_fea import (assemble_boundary_forces,
+                                             assemble_element_stiffness_matrix,
+                                             assemble_global_stiffness_matrix,
+                                             assemble_shape_fn_matrix,
+                                             compute_U_from_active_dofs)
+from solvers.integrators.explicit_central_difference_method import \
+    ExplicitCentralDifferenceMethod
+from solvers.material import (hookes_law_isotropic_constitutive_matrix,
+                              hookes_law_orthotropic_constitutive_matrix)
+from tqdm import tqdm
 from viz.mesh import Mesh
 
 from .environment import Environment
@@ -194,10 +196,11 @@ class LinearFemSimulation(Environment):
         )
 
     def simulate(self, mesh: Mesh, timesteps: int):
-        for i in range(timesteps):
+        for i in tqdm(range(timesteps)):
             if i % 10 == 0:
                 logger.info(f"Timestep: {i}")
 
             self.U_e = self.cd_integrator.integrate(self.F_e, self.U_e)
             self.U = compute_U_from_active_dofs(mesh.vertices.size, self.U_e, self.boundary_conditions)
             self.displacements.append(self.U)
+        logger.success("Simulation is done")

@@ -1,4 +1,5 @@
 import os
+import threading
 
 import glfw
 import imgui
@@ -6,6 +7,7 @@ from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
 from simulation.environment import Environment
+from tqdm import tqdm
 from utils.filesystem import file_dialog
 
 from .camera import Camera
@@ -13,6 +15,8 @@ from .input import Input
 from .mesh import Mesh
 from .renderer import Renderer
 
+# logger.remove()
+# logger.add(lambda msg: tqdm.write(msg, end=""))
 logger.add("femflow.log", mode="w+")
 
 RED = [1, 0, 0]
@@ -203,7 +207,7 @@ class Visualizer(object):
         if self.sim_parameters_expanded:
             self.simulation_environment.menu()
             if imgui.button(label="Load"):
-                self.simulation_environment.load(self.mesh)
+                threading.Thread(target=self.simulation_environment.load, args=(self.mesh,)).start()
 
             self.simulation_spec_visible = self.simulation_environment.loaded
 
@@ -261,9 +265,7 @@ class Visualizer(object):
             return
 
         logger.info("Running simulation")
-        self.simulation_environment.simulate(self.mesh, self.n_timesteps)
-
-        logger.success("Simulation is done")
+        threading.Thread(target=self.simulation_environment.simulate, args=(self.mesh, self.n_timesteps)).start()
 
     def reset_simulation(self):
         if self.simulation_environment is None:
