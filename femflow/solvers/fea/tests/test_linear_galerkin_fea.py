@@ -44,7 +44,7 @@ def test_static_form_solve():
     K_e, F_e = assemble_boundary_forces(K, boundary_conditions)
 
     # NOTE: The division by 1e-5 is only for making the comparison here easier.
-    U = compute_U(K, K_e, F_e, boundary_conditions) / 1e-5
+    U, _ = compute_U(K, K_e, F_e, boundary_conditions)
 
     U_compare = np.array(
         [
@@ -75,4 +75,4 @@ def test_static_form_solve():
         ]
     )
 
-    assert np.all(np.isclose(U, U_compare, atol=0.0001))
+    assert np.all(np.isclose(U / 1e-5, U_compare, atol=0.0001))

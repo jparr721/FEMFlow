@@ -42,7 +42,7 @@ def top_bottom_plate_dirilect_conditions(v: np.ndarray) -> Tuple[np.ndarray, np.
     return force_nodes, interior_nodes, fixed_nodes
 
 
-def basic_dirilect_boundary_conditions(
+def basic_dirilecht_boundary_conditions(
     force: np.ndarray, force_nodes: np.ndarray, active_nodes: np.ndarray
 ) -> BoundaryConditions:
     """Generates the basic dirilect boundary conditions for a given mesh
@@ -55,7 +55,7 @@ def basic_dirilect_boundary_conditions(
     Returns:
         BoundaryConditions: The boundary conditions for this mesh, can be indexed directly by v.
     """
-    if (force_nodes == active_nodes).any():
+    if np.intersect1d(force_nodes, active_nodes, assume_unique=True):
         raise ValueError("Duplicate boundary_condition nodes found")
 
     zero = np.zeros(3)

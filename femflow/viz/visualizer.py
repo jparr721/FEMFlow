@@ -1,5 +1,4 @@
 import os
-from typing import Callable
 
 import glfw
 import imgui
@@ -21,9 +20,7 @@ GREEN = [0, 1, 0]
 
 
 class Visualizer(object):
-    def __init__(
-        self, callback_sim_parameters: Callable = None, callback_environment_loader: Callable = None,
-    ):
+    def __init__(self, environment: Environment):
         self.WINDOW_TITLE = "FEMFlow Viewer"
         self.window_width = 1200
         self.window_height = 800
@@ -48,20 +45,13 @@ class Visualizer(object):
         self.simulation_spec_expanded = True
         self.simulation_spec_visible = True
 
-        self.callback_sim_parameters = (
-            self.placeholder_sim_param_menu if callback_sim_parameters is None else callback_sim_parameters
-        )
-
         self.callback_environment_loader = lambda: logger.error("No functionality implemented yet!")
         self.callback_start_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
         self.callback_reset_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
 
-        if callback_environment_loader is not None:
-            self.callback_environment_loader = callback_environment_loader
-
         # IMGUI
 
-        self.simulation_environment: Environment = None
+        self.simulation_environment: Environment = environment
 
         assert glfw.init(), "GLFW is not initialized!"
 
@@ -173,6 +163,7 @@ class Visualizer(object):
         if imgui.button(label="Load Mesh"):
             path = file_dialog.file_dialog_open()
             self.mesh = Mesh.from_file(path)
+            self.mesh.tetrahedralize()
             self.renderer = Renderer(self.mesh)
             self.renderer.resize(self.window_width, self.window_height, self.camera)
         imgui.same_line()
@@ -207,17 +198,17 @@ class Visualizer(object):
             "Parameters", self.sim_parameters_visible, imgui.TREE_NODE_DEFAULT_OPEN
         )
         imgui.text_colored(
-            f"Sim Status: {'Not Loaded' if self.simulation_environment is None else 'Loaded'}",
-            *(RED if self.simulation_environment is None else GREEN),
+            f"Sim Status: {'Not Loaded' if not self.simulation_environment.loaded else 'Loaded'}",
+            *(RED if not self.simulation_environment.loaded else GREEN),
         )
         if self.sim_parameters_expanded:
-            params = self.callback_sim_parameters(self.mesh)
+            self.simulation_environment.menu()
             if imgui.button(label="Load"):
-                self.simulation_environment = self.callback_environment_loader(*params)
+                self.simulation_environment.load(self.mesh)
 
-            self.simulation_spec_visible = self.simulation_environment is not None
+            self.simulation_spec_visible = self.simulation_environment.loaded
 
-            imgui.collapsing_header(
+            self.simulation_spec_expanded, self.simulation_spec_visible = imgui.collapsing_header(
                 "Simulation Configuration", self.simulation_spec_visible, imgui.TREE_NODE_DEFAULT_OPEN
             )
             imgui.text("Timesteps")
@@ -282,6 +273,7 @@ class Visualizer(object):
     def launch(self):
         folder = os.path.dirname(os.path.abspath(__file__))
         self.mesh = Mesh.from_file(f"{folder}/models/cube.obj")
+        self.mesh.tetrahedralize()
         self.renderer = Renderer(self.mesh)
         self.camera.resize(self.window_width, self.window_height)
         self.renderer.resize(self.window_width, self.window_height, self.camera)

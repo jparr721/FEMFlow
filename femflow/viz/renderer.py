@@ -101,7 +101,13 @@ class Renderer(object):
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
         if self.mesh is not None:
+            glEnable(GL_POLYGON_OFFSET_LINE)
+            glPolygonOffset(-1.0, -1.0)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
             glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+            glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
+
         self.shader_program.release()
 
     def append_mesh(self, mesh: Mesh):

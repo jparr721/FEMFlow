@@ -1,9 +1,10 @@
+import time
 from collections import defaultdict
 
 import imgui
 import numpy as np
 from loguru import logger
-from solvers.fea.boundary_conditions import top_bottom_plate_dirilect_conditions
+from solvers.fea.boundary_conditions import basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions
 from solvers.fea.linear_galerkin_fea import (
     assemble_boundary_forces,
     assemble_element_stiffness_matrix,
@@ -23,14 +24,15 @@ class LinearFemSimulation(Environment):
         super().__init__(name)
         self.dt = 0.28
         self.mass = 10
+        self.force = 100
         self.youngs_modulus = "50000"
         self.poissons_ratio = "0.3"
         self.shear_modulus = "1000"
         self.use_damping = False
         self.material_type = 0
         self.material_options = ["isotropic", "orthotropic"]
-        self.rayleigh_lambda = 0.5
-        self.rayleigh_mu = 0.5
+        self.rayleigh_lambda = 0.0
+        self.rayleigh_mu = 0.0
 
         # Sim parameters
         self.K_e = np.array([])
@@ -43,16 +45,26 @@ class LinearFemSimulation(Environment):
     def load(self, mesh: Mesh):
         logger.info("Loading Simulation With Saved Parameters")
 
-        self.boundary_conditions = top_bottom_plate_dirilect_conditions(mesh.as_matrix(mesh.vertices, 3))
+        force_nodes, interior_nodes, fixed_nodes = top_bottom_plate_dirilect_conditions(
+            mesh.as_matrix(mesh.vertices, 3)
+        )
+
+        try:
+            self.boundary_conditions = basic_dirilecht_boundary_conditions(self.force, force_nodes, interior_nodes)
+        except Exception as e:
+            logger.error("Dirilect boundary condition assignment failed")
+            logger.error(f"Boundary conditions had error: {e}")
+            return
+
         self.U_e = np.zeros(len(self.boundary_conditions) * 3)
-        self.U = mesh.vertices.size
+        self.U = np.zeros(mesh.vertices.size)
         self.displacements.append(self.U)
 
         if self.material_type == "orthotropic":
             if len(self.material_coefficients) != 3:
                 logger.error("Unable to properly deconstruct material coefficients!")
                 logger.error(f"Got options: {self.material_coefficients}")
-                return None
+                return
 
             youngs_modulus, poissons_ratio, shear_modulus = self.material_coefficients
             try:
@@ -70,7 +82,7 @@ class LinearFemSimulation(Environment):
                     youngs_modulus = np.array(E_vals)
                 else:
                     logger.error("Invalid number of younds modulus' provided for orthotropic material")
-                    return None
+                    return
 
                 v_vals = poissons_ratio.split(",")
                 if len(v_vals) == 1:
@@ -84,7 +96,7 @@ class LinearFemSimulation(Environment):
                     poissons_ratio = np.array(values)
                 else:
                     logger.error("Invalid number of poissons ratios provided for orthotropic material")
-                    return None
+                    return
 
                 G_vals = shear_modulus.split(",")
                 if len(G_vals) == 1:
@@ -100,7 +112,7 @@ class LinearFemSimulation(Environment):
                     "Failed to parse youngs modulus, poissions ratio, and shear modulus for orthhotropic material"
                 )
                 logger.error(f"Stack trace was: {repr(e)}")
-                return None
+                return
 
             self.constitutive_matrix = hookes_law_orthotropic_constitutive_matrix(
                 np.array((*youngs_modulus, *poissons_ratio, *shear_modulus))
@@ -110,7 +122,7 @@ class LinearFemSimulation(Environment):
             if len(self.material_coefficients) != 2:
                 logger.error("Unable to properly deconstruct material coefficients!")
                 logger.error(f"Got options: {self.material_coefficients}")
-                return None
+                return
             youngs_modulus, poissons_ratio = self.material_coefficients
             try:
                 self.material_coefficients = (youngs_modulus, poissons_ratio)
@@ -120,17 +132,22 @@ class LinearFemSimulation(Environment):
             except Exception as e:
                 logger.error("Failed to parse youngs modulus and poissions ratio for isotropic material")
                 logger.error(f"Stack trace was: {repr(e)}")
-                return None
+                return
 
-        if mesh.tetrahedra is None:
+        if len(mesh.tetrahedra) == 0:
             logger.error("Mesh is not tetrahedralized, cannot simulate")
-            return None
+            return
+
+        self.reset(mesh)
+        self.loaded = True
 
     def menu(self):
         imgui.text("dt")
         _, self.dt = imgui.input_double("##dt", self.dt)
         imgui.text("Mass")
         _, self.mass = imgui.input_double("##Mass", self.mass)
+        imgui.text("Force")
+        _, self.force = imgui.input_double("##Force", self.force)
 
         _, self.use_damping = imgui.checkbox("Use Damping", self.use_damping)
 
@@ -157,27 +174,36 @@ class LinearFemSimulation(Environment):
             self.material_coefficients = (self.youngs_modulus, self.poissons_ratio, self.shear_modulus)
 
     def reset(self, mesh: Mesh):
+        vertices = mesh.as_matrix(mesh.vertices, 3)
+        tetrahedra = mesh.as_matrix(mesh.tetrahedra, 4)
         element_stiffnesses = []
-        for row in mesh.tetrahedra:
-            B = assemble_shape_fn_matrix(*mesh.vertices[row])
-            element_stiffnesses.append(
-                assemble_element_stiffness_matrix(row, mesh.vertices, B, self.constitutive_matrix)
-            )
+        for row in tetrahedra:
+            B = assemble_shape_fn_matrix(*vertices[row])
+            element_stiffnesses.append(assemble_element_stiffness_matrix(row, vertices, B, self.constitutive_matrix))
 
-        K = assemble_global_stiffness_matrix(element_stiffnesses, 3 * len(mesh.vertices))
-        self.K_e, self.F_e = assemble_boundary_forces(K, self.dirilect_boundary_conditions)
+        start = time.time()
+        K = assemble_global_stiffness_matrix(element_stiffnesses, 3 * len(vertices))
+        end = time.time()
+        logger.debug(f"It took {end - start}s to compute global stiffness")
+        start = time.time()
+        self.K_e, self.F_e = assemble_boundary_forces(K, self.boundary_conditions)
 
-        self.U_e = np.zeros(len(self.dirilect_boundary_conditions) * 3)
+        self.U_e = np.zeros(len(self.boundary_conditions) * 3)
+        end = time.time()
+        logger.debug(f"It took {end - start}s to compute boundaries")
 
+        start = time.time()
         self.cd_integrator = ExplicitCentralDifferenceMethod(
             self.dt,
-            self.point_mass,
+            self.mass,
             self.K_e,
             self.U_e,
             self.F_e,
             rayleigh_lambda=self.rayleigh_lambda,
             rayleigh_mu=self.rayleigh_mu,
         )
+        end = time.time()
+        logger.debug(f"It took {end - start}s to compute central difference integrator")
 
     def simulate(self, mesh: Mesh, timesteps: int):
         for i in range(timesteps):

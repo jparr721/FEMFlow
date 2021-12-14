@@ -1,18 +1,19 @@
-from typing import Callable, NamedTuple
+from viz.mesh import Mesh
 
 
 class Environment(object):
     def __init__(self, name: str):
         self.name = name
+        self.loaded = False
 
-    def load(self):
+    def load(self, mesh: Mesh):
         raise NotImplementedError()
 
     def menu(self):
         raise NotImplementedError()
 
-    def reset(self):
+    def reset(self, mesh: Mesh):
         raise NotImplementedError()
 
-    def simulate(self, timesteps: int):
+    def simulate(self, mesh: Mesh, timesteps: int):
         raise NotImplementedError()

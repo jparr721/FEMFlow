@@ -1,8 +1,11 @@
+import time
 from copy import deepcopy
 from typing import Union
 
 import numpy as np
+from loguru import logger
 from numerics.linear_algebra import fast_diagonal_inverse
+from scipy.sparse.csc import csc_matrix
 from scipy.sparse.csr import csr_matrix
 from scipy.sparse.linalg import inv
 
@@ -19,7 +22,7 @@ class ExplicitCentralDifferenceMethod(Integrator):
         initial_force: np.ndarray,
         *,
         rayleigh_lambda=0.5,
-        rayleigh_mu=0.5
+        rayleigh_mu=0.5,
     ):
         super(ExplicitCentralDifferenceMethod, self).__init__()
         self.dt = dt
@@ -32,7 +35,7 @@ class ExplicitCentralDifferenceMethod(Integrator):
         self.initial_force = initial_force
 
         if type(point_mass) != csr_matrix:
-            self.mass_matrix = csr_matrix(np.eye(stiffness.shape[0]))
+            self.mass_matrix = csr_matrix(np.eye(stiffness.shape[0])) * point_mass
         else:
             self.mass_matrix = point_mass
 
@@ -73,8 +76,14 @@ class ExplicitCentralDifferenceMethod(Integrator):
         self.previous_position = positions - self.dt * self.velocity + self.a3 * self.acceleration
 
     def _compute_effective_mass_matrix(self):
-        self.effective_mass_matrix = self.a0 * self.mass_matrix + self.a1 * self.damping_matrix
-        self.effective_mass_matrix = inv(self.effective_mass_matrix)
+        start = time.time()
+        self.effective_mass_matrix = csc_matrix(self.a0 * self.mass_matrix + self.a1 * self.damping_matrix)
+        if self.rayleigh_mu == 0 and self.rayleigh_lambda == 0:
+            self.effective_mass_matrix = fast_diagonal_inverse(self.effective_mass_matrix)
+        else:
+            self.effective_mass_matrix = inv(self.effective_mass_matrix)
+        end = time.time()
+        logger.debug(f"It took {end - start}s to compute the emm")
 
     def _compute_rayleigh_damping(self):
         self.damping_matrix = self.rayleigh_mu * self.mass_matrix + self.rayleigh_lambda * self.stiffness

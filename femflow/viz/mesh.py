@@ -1,7 +1,7 @@
 import numpy as np
 from loguru import logger
 from meshing.loader import load_mesh_file, load_obj_file
-from numerics.geometry import tetrahedralize_surface_mesh
+from numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
 from PIL import Image
 
 
@@ -57,10 +57,14 @@ class Mesh(object):
             return Mesh(vertices=v, tetrahedra=t, normals=n, faces=f)
 
     def tetrahedralize(self):
-        v, t, f = tetrahedralize_surface_mesh(self.as_matrix(self.vertices), self.as_matrix(self.faces))
+        if self.tetrahedra.size > 0:
+            logger.warning("Mesh is already tetrahedralized")
+            return
+        v, t, f = tetrahedralize_surface_mesh(self.as_matrix(self.vertices, 3), self.as_matrix(self.faces, 3))
         self.vertices = self.as_vector(v)
         self.faces = self.as_vector(f)
         self.tetrahedra = self.as_vector(t)
+        self.normals = self.as_vector(per_face_normals(v, f))
 
     def as_vector(self, array: np.ndarray):
         assert array.ndim < 3, "Must be at most 2D"
