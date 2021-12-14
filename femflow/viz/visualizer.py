@@ -6,6 +6,7 @@ import imgui
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
+from simulation.environment import Environment
 from utils.filesystem import file_dialog
 
 from .camera import Camera
@@ -16,18 +17,12 @@ from .renderer import Renderer
 logger.add("femflow.log", mode="w+")
 
 RED = [1, 0, 0]
-GREEN = [
-    0,
-    1,
-]
+GREEN = [0, 1, 0]
 
 
 class Visualizer(object):
     def __init__(
-        self,
-        callback_sim_parameters: Callable = None,
-        callback_start_sim_button_pressed: Callable = None,
-        callback_reset_sim_button_pressed: Callable = None,
+        self, callback_sim_parameters: Callable = None, callback_environment_loader: Callable = None,
     ):
         self.WINDOW_TITLE = "FEMFlow Viewer"
         self.window_width = 1200
@@ -41,26 +36,32 @@ class Visualizer(object):
         self.log_window_focused = False
         self.menu_window_focused = False
 
+        # Simulation-Specific Menus
+        self.simulation_window_focused = False
+        self.current_timestep = 0
+        self.n_timesteps = 100
+        self.displacements = []
+
         # Parameter-Specific Menus
         self.sim_parameters_expanded = True
         self.sim_parameters_visible = True
+        self.simulation_spec_expanded = True
+        self.simulation_spec_visible = True
 
         self.callback_sim_parameters = (
             self.placeholder_sim_param_menu if callback_sim_parameters is None else callback_sim_parameters
         )
-        self.callback_start_sim_button_pressed = (
-            lambda: logger.error("No functionality implemented yet!")
-            if callback_start_sim_button_pressed is None
-            else callback_start_sim_button_pressed
-        )
-        self.callback_reset_sim_button_pressed = (
-            lambda: logger.error("No functionality implemented yet!")
-            if callback_reset_sim_button_pressed is None
-            else callback_reset_sim_button_pressed
-        )
+
+        self.callback_environment_loader = lambda: logger.error("No functionality implemented yet!")
+        self.callback_start_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
+        self.callback_reset_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
+
+        if callback_environment_loader is not None:
+            self.callback_environment_loader = callback_environment_loader
+
         # IMGUI
 
-        self.simulation_environment = None
+        self.simulation_environment: Environment = None
 
         assert glfw.init(), "GLFW is not initialized!"
 
@@ -103,7 +104,7 @@ class Visualizer(object):
 
     @property
     def any_window_focused(self):
-        return self.menu_window_focused or self.log_window_focused
+        return self.menu_window_focused or self.log_window_focused or self.simulation_window_focused
 
     @property
     def log_window_dimensions(self):
@@ -113,6 +114,18 @@ class Visualizer(object):
             height,
             0,
             self.window_height - height,
+        )
+
+    @property
+    def simulation_window_dimensions(self):
+        height = self.window_height * 0.1 if self.window_height >= 800 else 100
+        menu_window_width, _, _, _ = self.menu_window_dimensions
+        width = self.window_width - menu_window_width
+        return (
+            width,
+            height,
+            menu_window_width,
+            0,
         )
 
     @property
@@ -190,8 +203,6 @@ class Visualizer(object):
         imgui.end()
 
     def sim_param_menu(self):
-        if not self.sim_parameters_visible:
-            self.sim_parameters_visible = True
         self.sim_parameters_expanded, self.sim_parameters_visible = imgui.collapsing_header(
             "Parameters", self.sim_parameters_visible, imgui.TREE_NODE_DEFAULT_OPEN
         )
@@ -200,16 +211,73 @@ class Visualizer(object):
             *(RED if self.simulation_environment is None else GREEN),
         )
         if self.sim_parameters_expanded:
-            self.simulation_environment = self.callback_sim_parameters()
+            params = self.callback_sim_parameters(self.mesh)
+            if imgui.button(label="Load"):
+                self.simulation_environment = self.callback_environment_loader(*params)
+
+            self.simulation_spec_visible = self.simulation_environment is not None
+
+            imgui.collapsing_header(
+                "Simulation Configuration", self.simulation_spec_visible, imgui.TREE_NODE_DEFAULT_OPEN
+            )
+            imgui.text("Timesteps")
+            _, self.n_timesteps = imgui.input_int("##timesteps", self.n_timesteps)
 
             if imgui.button(label="Start Sim"):
-                self.callback_start_sim_button_pressed()
+                self.sim_runtime_focused = True
+                self.start_simulation()
             imgui.same_line()
             if imgui.button(label="Reset Sim"):
-                self.callback_reset_sim_button_pressed()
+                self.reset_simulation()
+
+    def simulation_window(self):
+        (
+            simulation_window_width,
+            simulation_window_height,
+            simulation_window_x,
+            simulation_window_y,
+        ) = self.simulation_window_dimensions
+        imgui.set_next_window_size(simulation_window_width, simulation_window_height)
+        imgui.set_next_window_position(simulation_window_x, simulation_window_y)
+
+        imgui.begin(
+            "Simulation",
+            flags=imgui.WINDOW_NO_MOVE
+            | imgui.WINDOW_NO_RESIZE
+            | imgui.WINDOW_NO_COLLAPSE
+            | imgui.WINDOW_HORIZONTAL_SCROLLING_BAR,
+        )
+        self.simulation_window_focused = imgui.is_window_focused() or imgui.is_item_clicked()
+        imgui.text("Timestep")
+        imgui.push_item_width(-1)
+        _, self.current_timestep = imgui.slider_int(
+            "##timestep", self.current_timestep, min_value=0, max_value=self.n_timesteps
+        )
+        imgui.pop_item_width()
+        imgui.end()
 
     def placeholder_sim_param_menu(self):
         imgui.text("Settings Here")
+
+    def start_simulation(self):
+        if self.simulation_environment is None:
+            logger.error("Sim environment is empty, cannot start sim")
+            return
+
+        logger.info("Running simulation")
+        for i in range(self.n_timesteps):
+            if i % 10 == 0:
+                logger.info(f"Timestep: {i}")
+            self.simulation_environment.step_forward()
+
+        logger.success("Simulation is done")
+
+    def reset_simulation(self):
+        if self.simulation_environment is None:
+            logger.error("Sim environment is empty, cannot reset sim")
+            return
+
+        logger.succes("Simulation was reset")
 
     def launch(self):
         folder = os.path.dirname(os.path.abspath(__file__))
@@ -224,6 +292,8 @@ class Visualizer(object):
             imgui.new_frame()
             self.menu_window()
             self.log_window()
+            if self.simulation_spec_visible:
+                self.simulation_window()
 
             self.renderer.render(self.camera)
             imgui.render()

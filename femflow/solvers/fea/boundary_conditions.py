@@ -5,18 +5,18 @@ import numpy as np
 BoundaryConditions = dict[int, np.ndarray]
 
 
-def __find(axis: int, v: np.ndarray, boundary: float, epsilon: float) -> np.ndarray:
-    return np.array([i for i, node in enumerate(v) if np.isclose(node[axis], boundary, atol=epsilon)])
+def __find(axis: int, v: np.ndarray, boundary: float, epsilon: float) -> List[int]:
+    return [i for i, node in enumerate(v) if np.isclose(node[axis], boundary, atol=epsilon)]
 
 
 def find_max_surface_nodes(axes: List[int], v: np.ndarray, epsilon: float = 0.0) -> np.ndarray:
     axis_maxes = v.max(axis=0)
-    return np.concatenate((__find(axis, v, axis_maxes[axis], epsilon) for axis in axes))
+    return np.concatenate([__find(axis, v, axis_maxes[axis], epsilon) for axis in axes])
 
 
 def find_min_surface_nodes(axes: List[int], v: np.ndarray, epsilon: float = 0.0) -> np.ndarray:
-    axis_mines = v.min(axis=0)
-    return np.concatenate((__find(axis, v, axis_mines[axis], epsilon) for axis in axes))
+    axis_mins = v.min(axis=0)
+    return np.concatenate([__find(axis, v, axis_mins[axis], epsilon) for axis in axes])
 
 
 def top_bottom_plate_dirilect_conditions(v: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -33,9 +33,12 @@ def top_bottom_plate_dirilect_conditions(v: np.ndarray) -> Tuple[np.ndarray, np.
 
     # 1% of the min/max for wiggle room (for really _really_ close nodes)
     epsilon = 0.01
-    force_nodes = find_max_surface_nodes(axis, v, epsilon).sort()
-    fixed_nodes = find_min_surface_nodes(axis, v, epsilon).sort()
-    interior_nodes = np.array([i for i in range(len(v)) if i not in force_nodes and i not in fixed_nodes]).sort()
+    force_nodes = find_max_surface_nodes(axis, v, epsilon)
+    force_nodes.sort()
+    fixed_nodes = find_min_surface_nodes(axis, v, epsilon)
+    fixed_nodes.sort()
+    interior_nodes = np.array([i for i in range(len(v)) if i not in force_nodes and i not in fixed_nodes])
+    interior_nodes.sort()
     return force_nodes, interior_nodes, fixed_nodes
 
 
