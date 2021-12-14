@@ -37,7 +37,6 @@ class Visualizer(object):
         self.simulation_window_focused = False
         self.current_timestep = 0
         self.n_timesteps = 100
-        self.displacements = []
 
         # Parameter-Specific Menus
         self.sim_parameters_expanded = True
@@ -241,8 +240,10 @@ class Visualizer(object):
         self.simulation_window_focused = imgui.is_window_focused() or imgui.is_item_clicked()
         imgui.text("Timestep")
         imgui.text_colored(
-            "No Displacements, Please Start Sim First." if len(self.displacements) == 0 else "Displacements Ready",
-            *(RED if len(self.displacements) == 0 else GREEN),
+            "No Displacements, Please Start Sim First."
+            if len(self.simulation_environment.displacements) < self.n_timesteps
+            else "Displacements Ready",
+            *(RED if len(self.simulation_environment.displacements) < self.n_timesteps else GREEN),
         )
         imgui.push_item_width(-1)
         _, self.current_timestep = imgui.slider_int(
@@ -260,10 +261,7 @@ class Visualizer(object):
             return
 
         logger.info("Running simulation")
-        for i in range(self.n_timesteps):
-            if i % 10 == 0:
-                logger.info(f"Timestep: {i}")
-            self.simulation_environment.step_forward()
+        self.simulation_environment.simulate(self.mesh, self.n_timesteps)
 
         logger.success("Simulation is done")
 

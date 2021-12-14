@@ -1,11 +1,12 @@
 import numpy as np
-from scipy.sparse.csr import csr_matrix
+from scipy.sparse.csc import csc_matrix
 
-from ..explicit_central_difference_method import ExplicitCentralDifferenceMethod
+from ..explicit_central_difference_method import \
+    ExplicitCentralDifferenceMethod
 
 
 def test_constructor():
-    stiffness_matrix = csr_matrix(np.array([[6, -2], [-2, 4]]))
+    stiffness_matrix = csc_matrix(np.array([[6, -2], [-2, 4]]))
     initial_displacement = np.zeros(2)
     initial_forces = np.array([0, 10])
 
@@ -17,8 +18,8 @@ def test_constructor():
 def test_solver():
     displacement = np.zeros(2)
     forces = np.array([0, 10])
-    stiffness_matrix = csr_matrix(np.array([[6, -2], [-2, 4]]))
-    mass_matrix = csr_matrix(np.array([[2, 0], [0, 1]]))
+    stiffness_matrix = np.array([[6, -2], [-2, 4]])
+    mass_matrix = csc_matrix(np.array([[2, 0], [0, 1]]))
     e = ExplicitCentralDifferenceMethod(
         0.28, mass_matrix, stiffness_matrix, displacement, forces, rayleigh_lambda=0, rayleigh_mu=0
     )

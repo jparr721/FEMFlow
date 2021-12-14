@@ -6,7 +6,6 @@ import numpy as np
 from loguru import logger
 from numerics.linear_algebra import fast_diagonal_inverse
 from scipy.sparse.csc import csc_matrix
-from scipy.sparse.csr import csr_matrix
 from scipy.sparse.linalg import inv
 
 from .integrator import Integrator
@@ -16,8 +15,8 @@ class ExplicitCentralDifferenceMethod(Integrator):
     def __init__(
         self,
         dt: float,
-        point_mass: Union[float, csr_matrix],
-        stiffness: Union[np.ndarray, csr_matrix],
+        point_mass: Union[float, csc_matrix],
+        stiffness: Union[np.ndarray, csc_matrix],
         initial_displacement: np.ndarray,
         initial_force: np.ndarray,
         *,
@@ -34,8 +33,8 @@ class ExplicitCentralDifferenceMethod(Integrator):
         self.initial_displacement = initial_displacement
         self.initial_force = initial_force
 
-        if type(point_mass) != csr_matrix:
-            self.mass_matrix = csr_matrix(np.eye(stiffness.shape[0])) * point_mass
+        if type(point_mass) != csc_matrix:
+            self.mass_matrix = csc_matrix(np.eye(stiffness.shape[0])) * point_mass
         else:
             self.mass_matrix = point_mass
 
@@ -58,11 +57,13 @@ class ExplicitCentralDifferenceMethod(Integrator):
         self._compute_effective_mass_matrix()
 
     def integrate(self, forces: np.ndarray, displacements: np.ndarray) -> np.ndarray:
-        effective_load = (
-            forces
-            - (self.stiffness - self.a2 * self.mass_matrix) * displacements
-            - (self.a0 * self.mass_matrix - self.a1 * self.damping_matrix) * self.previous_position
-        )
+        # The shapes don't work right due to scipy's ordering, so we transpose and remove the dimension
+        v1 = np.array((self.stiffness - self.a2 * self.mass_matrix).dot(displacements)).T.reshape(-1)
+        v2 = np.array(
+            (self.a0 * self.mass_matrix - self.a1 * self.damping_matrix).dot(self.previous_position)
+        ).T.reshape(-1)
+
+        effective_load = forces - v1 - v2
 
         next_displacements = self.effective_mass_matrix * effective_load
 

@@ -1,10 +1,8 @@
 import copy
-import time
 from collections import namedtuple
 from typing import List, Tuple
 
 import numpy as np
-from loguru import logger
 from scipy.sparse import csc_matrix
 
 from .boundary_conditions import BoundaryConditions

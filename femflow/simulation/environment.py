@@ -5,6 +5,7 @@ class Environment(object):
     def __init__(self, name: str):
         self.name = name
         self.loaded = False
+        self.displacements = []
 
     def load(self, mesh: Mesh):
         raise NotImplementedError()
