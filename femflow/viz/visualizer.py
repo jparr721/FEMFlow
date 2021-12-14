@@ -108,7 +108,7 @@ class Visualizer(object):
 
     @property
     def simulation_window_dimensions(self):
-        height = self.window_height * 0.1 if self.window_height >= 800 else 100
+        height = self.window_height * 0.12 if self.window_height >= 800 else 130
         menu_window_width, _, _, _ = self.menu_window_dimensions
         width = self.window_width - menu_window_width
         return (
@@ -240,6 +240,10 @@ class Visualizer(object):
         )
         self.simulation_window_focused = imgui.is_window_focused() or imgui.is_item_clicked()
         imgui.text("Timestep")
+        imgui.text_colored(
+            "No Displacements, Please Start Sim First." if len(self.displacements) == 0 else "Displacements Ready",
+            *(RED if len(self.displacements) == 0 else GREEN),
+        )
         imgui.push_item_width(-1)
         _, self.current_timestep = imgui.slider_int(
             "##timestep", self.current_timestep, min_value=0, max_value=self.n_timesteps

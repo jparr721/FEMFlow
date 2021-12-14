@@ -12,54 +12,19 @@ from .boundary_conditions import BoundaryConditions
 ElementStiffness = namedtuple("ElementStiffness", ["stiffness", "element"])
 
 
-def index_slice(X: np.ndarray, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
+def index_slice(X: csc_matrix, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
     if C is None:
         C = copy.deepcopy(R)
     assert R.ndim == 1 and C.ndim == 1, "Rows and cols must be vectors"
     rows = R.size
     cols = C.size
-    out = np.zeros((rows, cols))
+    RR = []
+    CC = []
     for row in range(rows):
         for col in range(cols):
-            out[row, col] = X[R[row], C[col]]
-    return out
-
-
-def index_into_sparse_triplets(
-    X: np.ndarray, R: np.ndarray, C: np.ndarray = None
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    if C is None:
-        C = copy.deepcopy(R)
-    assert R.ndim == 1 and C.ndim == 1, "Rows and cols must be vectors"
-    rows = R.size
-    cols = C.size
-    i = []
-    j = []
-    v = []
-    for row in range(rows):
-        for col in range(cols):
-            i.append(R[row])
-            j.append(C[col])
-            v.append(X[R[row], C[col]])
-
-    return np.array(v), np.array(i, dtype=np.uint32), np.array(j, dtype=np.uint32)
-
-
-def isotropic_constitutive_matrix(E: float, v: float) -> np.ndarray:
-    return (E / ((1 + v) * (1 - 2 * v))) * np.array(
-        [
-            [1 - v, v, v, 0, 0, 0],
-            [v, 1 - v, v, 0, 0, 0],
-            [v, v, 1 - v, 0, 0, 0],
-            [0, 0, 0, (1 - 2 * v) / 2, 0, 0],
-            [0, 0, 0, 0, (1 - 2 * v) / 2, 0],
-            [0, 0, 0, 0, 0, (1 - 2 * v) / 2],
-        ]
-    )
-
-
-def orthotropic_constitutive_matrix(E: np.ndarray, v: np.ndarray, G: np.ndarray):
-    pass
+            RR.append(R[row])
+            CC.append(C[col])
+    return X[RR, CC].reshape(rows, cols)
 
 
 def tet_volume(a, b, c, d):
@@ -300,7 +265,6 @@ def assemble_global_stiffness_matrix(elements: List[ElementStiffness], rows: int
 
 
 def assemble_boundary_forces(K: csc_matrix, boundary_conditions: BoundaryConditions) -> np.ndarray:
-    start = time.time()
     F_e = np.zeros(len(boundary_conditions) * 3)
     I_e = np.zeros(len(boundary_conditions) * 3)
 
@@ -310,14 +274,8 @@ def assemble_boundary_forces(K: csc_matrix, boundary_conditions: BoundaryConditi
         F_e[i : i + 3] = force
         I_e[i : i + 3] = np.arange(n, n + 3)
         i += 3
-    end = time.time()
-    logger.debug(f"Index Size: {I_e.size}")
-    K_e = index_slice(K, I_e)
 
-    logger.debug(f"It took {end - start}s to compute indices")
-
-    # K_e
-    return K_e, F_e
+    return index_slice(K, I_e), F_e
 
 
 def compute_U(

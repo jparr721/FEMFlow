@@ -65,6 +65,9 @@ class Mesh(object):
         self.faces = self.as_vector(f)
         self.tetrahedra = self.as_vector(t)
         self.normals = self.as_vector(per_face_normals(v, f))
+        # TODO(@jparr721) Change this later
+        self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(np.float32)
+        logger.info(f"Random Color: {self.colors[:3]}")
 
     def as_vector(self, array: np.ndarray):
         assert array.ndim < 3, "Must be at most 2D"

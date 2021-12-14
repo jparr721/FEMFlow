@@ -1,19 +1,19 @@
-import time
 from collections import defaultdict
 
 import imgui
 import numpy as np
 from loguru import logger
-from solvers.fea.boundary_conditions import basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions
-from solvers.fea.linear_galerkin_fea import (
-    assemble_boundary_forces,
-    assemble_element_stiffness_matrix,
-    assemble_global_stiffness_matrix,
-    assemble_shape_fn_matrix,
-    compute_U_from_active_dofs,
-)
-from solvers.integrators.explicit_central_difference_method import ExplicitCentralDifferenceMethod
-from solvers.material import hookes_law_isotropic_constitutive_matrix, hookes_law_orthotropic_constitutive_matrix
+from solvers.fea.boundary_conditions import (
+    basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions)
+from solvers.fea.linear_galerkin_fea import (assemble_boundary_forces,
+                                             assemble_element_stiffness_matrix,
+                                             assemble_global_stiffness_matrix,
+                                             assemble_shape_fn_matrix,
+                                             compute_U_from_active_dofs)
+from solvers.integrators.explicit_central_difference_method import \
+    ExplicitCentralDifferenceMethod
+from solvers.material import (hookes_law_isotropic_constitutive_matrix,
+                              hookes_law_orthotropic_constitutive_matrix)
 from viz.mesh import Mesh
 
 from .environment import Environment
@@ -43,7 +43,7 @@ class LinearFemSimulation(Environment):
         self.displacements = []
 
     def load(self, mesh: Mesh):
-        logger.info("Loading Simulation With Saved Parameters")
+        logger.info("Loading simulation with saved parameters")
 
         force_nodes, interior_nodes, fixed_nodes = top_bottom_plate_dirilect_conditions(
             mesh.as_matrix(mesh.vertices, 3)
@@ -181,18 +181,9 @@ class LinearFemSimulation(Environment):
             B = assemble_shape_fn_matrix(*vertices[row])
             element_stiffnesses.append(assemble_element_stiffness_matrix(row, vertices, B, self.constitutive_matrix))
 
-        start = time.time()
         K = assemble_global_stiffness_matrix(element_stiffnesses, 3 * len(vertices))
-        end = time.time()
-        logger.debug(f"It took {end - start}s to compute global stiffness")
-        start = time.time()
         self.K_e, self.F_e = assemble_boundary_forces(K, self.boundary_conditions)
-
         self.U_e = np.zeros(len(self.boundary_conditions) * 3)
-        end = time.time()
-        logger.debug(f"It took {end - start}s to compute boundaries")
-
-        start = time.time()
         self.cd_integrator = ExplicitCentralDifferenceMethod(
             self.dt,
             self.mass,
@@ -202,8 +193,6 @@ class LinearFemSimulation(Environment):
             rayleigh_lambda=self.rayleigh_lambda,
             rayleigh_mu=self.rayleigh_mu,
         )
-        end = time.time()
-        logger.debug(f"It took {end - start}s to compute central difference integrator")
 
     def simulate(self, mesh: Mesh, timesteps: int):
         for i in range(timesteps):

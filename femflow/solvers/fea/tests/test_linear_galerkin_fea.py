@@ -1,5 +1,6 @@
 import numpy as np
 
+from ...material import hookes_law_isotropic_constitutive_matrix
 from ..linear_galerkin_fea import *
 
 E = 210e6
@@ -33,7 +34,7 @@ def test_static_form_solve():
         6: np.array([0, 6.25, 0]),
         7: np.array([0, 3.125, 0]),
     }
-    D = isotropic_constitutive_matrix(E, nu)
+    D = hookes_law_isotropic_constitutive_matrix(np.array([E, nu]))
 
     element_stiffnesses = []
     for row in t:
