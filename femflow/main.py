@@ -1,8 +1,7 @@
-import cv2
 import typer
 from loguru import logger
 
-from reconstruction.calibration import calibrate_hsv, calibrate_mask
+from reconstruction.calibration import calibrate_bb, calibrate_hsv, calibrate_mask
 from simulation.linear_fem_simulation import LinearFemSimulation
 from viz.visualizer import Visualizer
 
@@ -15,6 +14,8 @@ def calibrate(type: str):
         calibrate_mask()
     elif type == "hsv":
         calibrate_hsv()
+    elif type == "bb":
+        calibrate_bb()
     else:
         raise ValueError(f"Invalid calibration type {type} supplied")
 

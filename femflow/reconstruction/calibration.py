@@ -1,9 +1,16 @@
+import os
+from collections import namedtuple
+
 import cv2
 import numpy as np
 from loguru import logger
 
+HSVCalibration = namedtuple("HSVCalibration", ["h_min", "s_min", "v_min", "h_max", "s_max", "v_max"])
+MASKS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "masks")
+TEXTURES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "textures")
 
-def calibrate_hsv():
+
+def calibrate_hsv() -> HSVCalibration:
     cap = cv2.VideoCapture(0)
 
     # Create a window
@@ -72,9 +79,38 @@ def calibrate_hsv():
             break
 
     cv2.destroyAllWindows()
+    return HSVCalibration(h_min, s_min, v_min, h_max, s_max, v_max)
 
 
 def calibrate_mask():
+    cap = cv2.VideoCapture(0)
+    img = None
+    while True:
+        _, img = cap.read()
+        img = cv2.flip(img, 5)
+
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        # These parameters _must_ be these values to accurately capture the square
+        lower_color = (40, 70, 115)
+        upper_color = (80, 255, 255)
+
+        mask = cv2.inRange(hsv, lower_color, upper_color)
+        mask = cv2.erode(mask, None, iterations=2)
+        mask = cv2.dilate(mask, None, iterations=2)
+
+        cv2.imshow("Camera", mask)
+        if cv2.waitKey(10) & 0xFF == ord("q"):
+            cap.release()
+            break
+
+    cv2.destroyAllWindows()
+    filename = os.path.join(MASKS_PATH, "mask_calibration.png")
+    logger.info(f"Saving calibration mask image to {filename}")
+    cv2.imwrite(filename, mask)
+
+
+def calibrate_bb():
     cap = cv2.VideoCapture(0)
     while True:
         _, img = cap.read()
@@ -83,8 +119,8 @@ def calibrate_mask():
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
         # These parameters _must_ be these values to accurately capture the square
-        lower_color = (40, 70, 100)
-        upper_color = (100, 255, 255)
+        lower_color = (40, 70, 115)
+        upper_color = (80, 255, 255)
 
         mask = cv2.inRange(hsv, lower_color, upper_color)
         mask = cv2.erode(mask, None, iterations=2)
@@ -92,7 +128,6 @@ def calibrate_mask():
         res = cv2.bitwise_and(img, img, mask=mask)
 
         imgray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-        ret, thresh = cv2.threshold(imgray, 127, 255, 0)
         contours, hierarchy = cv2.findContours(imgray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if len(contours) > 0:
@@ -100,6 +135,7 @@ def calibrate_mask():
             # for cnt in contours:
             x, y, w, h = cv2.boundingRect(contour)
             cv2.rectangle(img, (x, y), (x + w, y + h), [255, 0, 0], 2)
+            cv2.drawContours(img, contour, -1, (0, 255, 0), 3)
 
         cv2.imshow("Camera", img)
         if cv2.waitKey(10) & 0xFF == ord("q"):

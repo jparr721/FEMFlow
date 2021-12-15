@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 femflow/viz/foo.ipynb
 foo.ipynb
+debug.ipynb

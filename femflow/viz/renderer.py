@@ -5,6 +5,7 @@ import numpy as np
 from loguru import logger
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from utils.graphics.textures import build_texture
 
 from .camera import Camera
 from .mesh import Mesh
@@ -27,19 +28,6 @@ def build_vertex_buffer(
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_DYNAMIC_DRAW)
     glVertexAttribPointer(location, stride, GL_FLOAT, GL_FALSE, stride * data.itemsize, offset)
     glEnableVertexAttribArray(location)
-
-
-def build_texture(
-    buffer: GLint, data: np.ndarray, tex_u: int, tex_v: int, tex_wrap: GLint, tex_filter: GLint, refresh: bool = True
-):
-    if refresh:
-        glBindTexture(GL_TEXTURE_2D, buffer)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, tex_wrap)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tex_wrap)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, tex_filter)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, tex_filter)
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_u, tex_v, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
 
 
 def build_index_buffer(buffer: GLint, data: np.ndarray):

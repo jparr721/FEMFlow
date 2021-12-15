@@ -6,8 +6,8 @@ import imgui
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
+from reconstruction.behavior_matching import BehaviorMatching
 from simulation.environment import Environment
-from tqdm import tqdm
 from utils.filesystem import file_dialog
 
 from .camera import Camera
@@ -24,8 +24,8 @@ GREEN = [0, 1, 0]
 class Visualizer(object):
     def __init__(self, environment: Environment):
         self.WINDOW_TITLE = "FEMFlow Viewer"
-        self.window_width = 1200
-        self.window_height = 800
+        self.window_width = 1886
+        self.window_height = 976
         self.background_color = [1, 1, 1, 0]
 
         self.camera = Camera()
@@ -43,8 +43,10 @@ class Visualizer(object):
         # Parameter-Specific Menus
         self.sim_parameters_expanded = True
         self.sim_parameters_visible = True
+        self.behavior_matching_expanded = True
+        self.behavior_matching_visible = True
         self.simulation_spec_expanded = True
-        self.simulation_spec_visible = True
+        self.simulation_spec_visible = False
 
         self.callback_environment_loader = lambda: logger.error("No functionality implemented yet!")
         self.callback_start_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
@@ -171,6 +173,7 @@ class Visualizer(object):
         if imgui.button(label="Save Mesh"):
             file_dialog.file_dialog_save_mesh(self.mesh)
         self.sim_param_menu()
+        self.capture_param_menu()
         imgui.end()
 
     def log_window(self):
@@ -196,7 +199,7 @@ class Visualizer(object):
 
     def sim_param_menu(self):
         self.sim_parameters_expanded, self.sim_parameters_visible = imgui.collapsing_header(
-            "Parameters", self.sim_parameters_visible, imgui.TREE_NODE_DEFAULT_OPEN
+            "Parameters", self.sim_parameters_visible
         )
         if self.sim_parameters_expanded:
             imgui.text_colored(
@@ -221,6 +224,18 @@ class Visualizer(object):
             imgui.same_line()
             if imgui.button(label="Reset Sim"):
                 self.reset_simulation()
+
+    def capture_param_menu(self):
+        self.behavior_matching_expanded, self.behavior_matching_visible = imgui.collapsing_header(
+            "Behavior Match", self.behavior_matching_visible
+        )
+        if imgui.button("Capture"):
+            self.capture_window()
+
+    def capture_window(self):
+        bhm = BehaviorMatching()
+        bhm.display()
+        imgui.image(bhm.capture_texture, bhm.w, bhm.h)
 
     def simulation_window(self):
         (
@@ -286,6 +301,8 @@ class Visualizer(object):
             imgui.new_frame()
             self.menu_window()
             self.log_window()
+
+            # TODO(@jparr721) This variable is mis-named
             if self.simulation_spec_visible:
                 self.simulation_window()
 

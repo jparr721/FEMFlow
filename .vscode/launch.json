@@ -11,8 +11,9 @@
             "program": "C:\\Users\\jparr\\Code\\FEMFlow\\femflow\\main.py",
             "console": "integratedTerminal",
             "args": [
-                "calibrate",
-                "mask"
+                "visualize",
+                // "calibrate",
+                // "mask"
             ]
         }
     ]
