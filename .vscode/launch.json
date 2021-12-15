@@ -9,7 +9,11 @@
             "type": "python",
             "request": "launch",
             "program": "C:\\Users\\jparr\\Code\\FEMFlow\\femflow\\main.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [
+                "calibrate",
+                "mask"
+            ]
         }
     ]
 }

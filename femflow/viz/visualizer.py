@@ -15,8 +15,6 @@ from .input import Input
 from .mesh import Mesh
 from .renderer import Renderer
 
-# logger.remove()
-# logger.add(lambda msg: tqdm.write(msg, end=""))
 logger.add("femflow.log", mode="w+")
 
 RED = [1, 0, 0]
@@ -200,11 +198,11 @@ class Visualizer(object):
         self.sim_parameters_expanded, self.sim_parameters_visible = imgui.collapsing_header(
             "Parameters", self.sim_parameters_visible, imgui.TREE_NODE_DEFAULT_OPEN
         )
-        imgui.text_colored(
-            f"Sim Status: {'Not Loaded' if not self.simulation_environment.loaded else 'Loaded'}",
-            *(RED if not self.simulation_environment.loaded else GREEN),
-        )
         if self.sim_parameters_expanded:
+            imgui.text_colored(
+                f"Sim Status: {'Not Loaded' if not self.simulation_environment.loaded else 'Loaded'}",
+                *(RED if not self.simulation_environment.loaded else GREEN),
+            )
             self.simulation_environment.menu()
             if imgui.button(label="Load"):
                 threading.Thread(target=self.simulation_environment.load, args=(self.mesh,)).start()
@@ -212,7 +210,7 @@ class Visualizer(object):
             self.simulation_spec_visible = self.simulation_environment.loaded
 
             self.simulation_spec_expanded, self.simulation_spec_visible = imgui.collapsing_header(
-                "Simulation Configuration", self.simulation_spec_visible, imgui.TREE_NODE_DEFAULT_OPEN
+                "Sim Config", self.simulation_spec_visible, imgui.TREE_NODE_DEFAULT_OPEN
             )
             imgui.text("Timesteps")
             _, self.n_timesteps = imgui.input_int("##timesteps", self.n_timesteps)
