@@ -1,14 +1,14 @@
 import configparser
 import os
-from typing import Generator, Tuple
+from typing import Tuple
 
 import cv2
 import numpy as np
 from loguru import logger
 from OpenGL.GL import *
-from utils.graphics.textures import build_texture, load_texture_from_image
+from video.video_stream import VideoStream
 
-from .calibration import TEXTURES_PATH, calibrate_hsv
+from .calibration import calibrate_hsv
 
 
 class BehaviorMatching(object):
@@ -24,10 +24,8 @@ class BehaviorMatching(object):
             except Exception as e:
                 logger.error(f"Failed to parse config: {e}")
 
-        self.exporting = False
-        self.capture_texture = -1
-        self.w = 0
-        self.h = 0
+        self.exporting = True
+        self.stream = VideoStream()
 
     @property
     def lower_bound_color(self) -> Tuple[int, int, int]:
@@ -48,51 +46,33 @@ class BehaviorMatching(object):
         with open(self.reconstruction_file, "w+") as f:
             self.reconstruction_config.write(f)
 
-    def display(self):
+    def transform_frame(self, frame: np.ndarray) -> np.ndarray:
         if self.HSV_CALIBRATION_KEY not in self.reconstruction_config:
             logger.warning(f"Config Option: {self.HSV_CALIBRATION_KEY} not found, starting calibration.")
             self.calibrate()
-        self.capture_texture = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.capture_texture)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        self.exporting = True
-        _, w, h = load_texture_from_image(self.capture_texture, self.export_bb_realtime())
-        self.w = w
-        self.h = h
 
-    def export_bb_realtime(self) -> Generator[np.ndarray, None, None]:
-        cap = cv2.VideoCapture(0)
-        img = np.zeros((100, 100))
-        while self.exporting:
-            _, img = cap.read()
-            img = cv2.flip(img, 5)
+        frame = cv2.flip(frame, 5)
 
-            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-            mask = cv2.inRange(hsv, self.lower_bound_color, self.upper_bound_color)
-            mask = cv2.erode(mask, None, iterations=2)
-            mask = cv2.dilate(mask, None, iterations=2)
-            res = cv2.bitwise_and(img, img, mask=mask)
+        mask = cv2.inRange(hsv, self.lower_bound_color, self.upper_bound_color)
+        mask = cv2.erode(mask, None, iterations=2)
+        mask = cv2.dilate(mask, None, iterations=2)
+        res = cv2.bitwise_and(frame, frame, mask=mask)
 
-            imgray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-            contours, _ = cv2.findContours(imgray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        frameray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+        contours, _ = cv2.findContours(frameray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            if len(contours) > 0:
-                contour = max(contours, key=cv2.contourArea)
-                # for cnt in contours:
-                x, y, w, h = cv2.boundingRect(contour)
-                cv2.rectangle(img, (x, y), (x + w, y + h), [255, 0, 0], 2)
-                cv2.drawContours(img, contour, -1, (0, 255, 0), 3)
+        if len(contours) > 0:
+            contour = max(contours, key=cv2.contourArea)
+            # for cnt in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), [255, 0, 0], 2)
+            cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
+        return frame
 
-            # Generate the output data stream as a generator to avoid thread annihilation
-            data = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            self.exporting = False
-            return data
+    def start_matching(self):
+        self.stream.start(self.transform_frame)
 
-        filename = f"{TEXTURES_PATH}/bounding_box.png"
-        logger.info(f"Writing texture {filename}")
-        cv2.imwrite(filename, img)
+    def stop_matching(self):
+        self.stream.stop()

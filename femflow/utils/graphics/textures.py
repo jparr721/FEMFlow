@@ -17,7 +17,7 @@ def build_texture(
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_u, tex_v, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
 
 
-def load_texture_from_image(buffer: GLint, image: np.ndarray) -> Tuple[int, int, int]:
-    h, w, _ = image.shape
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image)
-    return buffer, w, h
+def load_texture_from_image(buffer: GLint, image: np.ndarray) -> Tuple[int, int]:
+    w, h, _ = image.shape
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image)
+    return w, h

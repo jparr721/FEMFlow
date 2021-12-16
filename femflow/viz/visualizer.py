@@ -34,6 +34,7 @@ class Visualizer(object):
         # IMGUI
         self.log_window_focused = False
         self.menu_window_focused = False
+        self.capture_window_focused = False
 
         # Simulation-Specific Menus
         self.simulation_window_focused = False
@@ -48,11 +49,11 @@ class Visualizer(object):
         self.simulation_spec_expanded = True
         self.simulation_spec_visible = False
 
+        self.capture_window_visible = False
+
         self.callback_environment_loader = lambda: logger.error("No functionality implemented yet!")
         self.callback_start_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
         self.callback_reset_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
-
-        # IMGUI
 
         self.simulation_environment: Environment = environment
 
@@ -84,6 +85,8 @@ class Visualizer(object):
         glClearColor(*self.background_color)
 
         self.input = Input()
+
+        self.behavior_matching: BehaviorMatching = BehaviorMatching()
 
     def __enter__(self):
         return self
@@ -229,13 +232,18 @@ class Visualizer(object):
         self.behavior_matching_expanded, self.behavior_matching_visible = imgui.collapsing_header(
             "Behavior Match", self.behavior_matching_visible
         )
-        if imgui.button("Capture"):
-            self.capture_window()
+        if self.behavior_matching_expanded:
+            _, self.capture_window_visible = imgui.checkbox("Capturing", self.capture_window_visible)
+            if self.capture_window_visible:
+                self.capture_window()
+                self.behavior_matching.start_matching()
+            else:
+                self.behavior_matching.stop_matching()
 
     def capture_window(self):
-        bhm = BehaviorMatching()
-        bhm.display()
-        imgui.image(bhm.capture_texture, bhm.w, bhm.h)
+        imgui.begin("Capture Window")
+        self.capture_window_focused = imgui.is_window_focused() or imgui.is_item_clicked()
+        imgui.end()
 
     def simulation_window(self):
         (
