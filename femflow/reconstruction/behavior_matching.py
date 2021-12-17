@@ -36,6 +36,9 @@ class BehaviorMatching(object):
         config = self.reconstruction_config[self.HSV_CALIBRATION_KEY]
         return (int(config["h_max"]), int(config["s_max"]), int(config["v_max"]))
 
+    def destroy(self):
+        self.stream.destroy()
+
     def calibrate(self):
         config = calibrate_hsv()
         if self.HSV_CALIBRATION_KEY in self.reconstruction_config:

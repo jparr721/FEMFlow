@@ -95,6 +95,9 @@ class Visualizer(object):
         logger.info("Destroying imgui")
         self.imgui_impl.shutdown()
 
+        logger.info("Destorying behavior matching")
+        self.behavior_matching.destroy()
+
         logger.info("Destroying glfw")
         glfw.terminate()
 
