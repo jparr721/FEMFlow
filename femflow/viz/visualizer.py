@@ -24,8 +24,8 @@ GREEN = [0, 1, 0]
 class Visualizer(object):
     def __init__(self, environment: Environment):
         self.WINDOW_TITLE = "FEMFlow Viewer"
-        self.window_width = 1886
-        self.window_height = 976
+        self.window_width = 1800
+        self.window_height = 1200
         self.background_color = [1, 1, 1, 0]
 
         self.camera = Camera()
@@ -100,7 +100,12 @@ class Visualizer(object):
 
     @property
     def any_window_focused(self):
-        return self.menu_window_focused or self.log_window_focused or self.simulation_window_focused
+        return (
+            self.menu_window_focused
+            or self.log_window_focused
+            or self.simulation_window_focused
+            or self.capture_window_focused
+        )
 
     @property
     def log_window_dimensions(self):
@@ -196,7 +201,7 @@ class Visualizer(object):
         with open("femflow.log", "r+") as f:
             for line in f.readlines():
                 imgui.text(line)
-        imgui.set_scroll_y(imgui.get_scroll_max_y())
+        imgui.set_scroll_y(imgui.get_scroll_max_y() + 2)
         imgui.end_child()
         imgui.end()
 
@@ -218,15 +223,16 @@ class Visualizer(object):
             self.simulation_spec_expanded, self.simulation_spec_visible = imgui.collapsing_header(
                 "Sim Config", self.simulation_spec_visible, imgui.TREE_NODE_DEFAULT_OPEN
             )
-            imgui.text("Timesteps")
-            _, self.n_timesteps = imgui.input_int("##timesteps", self.n_timesteps)
+            if self.simulation_spec_expanded:
+                imgui.text("Timesteps")
+                _, self.n_timesteps = imgui.input_int("##timesteps", self.n_timesteps)
 
-            if imgui.button(label="Start Sim"):
-                self.sim_runtime_focused = True
-                self.start_simulation()
-            imgui.same_line()
-            if imgui.button(label="Reset Sim"):
-                self.reset_simulation()
+                if imgui.button(label="Start Sim"):
+                    self.sim_runtime_focused = True
+                    self.start_simulation()
+                imgui.same_line()
+                if imgui.button(label="Reset Sim"):
+                    self.reset_simulation()
 
     def capture_param_menu(self):
         self.behavior_matching_expanded, self.behavior_matching_visible = imgui.collapsing_header(
@@ -274,6 +280,8 @@ class Visualizer(object):
         _, self.current_timestep = imgui.slider_int(
             "##timestep", self.current_timestep, min_value=0, max_value=self.n_timesteps
         )
+        if self.current_timestep > 1:
+            self.mesh.transform(self.simulation_environment.displacements[self.current_timestep])
         imgui.pop_item_width()
         imgui.end()
 

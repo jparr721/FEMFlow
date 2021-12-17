@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 from loguru import logger
 from meshing.loader import load_mesh_file, load_obj_file
@@ -41,6 +43,8 @@ class Mesh(object):
         self.colors = self.as_vector(colors)
         self.textures = textures
 
+        self.world_coordinates = copy.deepcopy(self.vertices)
+
         if self.textures.size == 0 and self.colors.size == 0:
             self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(np.float32)
             logger.info(f"Random Color: {self.colors[:3]}")
@@ -56,6 +60,9 @@ class Mesh(object):
             v, t, n, f = load_mesh_file(filename)
             return Mesh(vertices=v, tetrahedra=t, normals=n, faces=f)
 
+    def transform(self, delta: np.ndarray):
+        self.vertices = self.world_coordinates + delta
+
     def tetrahedralize(self):
         if self.tetrahedra.size > 0:
             logger.warning("Mesh is already tetrahedralized")
@@ -67,6 +74,7 @@ class Mesh(object):
         self.normals = self.as_vector(per_face_normals(v, f))
         # TODO(@jparr721) Change this later
         self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(np.float32)
+        self.world_coordinates = copy.deepcopy(self.vertices)
         logger.info(f"Random Color: {self.colors[:3]}")
 
     def as_vector(self, array: np.ndarray):

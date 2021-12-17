@@ -13,6 +13,9 @@ class TransformationFn(Protocol):
 
 class VideoStream(object):
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.stream = cv2.VideoCapture(0)
         _, self.frame = self.stream.read()
         self.streaming = False

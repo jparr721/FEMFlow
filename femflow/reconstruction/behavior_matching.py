@@ -5,7 +5,6 @@ from typing import Tuple
 import cv2
 import numpy as np
 from loguru import logger
-from OpenGL.GL import *
 from video.video_stream import VideoStream
 
 from .calibration import calibrate_hsv
