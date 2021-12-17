@@ -283,8 +283,7 @@ class Visualizer(object):
         _, self.current_timestep = imgui.slider_int(
             "##timestep", self.current_timestep, min_value=0, max_value=self.n_timesteps
         )
-        if self.current_timestep > 1:
-            self.mesh.transform(self.simulation_environment.displacements[self.current_timestep])
+        self.mesh.transform(self.simulation_environment.displacements[self.current_timestep])
         imgui.pop_item_width()
         imgui.end()
 
@@ -304,7 +303,9 @@ class Visualizer(object):
             logger.error("Sim environment is empty, cannot reset sim")
             return
 
-        logger.succes("Simulation was reset")
+        self.simulation_environment.reset(self.mesh)
+
+        logger.success("Simulation was reset")
 
     def launch(self):
         folder = os.path.dirname(os.path.abspath(__file__))

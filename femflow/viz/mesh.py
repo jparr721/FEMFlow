@@ -61,7 +61,10 @@ class Mesh(object):
             return Mesh(vertices=v, tetrahedra=t, normals=n, faces=f)
 
     def transform(self, delta: np.ndarray):
-        self.vertices = self.world_coordinates + delta
+        # TODO(@jparr721) FIX THIS STUPID SHIT
+        # This is here in place of broadcasting until I sort out the dangling reference issue in the render pass
+        for i, row in enumerate(np.add(self.world_coordinates, delta)):
+            self.vertices[i] = row
 
     def tetrahedralize(self):
         if self.tetrahedra.size > 0:

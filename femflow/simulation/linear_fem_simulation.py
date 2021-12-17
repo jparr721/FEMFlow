@@ -22,10 +22,10 @@ from .environment import Environment
 class LinearFemSimulation(Environment):
     def __init__(self, name="linear_galerkin"):
         super().__init__(name)
-        self.dt = 0.28
+        self.dt = 0.001
         self.mass = 10
-        self.force = 100
-        self.youngs_modulus = "50000"
+        self.force = -100
+        self.youngs_modulus = "150000"
         self.poissons_ratio = "0.3"
         self.shear_modulus = "1000"
         self.use_damping = False
@@ -50,7 +50,9 @@ class LinearFemSimulation(Environment):
         )
 
         try:
-            self.boundary_conditions = basic_dirilecht_boundary_conditions(self.force, force_nodes, interior_nodes)
+            self.boundary_conditions = basic_dirilecht_boundary_conditions(
+                np.array([0, self.force, 0]), force_nodes, interior_nodes
+            )
         except Exception as e:
             logger.error("Dirilect boundary condition assignment failed")
             logger.error(f"Boundary conditions had error: {e}")
@@ -174,6 +176,7 @@ class LinearFemSimulation(Environment):
             self.material_coefficients = (self.youngs_modulus, self.poissons_ratio, self.shear_modulus)
 
     def reset(self, mesh: Mesh):
+        self.displacements = [np.zeros(mesh.vertices.size)]
         vertices = mesh.as_matrix(mesh.vertices, 3)
         tetrahedra = mesh.as_matrix(mesh.tetrahedra, 4)
         element_stiffnesses = []
