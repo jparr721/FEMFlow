@@ -304,6 +304,7 @@ class Visualizer(object):
             return
 
         self.simulation_environment.reset(self.mesh)
+        self.current_timestep = 0
 
         logger.success("Simulation was reset")
 
