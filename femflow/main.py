@@ -1,3 +1,6 @@
+import sys
+from logging import StreamHandler
+
 import typer
 from loguru import logger
 
@@ -6,6 +9,8 @@ from simulation.linear_fem_simulation import LinearFemSimulation
 from viz.visualizer import Visualizer
 
 app = typer.Typer()
+
+logger.add("femflow.log", mode="w+")
 
 
 @app.command()

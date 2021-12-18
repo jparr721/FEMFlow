@@ -15,8 +15,6 @@ from .input import Input
 from .mesh import Mesh
 from .renderer import Renderer
 
-logger.add("femflow.log", mode="w+")
-
 RED = [1, 0, 0]
 GREEN = [0, 1, 0]
 

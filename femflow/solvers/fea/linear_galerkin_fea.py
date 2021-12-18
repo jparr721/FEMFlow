@@ -1,8 +1,9 @@
-import copy
 from collections import namedtuple
 from typing import List, Tuple
 
+import numba as nb
 import numpy as np
+from numerics.geometry import index_sparse_matrix_by_indices, tet_volume
 from scipy.sparse import csc_matrix
 
 from .boundary_conditions import BoundaryConditions
@@ -10,33 +11,7 @@ from .boundary_conditions import BoundaryConditions
 ElementStiffness = namedtuple("ElementStiffness", ["stiffness", "element"])
 
 
-def index_slice(X: csc_matrix, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
-    if C is None:
-        C = copy.deepcopy(R)
-    assert R.ndim == 1 and C.ndim == 1, "Rows and cols must be vectors"
-    rows = R.size
-    cols = C.size
-    RR = []
-    CC = []
-    for row in range(rows):
-        for col in range(cols):
-            RR.append(R[row])
-            CC.append(C[col])
-    return X[RR, CC].reshape(rows, cols)
-
-
-def tet_volume(a, b, c, d):
-    x1, y1, z1 = a
-    x2, y2, z2 = b
-    x3, y3, z3 = c
-    x4, y4, z4 = d
-
-    x = np.array([[1, x1, y1, z1], [1, x2, y2, z2], [1, x3, y3, z3], [1, x4, y4, z4]])
-
-    return np.linalg.det(x) / 6
-
-
-def assemble_shape_fn_matrix(a, b, c, d):
+def assemble_shape_fn_matrix(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> np.ndarray:
     V = tet_volume(a, b, c, d)
 
     def _beta(beta: float, gamma: float, delta: float) -> np.ndarray:
@@ -273,7 +248,7 @@ def assemble_boundary_forces(K: csc_matrix, boundary_conditions: BoundaryConditi
         I_e[i : i + 3] = np.arange(n, n + 3)
         i += 3
 
-    return index_slice(K, I_e), F_e
+    return index_sparse_matrix_by_indices(K, I_e), F_e
 
 
 def compute_U(
@@ -301,7 +276,8 @@ def compute_U(
     return U, U_e
 
 
-def compute_U_from_active_dofs(n_vertices: int, U_e: np.ndarray, boundary_conditions: BoundaryConditions) -> np.ndarray:
+@nb.njit
+def compute_U_from_active_dofs(n_vertices: int, U_e: np.ndarray, boundary_conditions: nb.typed.Dict) -> np.ndarray:
     """Computes U from the active degrees of freedom and boundary conditions.
 
     Args:

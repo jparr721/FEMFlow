@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+import numba as nb
 import numpy as np
 
 BoundaryConditions = dict[int, np.ndarray]
@@ -42,6 +43,7 @@ def top_bottom_plate_dirilect_conditions(v: np.ndarray) -> Tuple[np.ndarray, np.
     return force_nodes, interior_nodes, fixed_nodes
 
 
+@nb.njit
 def basic_dirilecht_boundary_conditions(
     force: np.ndarray, force_nodes: np.ndarray, active_nodes: np.ndarray
 ) -> BoundaryConditions:
@@ -55,12 +57,9 @@ def basic_dirilecht_boundary_conditions(
     Returns:
         BoundaryConditions: The boundary conditions for this mesh, can be indexed directly by v.
     """
-    if np.intersect1d(force_nodes, active_nodes, assume_unique=True):
-        raise ValueError("Duplicate boundary_condition nodes found")
-
     zero = np.zeros(3)
 
-    boundary_conditions = {}
+    boundary_conditions = dict()
     for node in force_nodes:
         boundary_conditions[node] = force
     for node in active_nodes:

@@ -187,9 +187,10 @@ class LinearFemSimulation(Environment):
         K = assemble_global_stiffness_matrix(element_stiffnesses, 3 * len(vertices))
         self.K_e, self.F_e = assemble_boundary_forces(K, self.boundary_conditions)
         self.U_e = np.zeros(len(self.boundary_conditions) * 3)
+        mass_matrix = np.eye(self.K_e.shape[0]) * self.mass
         self.cd_integrator = ExplicitCentralDifferenceMethod(
             self.dt,
-            self.mass,
+            mass_matrix,
             self.K_e,
             self.U_e,
             self.F_e,

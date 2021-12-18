@@ -6,36 +6,15 @@ from scipy.sparse.csr import csr_matrix
 from scipy.spatial.transform import Rotation as R
 
 
-def normalized(a: np.array):
+def is_square_matrix(mat: np.ndarray):
+    return len(mat.shape) == 2 and mat.shape[0] == mat.shape[1]
+
+
+def normalized(a: np.ndarray):
     return a / np.linalg.norm(a)
 
 
-def three_node_planar_rotation(theta, center: np.array, left: np.array, right: np.array) -> Tuple[np.array, np.array]:
-    u = normalized(left - center)
-    v = normalized(right - center)
-
-    def rotate(u, v, center, neighbor, theta):
-        cross = normalized(np.cross(u, v))
-        ht = theta / 2
-        q = np.array([cross[0] * np.sin(ht), cross[1] * np.sin(ht), cross[2] * np.sin(ht), np.cos(ht)])
-        rot_matrix = R.from_quat(q).as_matrix()
-
-        origin = neighbor - center
-        normalized_origin = normalized(origin)
-        neighbor_center_distance = np.linalg.norm(origin)
-
-        rotated_neighbor = np.matmul(rot_matrix, normalized_origin)
-
-        # Since we translated to the origin, we need to translate back to our original position
-        rotated_neighbor *= neighbor_center_distance
-        rotated_neighbor += center
-
-        return rotated_neighbor
-
-    return (rotate(u, v, center, left, theta), rotate(v, u, center, right, theta))
-
-
-def angle_between_vectors(a: np.array, b: np.array) -> float:
+def angle_between_vectors(a: np.ndarray, b: np.ndarray) -> float:
     return np.arccos(np.clip(np.dot(a, b), -1.0, 1.0))
 
 
@@ -78,19 +57,11 @@ def sparse(
     return csr_matrix((v, (i, j)), shape=(m, n))
 
 
-def fast_diagonal_inverse(mat: Union[csr_matrix, np.ndarray]) -> Union[csr_matrix, np.ndarray]:
-    """Computes the fast diagonal inverse of a sparse or dense matrix. To save cycles, this function does _not_
-    check if the matrix is a true diagonal.
+def fast_diagonal_inverse(mat: np.ndarray):
+    """Computes the fast diagonal inverse of a diagonal matrix.
 
     Args:
-        mat (Union[csr_matrix, np.ndarray]): The input matrix which is dense or sparse
-
-    Returns:
-        Union[csr_matrix, np.ndarray]: The output matrix which is dense or sparse
+        mat (np.ndarray): The input matrix which is dense or sparse
     """
-    assert mat.shape[0] == mat.shape[1], "Matrix must be square!"
-
-    for i in range(mat.shape[0]):
+    for i, _ in enumerate(mat):
         mat[i, i] = 1 / mat[i, i]
-
-    return mat

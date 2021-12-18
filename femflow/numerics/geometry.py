@@ -1,8 +1,11 @@
+import copy
 from collections import namedtuple
 
 import igl
+import numba as nb
 import numpy as np
 import wildmeshing as wm
+from scipy.sparse import csc_matrix
 
 from .linear_algebra import normalized
 
@@ -67,3 +70,30 @@ def tetrahedralize_surface_mesh(v: np.ndarray, f: np.ndarray, stop_quality=1000)
     t = t.astype(np.uint32)
     f = f.astype(np.uint32)
     return TetMesh(v, t, f)
+
+
+@nb.njit
+def tet_volume(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> float:
+    x1, y1, z1 = a
+    x2, y2, z2 = b
+    x3, y3, z3 = c
+    x4, y4, z4 = d
+
+    x = np.array([[1, x1, y1, z1], [1, x2, y2, z2], [1, x3, y3, z3], [1, x4, y4, z4]])
+
+    return np.linalg.det(x) / 6
+
+
+def index_sparse_matrix_by_indices(X: csc_matrix, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
+    if C is None:
+        C = copy.deepcopy(R)
+    assert R.ndim == 1 and C.ndim == 1, "Rows and cols must be vectors"
+    rows = R.size
+    cols = C.size
+    RR = []
+    CC = []
+    for row in range(rows):
+        for col in range(cols):
+            RR.append(R[row])
+            CC.append(C[col])
+    return X[RR, CC].reshape(rows, cols)
