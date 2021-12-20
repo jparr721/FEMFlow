@@ -36,7 +36,6 @@ def calibrate_hsv() -> HSVCalibration:
 
     while True:
         _, image = cap.read()
-        image = cv2.flip(image, 5)
 
         # Get current positions of all trackbars
         h_min = cv2.getTrackbarPos("h_min", "Calibration")

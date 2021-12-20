@@ -23,8 +23,9 @@ class BehaviorMatching(object):
             except Exception as e:
                 logger.error(f"Failed to parse config: {e}")
 
-        self.exporting = True
         self.stream = VideoStream()
+        self.mask = np.array([])
+        self.frame = np.array([])
 
     @property
     def lower_bound_color(self) -> Tuple[int, int, int]:
@@ -35,6 +36,10 @@ class BehaviorMatching(object):
     def upper_bound_color(self) -> Tuple[int, int, int]:
         config = self.reconstruction_config[self.HSV_CALIBRATION_KEY]
         return (int(config["h_max"]), int(config["s_max"]), int(config["v_max"]))
+
+    @property
+    def streaming(self):
+        return self.stream.streaming
 
     def destroy(self):
         self.stream.destroy()
@@ -53,14 +58,13 @@ class BehaviorMatching(object):
             logger.warning(f"Config Option: {self.HSV_CALIBRATION_KEY} not found, starting calibration.")
             self.calibrate()
 
-        frame = cv2.flip(frame, 5)
-
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        mask = cv2.inRange(hsv, self.lower_bound_color, self.upper_bound_color)
-        mask = cv2.erode(mask, None, iterations=2)
-        mask = cv2.dilate(mask, None, iterations=2)
-        res = cv2.bitwise_and(frame, frame, mask=mask)
+        self.mask = cv2.inRange(hsv, self.lower_bound_color, self.upper_bound_color)
+        self.mask = cv2.erode(self.mask, None, iterations=2)
+        self.mask = cv2.dilate(self.mask, None, iterations=2)
+        res = cv2.bitwise_and(frame, frame, mask=self.mask)
+        mask_three_channel = cv2.cvtColor(self.mask, cv2.COLOR_GRAY2BGR)
 
         frameray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
         contours, _ = cv2.findContours(frameray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -71,6 +75,7 @@ class BehaviorMatching(object):
             x, y, w, h = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x + w, y + h), [255, 0, 0], 2)
             cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
+        frame = np.hstack((frame, mask_three_channel))
         return frame
 
     def start_matching(self):

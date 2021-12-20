@@ -3,6 +3,7 @@ import threading
 
 import glfw
 import imgui
+import numpy as np
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
@@ -240,12 +241,24 @@ class Visualizer(object):
             "Behavior Match", self.behavior_matching_visible
         )
         if self.behavior_matching_expanded:
+            if imgui.button(label="Calibrate"):
+                if self.behavior_matching.streaming:
+                    self.behavior_matching.stop_matching()
+                self.behavior_matching.calibrate()
+
             _, self.capture_window_visible = imgui.checkbox("Capturing", self.capture_window_visible)
             if self.capture_window_visible:
                 self.capture_window()
                 self.behavior_matching.start_matching()
             else:
                 self.behavior_matching.stop_matching()
+
+            if self.behavior_matching.streaming:
+                if imgui.button(label="Capture Shape"):
+                    mask = self.behavior_matching.mask
+                    # Clip from 255 color space to scalar field.
+                    mask = np.clip(mask, 0, 1)
+                    np.savetxt("Maskdeletelater.txt", mask, fmt="%i")
 
     def capture_window(self):
         imgui.begin("Capture Window")
