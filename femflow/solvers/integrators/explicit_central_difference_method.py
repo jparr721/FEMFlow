@@ -76,6 +76,3 @@ class ExplicitCentralDifferenceMethod(object):
 
     def _compute_rayleigh_damping(self):
         self.damping_matrix = self.rayleigh_mu * self.mass_matrix + self.rayleigh_lambda * self.stiffness
-
-    def _apply_to_diagonal(self):
-        pass
