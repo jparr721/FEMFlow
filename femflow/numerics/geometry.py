@@ -97,3 +97,55 @@ def index_sparse_matrix_by_indices(X: csc_matrix, R: np.ndarray, C: np.ndarray =
             RR.append(R[row])
             CC.append(C[col])
     return X[RR, CC].reshape(rows, cols)
+
+
+def grid(res: np.ndarray) -> np.ndarray:
+    vertices = np.empty((np.prod(res), len(res)))
+    sub = np.zeros(res.shape)
+
+    for i in range(vertices.shape[0]):
+        for c in range(len(res) - 1):
+            if sub[c] >= res[c]:
+                sub[c] = 0
+                sub[c + 1] += 1
+        for c in range(len(res)):
+            vertices[i, c] = sub[c] / (res[c] - 1)
+        sub[0] += 1
+    return vertices
+
+
+# template <
+#   typename Derivedres,
+#   typename DerivedGV>
+# IGL_INLINE void igl::grid(
+#   const Eigen::MatrixBase<Derivedres> & res,
+#   Eigen::PlainObjectBase<DerivedGV> & GV)
+# {
+#   using namespace Eigen;
+#   typedef typename DerivedGV::Scalar Scalar;
+#   GV.resize(res.array().prod(),res.size());
+#   const auto lerp =
+#     [&res](const Scalar di, const int d)->Scalar{return di/(Scalar)(res(d)-1);};
+#   int gi = 0;
+#   Derivedres sub;
+#   sub.resizeLike(res);
+#   sub.setConstant(0);
+#   for(int gi = 0;gi<GV.rows();gi++)
+#   {
+#     // omg, I'm implementing addition...
+#     for(int c = 0;c<res.size()-1;c++)
+#     {
+#       if(sub(c)>=res(c))
+#       {
+#         sub(c) = 0;
+#         // roll over
+#         sub(c+1)++;
+#       }
+#     }
+#     for(int c = 0;c<res.size();c++)
+#     {
+#       GV(gi,c) = lerp(sub(c),c);
+#     }
+#     sub(0)++;
+#   }
+# }

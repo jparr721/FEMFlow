@@ -258,7 +258,7 @@ class Visualizer(object):
                     mask = self.behavior_matching.mask
                     # Clip from 255 color space to scalar field.
                     mask = np.clip(mask, 0, 1)
-                    np.savetxt("Maskdeletelater.txt", mask, fmt="%i")
+                    np.save("mask.npy", mask)
 
     def capture_window(self):
         imgui.begin("Capture Window")
