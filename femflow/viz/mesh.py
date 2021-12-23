@@ -1,9 +1,9 @@
 import copy
 
 import numpy as np
+from femflow.meshing.loader import load_mesh_file, load_obj_file
+from femflow.numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
 from loguru import logger
-from meshing.loader import load_mesh_file, load_obj_file
-from numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
 from PIL import Image
 
 

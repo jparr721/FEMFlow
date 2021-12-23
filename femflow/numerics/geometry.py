@@ -81,7 +81,7 @@ def tet_volume(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> fl
 
     x = np.array([[1, x1, y1, z1], [1, x2, y2, z2], [1, x3, y3, z3], [1, x4, y4, z4]])
 
-    return np.linalg.det(x) / 6
+    return np.float32(np.linalg.det(x) / 6)
 
 
 def index_sparse_matrix_by_indices(X: csc_matrix, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
@@ -99,6 +99,7 @@ def index_sparse_matrix_by_indices(X: csc_matrix, R: np.ndarray, C: np.ndarray =
     return X[RR, CC].reshape(rows, cols)
 
 
+@nb.njit
 def grid(res: np.ndarray) -> np.ndarray:
     vertices = np.empty((np.prod(res), len(res)))
     sub = np.zeros(res.shape)
@@ -112,40 +113,3 @@ def grid(res: np.ndarray) -> np.ndarray:
             vertices[i, c] = sub[c] / (res[c] - 1)
         sub[0] += 1
     return vertices
-
-
-# template <
-#   typename Derivedres,
-#   typename DerivedGV>
-# IGL_INLINE void igl::grid(
-#   const Eigen::MatrixBase<Derivedres> & res,
-#   Eigen::PlainObjectBase<DerivedGV> & GV)
-# {
-#   using namespace Eigen;
-#   typedef typename DerivedGV::Scalar Scalar;
-#   GV.resize(res.array().prod(),res.size());
-#   const auto lerp =
-#     [&res](const Scalar di, const int d)->Scalar{return di/(Scalar)(res(d)-1);};
-#   int gi = 0;
-#   Derivedres sub;
-#   sub.resizeLike(res);
-#   sub.setConstant(0);
-#   for(int gi = 0;gi<GV.rows();gi++)
-#   {
-#     // omg, I'm implementing addition...
-#     for(int c = 0;c<res.size()-1;c++)
-#     {
-#       if(sub(c)>=res(c))
-#       {
-#         sub(c) = 0;
-#         // roll over
-#         sub(c+1)++;
-#       }
-#     }
-#     for(int c = 0;c<res.size();c++)
-#     {
-#       GV(gi,c) = lerp(sub(c),c);
-#     }
-#     sub(0)++;
-#   }
-# }

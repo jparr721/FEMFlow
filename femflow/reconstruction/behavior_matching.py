@@ -4,8 +4,8 @@ from typing import Tuple
 
 import cv2
 import numpy as np
+from femflow.video.video_stream import VideoStream
 from loguru import logger
-from video.video_stream import VideoStream
 
 from .calibration import calibrate_hsv
 

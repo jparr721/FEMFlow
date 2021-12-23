@@ -3,8 +3,8 @@ from tkinter import filedialog
 from typing import Any
 
 import igl
+from femflow.viz.mesh import Mesh
 from loguru import logger
-from viz.mesh import Mesh
 
 
 def file_dialog_open() -> str:

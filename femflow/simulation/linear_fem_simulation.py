@@ -2,19 +2,19 @@ from collections import defaultdict
 
 import imgui
 import numpy as np
-from loguru import logger
-from solvers.fea.boundary_conditions import basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions
-from solvers.fea.linear_galerkin_fea import (
-    assemble_boundary_forces,
-    assemble_element_stiffness_matrix,
-    assemble_global_stiffness_matrix,
-    assemble_shape_fn_matrix,
-    compute_U_from_active_dofs,
+from femflow.solvers.fea import galerkin2
+from femflow.solvers.fea.boundary_conditions import (
+    basic_dirilecht_boundary_conditions,
+    top_bottom_plate_dirilect_conditions,
 )
-from solvers.integrators.explicit_central_difference_method import ExplicitCentralDifferenceMethod
-from solvers.material import hookes_law_isotropic_constitutive_matrix, hookes_law_orthotropic_constitutive_matrix
+from femflow.solvers.integrators.explicit_central_difference_method import ExplicitCentralDifferenceMethod
+from femflow.solvers.material import (
+    hookes_law_isotropic_constitutive_matrix,
+    hookes_law_orthotropic_constitutive_matrix,
+)
+from femflow.viz.mesh import Mesh
+from loguru import logger
 from tqdm import tqdm
-from viz.mesh import Mesh
 
 from .environment import Environment
 
@@ -25,7 +25,7 @@ class LinearFemSimulation(Environment):
         self.dt = 0.001
         self.mass = 10
         self.force = -100
-        self.youngs_modulus = "150000"
+        self.youngs_modulus = "50000"
         self.poissons_ratio = "0.3"
         self.shear_modulus = "1000"
         self.use_damping = False
@@ -35,19 +35,13 @@ class LinearFemSimulation(Environment):
         self.rayleigh_mu = 0.0
 
         # Sim parameters
-        self.K_e = np.array([])
-        self.F_e = np.array([])
-        self.U_e = np.array([])
-        self.U = np.array([])
         self.boundary_conditions = defaultdict(np.ndarray)
         self.displacements = []
 
     def load(self, mesh: Mesh):
         logger.info("Loading simulation with saved parameters")
 
-        force_nodes, interior_nodes, fixed_nodes = top_bottom_plate_dirilect_conditions(
-            mesh.as_matrix(mesh.vertices, 3)
-        )
+        force_nodes, interior_nodes, _ = top_bottom_plate_dirilect_conditions(mesh.as_matrix(mesh.vertices, 3))
 
         try:
             self.boundary_conditions = basic_dirilecht_boundary_conditions(
@@ -177,33 +171,26 @@ class LinearFemSimulation(Environment):
 
     def reset(self, mesh: Mesh):
         self.displacements = [np.zeros(mesh.vertices.size)]
-        vertices = mesh.as_matrix(mesh.vertices, 3)
-        tetrahedra = mesh.as_matrix(mesh.tetrahedra, 4)
-        element_stiffnesses = []
-        for row in tetrahedra:
-            B = assemble_shape_fn_matrix(*vertices[row])
-            element_stiffnesses.append(assemble_element_stiffness_matrix(row, vertices, B, self.constitutive_matrix))
+        self.solver = galerkin2.LinearGalerkinNonDynamic(
+            self.boundary_conditions, self.constitutive_matrix, mesh.vertices, mesh.tetrahedra
+        )
 
-        K = assemble_global_stiffness_matrix(element_stiffnesses, 3 * len(vertices))
-        self.K_e, self.F_e = assemble_boundary_forces(K, self.boundary_conditions)
-        self.U_e = np.zeros(len(self.boundary_conditions) * 3)
-        mass_matrix = np.eye(self.K_e.shape[0]) * self.mass
+        mass_matrix = np.eye(self.solver.K_e.shape[0]) * self.mass
         self.cd_integrator = ExplicitCentralDifferenceMethod(
             self.dt,
             mass_matrix,
-            self.K_e,
-            self.U_e,
-            self.F_e,
+            self.solver.K_e,
+            self.solver.U_e,
+            self.solver.F_e,
             rayleigh_lambda=self.rayleigh_lambda,
             rayleigh_mu=self.rayleigh_mu,
         )
 
     def simulate(self, mesh: Mesh, timesteps: int):
-        for i in tqdm(range(timesteps)):
-            if i % 10 == 0:
-                logger.info(f"Timestep: {i}")
-
-            self.U_e = self.cd_integrator.integrate(self.F_e, self.U_e)
-            self.U = compute_U_from_active_dofs(mesh.vertices.size, self.U_e, self.boundary_conditions)
+        for _ in tqdm(range(timesteps)):
+            self.U_e = self.cd_integrator.integrate(self.solver.F_e, self.solver.U_e)
+            self.solver.U_e = self.U_e
+            self.solver.solve()
+            self.U = self.solver.U
             self.displacements.append(self.U)
         logger.success("Simulation is done")

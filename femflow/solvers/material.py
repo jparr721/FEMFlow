@@ -13,7 +13,7 @@ def hookes_law_isotropic_constitutive_matrix(coefficients: np.ndarray) -> np.nda
             [0, 0, 0, 0, (1 - 2 * v) / 2, 0],
             [0, 0, 0, 0, 0, (1 - 2 * v) / 2],
         ]
-    )
+    ).astype(np.float32)
 
 
 def hookes_law_orthotropic_constitutive_matrix(coefficients: np.ndarray) -> np.ndarray:
@@ -39,4 +39,4 @@ def hookes_law_orthotropic_constitutive_matrix(coefficients: np.ndarray) -> np.n
     constitutive_matrix[3, 3] = 2 * G_yz
     constitutive_matrix[4, 4] = 2 * G_zx
     constitutive_matrix[5, 5] = 2 * G_xy
-    return constitutive_matrix
+    return constitutive_matrix.astype(np.float32)

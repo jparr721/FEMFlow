@@ -8,7 +8,7 @@
             "name": "Run",
             "type": "python",
             "request": "launch",
-            "program": "C:\\Users\\jparr\\Code\\FEMFlow\\femflow\\main.py",
+            "program": "C:\\Users\\jparr\\Code\\FEMFlow\\main.py",
             "console": "integratedTerminal",
             "args": [
                 "visualize",

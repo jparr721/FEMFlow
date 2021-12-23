@@ -2,8 +2,8 @@ import time
 from copy import deepcopy
 
 import numpy as np
+from femflow.numerics.linear_algebra import fast_diagonal_inverse
 from loguru import logger
-from numerics.linear_algebra import fast_diagonal_inverse
 from scipy.sparse.csc import csc_matrix
 from scipy.sparse.linalg import inv
 

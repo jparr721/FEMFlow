@@ -1,9 +1,13 @@
+"""
+This is the linear form of the galerkin FEA model sans dynamics.
+"""
+
 from collections import namedtuple
 from typing import List, Tuple
 
 import numba as nb
 import numpy as np
-from numerics.geometry import index_sparse_matrix_by_indices, tet_volume
+from femflow.numerics.geometry import index_sparse_matrix_by_indices, tet_volume
 from scipy.sparse import csc_matrix
 
 from .boundary_conditions import BoundaryConditions

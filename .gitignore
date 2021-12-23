@@ -130,3 +130,5 @@ dmypy.json
 femflow/viz/foo.ipynb
 foo.ipynb
 debug.ipynb
+
+mask.npy

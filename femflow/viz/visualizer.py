@@ -2,14 +2,17 @@ import os
 import threading
 
 import glfw
+import igl
 import imgui
 import numpy as np
+from femflow.meshing.implicit import gyroid
+from femflow.numerics.bintensor3 import bintensor3
+from femflow.reconstruction.behavior_matching import BehaviorMatching
+from femflow.simulation.environment import Environment
+from femflow.utils.filesystem import file_dialog
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
-from reconstruction.behavior_matching import BehaviorMatching
-from simulation.environment import Environment
-from utils.filesystem import file_dialog
 
 from .camera import Camera
 from .input import Input
@@ -255,10 +258,14 @@ class Visualizer(object):
 
             if self.behavior_matching.streaming:
                 if imgui.button(label="Capture Shape"):
-                    mask = self.behavior_matching.mask
-                    # Clip from 255 color space to scalar field.
-                    mask = np.clip(mask, 0, 1)
-                    np.save("mask.npy", mask)
+                    mask = np.clip(self.behavior_matching.mask, 0, 1)
+                    scalar_field = gyroid(0.2, 60)
+                    scalar_field = bintensor3(scalar_field)
+                    scalar_field.padding(0)
+                    scalar_field.padding(1)
+                    scalar_field.padding(2)
+                    v, f = scalar_field.tomesh()
+                    igl.write_obj("out.obj", v, f)
 
     def capture_window(self):
         imgui.begin("Capture Window")

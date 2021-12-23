@@ -1,4 +1,4 @@
-from viz.mesh import Mesh
+from femflow.viz.mesh import Mesh
 
 
 class Environment(object):

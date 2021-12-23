@@ -2,7 +2,7 @@ from typing import Tuple, Union
 
 import igl
 import numpy as np
-from numerics.geometry import per_face_normals
+from femflow.numerics.geometry import per_face_normals
 
 
 def load_mesh_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:

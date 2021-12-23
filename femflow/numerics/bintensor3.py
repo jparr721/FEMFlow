@@ -1,5 +1,5 @@
 from copy import deepcopy
-from functools import groupby
+from itertools import groupby
 from typing import Any, Tuple, Union
 
 import numpy as np
@@ -28,7 +28,7 @@ class bintensor3(object):
         else:
             raise ValueError(f"Invalid input data type: {type(shape)}")
 
-        _g = groupby(shape)
+        _g = groupby(self.shape)
         self.square = next(_g, True) and not next(_g, False)
 
     def __eq__(self, other: Union[np.ndarray, "bintensor3"]) -> bool:
@@ -109,3 +109,19 @@ class bintensor3(object):
         """
         v, f, _, _ = measure.marching_cubes(self.data, 0)
         return v, f
+
+    def save(self, filename: str):
+        """Save the data object to a file
+
+        Args:
+            filename (str): The name of the file
+        """
+        np.save(filename, self.data)
+
+    def savetxt(self, filename: str):
+        """Save the data object to a text file
+
+        Args:
+            filename (str): The name of the file
+        """
+        np.savetxt(filename, self.data)

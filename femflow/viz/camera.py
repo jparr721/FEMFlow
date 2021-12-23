@@ -1,5 +1,5 @@
 import numpy as np
-from numerics.linear_algebra import normalized
+from femflow.numerics.linear_algebra import normalized
 
 
 class Camera(object):

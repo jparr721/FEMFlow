@@ -2,10 +2,10 @@ import os
 from enum import Enum
 
 import numpy as np
+from femflow.utils.graphics.textures import build_texture
 from loguru import logger
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from utils.graphics.textures import build_texture
 
 from .camera import Camera
 from .mesh import Mesh
