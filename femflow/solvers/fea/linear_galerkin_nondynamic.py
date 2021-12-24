@@ -1,8 +1,11 @@
 from typing import Tuple
 
 import numpy as np
-from femflow.numerics.geometry import index_sparse_matrix_by_indices, tet_volume
+from femflow.numerics.geometry import (index_sparse_matrix_by_indices,
+                                       tet_volume)
+from femflow.numerics.linear_algebra import sparse
 from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import spsolve
 
 from .boundary_conditions import BoundaryConditions
 
@@ -15,33 +18,41 @@ class LinearGalerkinNonDynamic(object):
         self.constitutive_matrix = constitutive_matrix
         self.n_vertices = v.size
 
-        self.U = np.zeros(self.n_vertices)
+        self.U_e_shape = len(self.boundary_conditions) * 3
+        self.U_shape = (self.n_vertices, 1)
+
+        self.U = csr_matrix(self.U_shape)
 
         # Active DOF displacements
         self.U_e = np.zeros(len(self.boundary_conditions) * 3)
 
         ke = self.make_element_stiffnesses(v.reshape((v.shape[0] // 3, 3)), t.reshape((t.shape[0] // 4, 4)))
         K = self.assemble_global_stiffness_matrix(ke, self.n_vertices)
-        del ke
         self.assemble_boundary_forces(K)
-        del K  # K is no longer needed
 
     def solve(self):
-        self.U = np.zeros(self.n_vertices)
-        i = 0
-        for node in self.boundary_conditions.keys():
-            segment = node * 3
-            self.U[segment : segment + 3] = self.U_e[i : i + 3]
-            i += 3
+        self._make_U()
 
     def solve_static(self):
-        self.U_e = np.linalg.solve(self.K_e, self.F_e)
-        self.U = np.zeros(self.n_vertices)
+        self.U_e = spsolve(self.K_e, self.F_e)
+        self._make_U()
+
+    def _make_U(self):
         i = 0
+        rows = np.zeros(self.U_e_shape)
+        cols = np.zeros(self.U_e_shape)
+        data = np.zeros(self.U_e_shape)
         for node in self.boundary_conditions.keys():
             segment = node * 3
-            self.U[segment : segment + 3] = self.U_e[i : i + 3]
+            rows[i] = segment
+            rows[i + 1] = segment + 1
+            rows[i + 2] = segment + 2
+            data[i] = self.U_e[i]
+            data[i + 1] = self.U_e[i + 1]
+            data[i + 2] = self.U_e[i + 2]
+            self.U[segment : segment + 3, 0] = self.U_e[i : i + 3]
             i += 3
+        self.U = sparse(rows, cols, data, *self.U_shape)
 
     def assemble_boundary_forces(self, K: csr_matrix):
         self.F_e = np.zeros(len(self.boundary_conditions) * 3)
@@ -54,7 +65,7 @@ class LinearGalerkinNonDynamic(object):
             I_e[i : i + 3] = np.arange(n, n + 3)
             i += 3
 
-        self.K_e = index_sparse_matrix_by_indices(K, I_e)
+        self.K_e = csr_matrix(index_sparse_matrix_by_indices(K, I_e))
 
     def make_element_stiffnesses(self, v: np.ndarray, t: np.ndarray):
         if len(v.shape) == 1:

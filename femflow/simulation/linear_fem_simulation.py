@@ -1,8 +1,9 @@
+import time
 from collections import defaultdict
 
 import imgui
 import numpy as np
-from femflow.solvers.fea import galerkin2
+from femflow.solvers.fea import linear_galerkin_nondynamic
 from femflow.solvers.fea.boundary_conditions import (
     basic_dirilecht_boundary_conditions,
     top_bottom_plate_dirilect_conditions,
@@ -12,8 +13,11 @@ from femflow.solvers.material import (
     hookes_law_isotropic_constitutive_matrix,
     hookes_law_orthotropic_constitutive_matrix,
 )
+from femflow.utils.timing import Timer
 from femflow.viz.mesh import Mesh
 from loguru import logger
+from scipy.sparse import identity
+from scipy.sparse.csr import csr_matrix
 from tqdm import tqdm
 
 from .environment import Environment
@@ -51,10 +55,6 @@ class LinearFemSimulation(Environment):
             logger.error("Dirilect boundary condition assignment failed")
             logger.error(f"Boundary conditions had error: {e}")
             return
-
-        self.U_e = np.zeros(len(self.boundary_conditions) * 3)
-        self.U = np.zeros(mesh.vertices.size)
-        self.displacements.append(self.U)
 
         if self.material_type == "orthotropic":
             if len(self.material_coefficients) != 3:
@@ -170,12 +170,11 @@ class LinearFemSimulation(Environment):
             self.material_coefficients = (self.youngs_modulus, self.poissons_ratio, self.shear_modulus)
 
     def reset(self, mesh: Mesh):
-        self.displacements = [np.zeros(mesh.vertices.size)]
-        self.solver = galerkin2.LinearGalerkinNonDynamic(
+        self.solver = linear_galerkin_nondynamic.LinearGalerkinNonDynamic(
             self.boundary_conditions, self.constitutive_matrix, mesh.vertices, mesh.tetrahedra
         )
 
-        mass_matrix = np.eye(self.solver.K_e.shape[0]) * self.mass
+        mass_matrix = identity(self.solver.K_e.shape[0], format="csr") * self.mass
         self.cd_integrator = ExplicitCentralDifferenceMethod(
             self.dt,
             mass_matrix,
@@ -185,12 +184,11 @@ class LinearFemSimulation(Environment):
             rayleigh_lambda=self.rayleigh_lambda,
             rayleigh_mu=self.rayleigh_mu,
         )
+        self.displacements = [self.solver.U]
 
     def simulate(self, mesh: Mesh, timesteps: int):
         for _ in tqdm(range(timesteps)):
-            self.U_e = self.cd_integrator.integrate(self.solver.F_e, self.solver.U_e)
-            self.solver.U_e = self.U_e
+            self.solver.U_e = self.cd_integrator.integrate(self.solver.F_e, self.solver.U_e)
             self.solver.solve()
-            self.U = self.solver.U
-            self.displacements.append(self.U)
+            self.displacements.append(self.solver.U)
         logger.success("Simulation is done")

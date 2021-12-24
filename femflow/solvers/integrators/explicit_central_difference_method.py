@@ -1,10 +1,8 @@
-import time
 from copy import deepcopy
 
 import numpy as np
 from femflow.numerics.linear_algebra import fast_diagonal_inverse
-from loguru import logger
-from scipy.sparse.csc import csc_matrix
+from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import inv
 
 
@@ -12,8 +10,8 @@ class ExplicitCentralDifferenceMethod(object):
     def __init__(
         self,
         dt: float,
-        mass_matrix: np.ndarray,
-        stiffness: np.ndarray,
+        mass_matrix: csr_matrix,
+        stiffness: csr_matrix,
         initial_displacement: np.ndarray,
         initial_force: np.ndarray,
         *,
@@ -22,7 +20,7 @@ class ExplicitCentralDifferenceMethod(object):
     ):
         self.dt = dt
 
-        self.stiffness = np.array(stiffness)
+        self.stiffness = stiffness
 
         self.initial_displacement = initial_displacement
         self.initial_force = initial_force
@@ -43,13 +41,21 @@ class ExplicitCentralDifferenceMethod(object):
         self.rayleigh_lambda = rayleigh_lambda
         self.rayleigh_mu = rayleigh_mu
 
+        self.a0mass_matrix = self.a0 * self.mass_matrix
+        self.a2mass_matrix = self.a2 * self.mass_matrix
+
         self._set_last_position(initial_displacement)
         self._compute_rayleigh_damping()
         self._compute_effective_mass_matrix()
 
+        self.a1damping_matrix = self.a1 * self.damping_matrix
+
+        self.stiff_mass_diff = self.stiffness - self.a2mass_matrix
+        self.a0mass_damping_diff = self.a0mass_matrix - self.a1damping_matrix
+
     def integrate(self, forces: np.ndarray, displacements: np.ndarray) -> np.ndarray:
-        v1 = (self.stiffness - self.a2 * self.mass_matrix).dot(displacements).T.reshape(-1)
-        v2 = (self.a0 * self.mass_matrix - self.a1 * self.damping_matrix).dot(self.previous_position).T.reshape(-1)
+        v1 = self.stiff_mass_diff.dot(displacements.T)
+        v2 = self.a0mass_damping_diff.dot(self.previous_position.T)
 
         effective_load = forces - v1 - v2
 
@@ -65,14 +71,12 @@ class ExplicitCentralDifferenceMethod(object):
         self.previous_position = positions - self.dt * self.velocity + self.a3 * self.acceleration
 
     def _compute_effective_mass_matrix(self):
-        start = time.time()
-        self.effective_mass_matrix = csc_matrix(self.a0 * self.mass_matrix + self.a1 * self.damping_matrix)
         if self.rayleigh_mu == 0 and self.rayleigh_lambda == 0:
+            self.effective_mass_matrix = self.a0mass_matrix.copy()
             fast_diagonal_inverse(self.effective_mass_matrix)
         else:
+            self.effective_mass_matrix = csr_matrix(self.a0 * self.mass_matrix + self.a1 * self.damping_matrix)
             self.effective_mass_matrix = inv(self.effective_mass_matrix)
-        end = time.time()
-        logger.debug(f"It took {end - start}s to compute the emm")
 
     def _compute_rayleigh_damping(self):
         self.damping_matrix = self.rayleigh_mu * self.mass_matrix + self.rayleigh_lambda * self.stiffness

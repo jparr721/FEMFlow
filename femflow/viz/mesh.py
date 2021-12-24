@@ -5,6 +5,7 @@ from femflow.meshing.loader import load_mesh_file, load_obj_file
 from femflow.numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
 from loguru import logger
 from PIL import Image
+from scipy.sparse import csr_matrix
 
 
 class Texture(object):
@@ -60,10 +61,10 @@ class Mesh(object):
             v, t, n, f = load_mesh_file(filename)
             return Mesh(vertices=v, tetrahedra=t, normals=n, faces=f)
 
-    def transform(self, delta: np.ndarray):
+    def transform(self, delta: csr_matrix):
         # TODO(@jparr721) FIX THIS STUPID SHIT
         # This is here in place of broadcasting until I sort out the dangling reference issue in the render pass
-        for i, row in enumerate(np.add(self.world_coordinates, delta)):
+        for i, row in enumerate(np.add(self.world_coordinates, delta.toarray().reshape(-1))):
             self.vertices[i] = row
 
     def tetrahedralize(self):

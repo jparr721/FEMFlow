@@ -5,7 +5,7 @@ import igl
 import numba as nb
 import numpy as np
 import wildmeshing as wm
-from scipy.sparse import csc_matrix
+from scipy.sparse import csr_matrix
 
 from .linear_algebra import normalized
 
@@ -84,7 +84,7 @@ def tet_volume(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> fl
     return np.float32(np.linalg.det(x) / 6)
 
 
-def index_sparse_matrix_by_indices(X: csc_matrix, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
+def index_sparse_matrix_by_indices(X: csr_matrix, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
     if C is None:
         C = copy.deepcopy(R)
     assert R.ndim == 1 and C.ndim == 1, "Rows and cols must be vectors"

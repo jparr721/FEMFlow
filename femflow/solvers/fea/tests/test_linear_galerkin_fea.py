@@ -1,8 +1,7 @@
 import numpy as np
 from femflow.solvers.material import hookes_law_isotropic_constitutive_matrix
 
-# from ..linear_galerkin_fea import *
-from ..galerkin2 import LinearGalerkinNonDynamic
+from ..linear_galerkin_nondynamic import LinearGalerkinNonDynamic
 
 E = 210e6
 nu = 0.3
@@ -69,6 +68,6 @@ def test_static_form_solve():
             0.6082,
             -0.0090,
         ]
-    )
+    ).reshape((24, 1))
 
-    assert np.all(np.isclose(solver.U / 1e-5, U_compare, atol=0.0001))
+    assert np.all(np.isclose(solver.U.toarray() / 1e-5, U_compare, atol=0.0001))
