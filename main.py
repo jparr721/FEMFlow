@@ -1,4 +1,3 @@
-import numba as nb
 import typer
 from loguru import logger
 
