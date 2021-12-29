@@ -61,6 +61,15 @@ class Mesh(object):
             v, t, n, f = load_mesh_file(filename)
             return Mesh(vertices=v, tetrahedra=t, normals=n, faces=f)
 
+    def reload_from_file(self, filename: str):
+        mesh = Mesh.from_file(filename)
+        self.vertices = mesh.vertices
+        self.faces = mesh.faces
+        self.tetrahedra = mesh.tetrahedra
+        self.normals = mesh.normals
+        self.colors = mesh.colors
+        self.textures = mesh.textures
+
     def transform(self, delta: csr_matrix):
         # TODO(@jparr721) FIX THIS STUPID SHIT
         # This is here in place of broadcasting until I sort out the dangling reference issue in the render pass

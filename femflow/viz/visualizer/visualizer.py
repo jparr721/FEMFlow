@@ -14,10 +14,10 @@ from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
 
-from .camera import Camera
-from .input import Input
-from .mesh import Mesh
-from .renderer import Renderer
+from ..camera import Camera
+from ..input import Input
+from ..mesh import Mesh
+from ..renderer import Renderer
 
 RED = [1, 0, 0]
 GREEN = [0, 1, 0]
@@ -50,6 +50,8 @@ class Visualizer(object):
         self.behavior_matching_visible = True
         self.simulation_spec_expanded = True
         self.simulation_spec_visible = False
+        self.mesh_parameters_expanded = True
+        self.mesh_parameters_visible = True
 
         self.capture_window_visible = False
 
@@ -187,6 +189,11 @@ class Visualizer(object):
             file_dialog.file_dialog_save_mesh(self.mesh)
         self.sim_param_menu()
         self.capture_param_menu()
+
+        self.mesh_parameters_expanded, self.mesh_parameters_visible = imgui.collapsing_header("Mesh Parameters")
+        if self.mesh_parameters_expanded:
+            pass
+
         imgui.end()
 
     def log_window(self):

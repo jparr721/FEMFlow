@@ -3,7 +3,7 @@ from loguru import logger
 
 from femflow.reconstruction.calibration import calibrate_bb, calibrate_hsv, calibrate_mask
 from femflow.simulation.linear_fem_simulation import LinearFemSimulation
-from femflow.viz.visualizer import Visualizer
+from femflow.viz.visualizer.visualizer import Visualizer
 
 app = typer.Typer()
 
