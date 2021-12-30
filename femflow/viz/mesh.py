@@ -71,10 +71,9 @@ class Mesh(object):
         self.textures = mesh.textures
 
     def transform(self, delta: csr_matrix):
-        # TODO(@jparr721) FIX THIS STUPID SHIT
-        # This is here in place of broadcasting until I sort out the dangling reference issue in the render pass
-        for i, row in enumerate(np.add(self.world_coordinates, delta.toarray().reshape(-1))):
-            self.vertices[i] = row
+        self.vertices[:] = np.add(self.world_coordinates, delta.toarray().reshape(-1))
+        # for i, row in enumerate(np.add(self.world_coordinates, delta.toarray().reshape(-1))):
+        #     self.vertices[i] = row
 
     def tetrahedralize(self):
         if self.tetrahedra.size > 0:

@@ -41,10 +41,14 @@ class BehaviorMatching(object):
     def streaming(self):
         return self.stream.streaming
 
+    def save_frame(self):
+        pass
+
     def destroy(self):
         self.stream.destroy()
 
     def calibrate(self):
+        logger.info("Calibration routine starting, press 'q' to save new parameters")
         config = calibrate_hsv()
         if self.HSV_CALIBRATION_KEY in self.reconstruction_config:
             logger.warning("Overriding existing reconstruction entry")

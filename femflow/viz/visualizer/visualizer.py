@@ -1,5 +1,7 @@
+import copy
 import os
 import threading
+from typing import Dict, Iterable, Union
 
 import glfw
 import igl
@@ -14,13 +16,21 @@ from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
 
+from .. import models
 from ..camera import Camera
 from ..input import Input
 from ..mesh import Mesh
 from ..renderer import Renderer
-
-RED = [1, 0, 0]
-GREEN = [0, 1, 0]
+from ._builtin import (
+    LogWindow,
+    MenuWindow,
+    ShapeCaptureConfigMenu,
+    ShapeCaptureWindow,
+    SimParametersMenu,
+    SimulationConfigMenu,
+    SimulationWindow,
+)
+from .visualizer_window import VisualizerWindow
 
 
 class Visualizer(object):
@@ -33,33 +43,12 @@ class Visualizer(object):
         self.camera = Camera()
         self.camera.resize(self.window_width, self.window_height)
 
-        # IMGUI
-        self.log_window_focused = False
-        self.menu_window_focused = False
-        self.capture_window_focused = False
-
-        # Simulation-Specific Menus
-        self.simulation_window_focused = False
-        self.current_timestep = 0
-        self.n_timesteps = 100
-
-        # Parameter-Specific Menus
-        self.sim_parameters_expanded = True
-        self.sim_parameters_visible = True
-        self.behavior_matching_expanded = True
-        self.behavior_matching_visible = True
-        self.simulation_spec_expanded = True
-        self.simulation_spec_visible = False
-        self.mesh_parameters_expanded = True
-        self.mesh_parameters_visible = True
-
-        self.capture_window_visible = False
-
         self.callback_environment_loader = lambda: logger.error("No functionality implemented yet!")
         self.callback_start_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
         self.callback_reset_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
 
         self.simulation_environment: Environment = environment
+        self.sim_parameter_state = dict()
 
         assert glfw.init(), "GLFW is not initialized!"
 
@@ -90,7 +79,16 @@ class Visualizer(object):
 
         self.input = Input()
 
+        # TODO(@jparr721) Everything below this should be abstracted later on.
         self.behavior_matching: BehaviorMatching = BehaviorMatching()
+
+        # BUILTIN WINDOWS
+        self.windows: Dict[str, VisualizerWindow] = dict()
+        self.add_window(LogWindow())
+        self.add_window(MenuWindow())
+        self.add_window(ShapeCaptureWindow())
+        self.add_window(SimulationWindow())
+        self._init_builtins()
 
     def __enter__(self):
         return self
@@ -107,44 +105,16 @@ class Visualizer(object):
 
     @property
     def any_window_focused(self):
-        return (
-            self.menu_window_focused
-            or self.log_window_focused
-            or self.simulation_window_focused
-            or self.capture_window_focused
-        )
+        return any([window.focused for window in self.windows.values()])
 
-    @property
-    def log_window_dimensions(self):
-        height = self.window_height * 0.2 if self.window_height >= 800 else 160
-        return (
-            self.window_width,
-            height,
-            0,
-            self.window_height - height,
-        )
-
-    @property
-    def simulation_window_dimensions(self):
-        height = self.window_height * 0.12 if self.window_height >= 800 else 130
-        menu_window_width, _, _, _ = self.menu_window_dimensions
-        width = self.window_width - menu_window_width
-        return (
-            width,
-            height,
-            menu_window_width,
-            0,
-        )
-
-    @property
-    def menu_window_dimensions(self):
-        _, log_window_height, _, _ = self.log_window_dimensions
-        return (
-            self.window_width * 0.15 if self.window_width >= 800 else 130,
-            self.window_height - log_window_height,
-            0,
-            0,
-        )
+    def add_window(self, windows: Union[VisualizerWindow, Iterable[VisualizerWindow]]):
+        if isinstance(windows, Iterable):
+            for window in windows:
+                self.add_menu(window)
+        elif isinstance(windows, VisualizerWindow):
+            self.windows[windows.name] = windows
+        else:
+            raise TypeError(f"Windows must be iterable or window type, got {type(windows)}")
 
     def scroll_callback(self, window, xoffset, yoffset):
         if not self.any_window_focused:
@@ -171,157 +141,17 @@ class Visualizer(object):
         if self.renderer is not None:
             self.renderer.resize(self.window_width, self.window_height, self.camera)
 
-    def menu_window(self):
-        menu_window_width, menu_window_height, menu_window_x, menu_window_y = self.menu_window_dimensions
-        imgui.set_next_window_size(menu_window_width, menu_window_height)
-        imgui.set_next_window_position(menu_window_x, menu_window_y)
-
-        imgui.begin("Options", flags=imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_COLLAPSE)
-        self.menu_window_focused = imgui.is_window_focused()
-        if imgui.button(label="Load Mesh"):
-            path = file_dialog.file_dialog_open()
-            self.mesh = Mesh.from_file(path)
-            self.mesh.tetrahedralize()
-            self.renderer = Renderer(self.mesh)
-            self.renderer.resize(self.window_width, self.window_height, self.camera)
-        imgui.same_line()
-        if imgui.button(label="Save Mesh"):
-            file_dialog.file_dialog_save_mesh(self.mesh)
-        self.sim_param_menu()
-        self.capture_param_menu()
-
-        self.mesh_parameters_expanded, self.mesh_parameters_visible = imgui.collapsing_header("Mesh Parameters")
-        if self.mesh_parameters_expanded:
-            pass
-
-        imgui.end()
-
-    def log_window(self):
-        log_window_width, log_window_height, log_window_x, log_window_y = self.log_window_dimensions
-        imgui.set_next_window_size(log_window_width, log_window_height)
-        imgui.set_next_window_position(log_window_x, log_window_y)
-
-        imgui.begin(
-            "Logs",
-            flags=imgui.WINDOW_NO_MOVE
-            | imgui.WINDOW_NO_RESIZE
-            | imgui.WINDOW_NO_COLLAPSE
-            | imgui.WINDOW_HORIZONTAL_SCROLLING_BAR,
-        )
-        self.log_window_focused = imgui.is_window_focused() or imgui.is_item_clicked()
-        imgui.begin_child("Scrolling")
-        with open("femflow.log", "r+") as f:
-            for line in f.readlines():
-                imgui.text(line)
-        imgui.set_scroll_y(imgui.get_scroll_max_y() + 2)
-        imgui.end_child()
-        imgui.end()
-
-    def sim_param_menu(self):
-        self.sim_parameters_expanded, self.sim_parameters_visible = imgui.collapsing_header(
-            "Parameters", self.sim_parameters_visible
-        )
-        if self.sim_parameters_expanded:
-            imgui.text_colored(
-                f"Sim Status: {'Not Loaded' if not self.simulation_environment.loaded else 'Loaded'}",
-                *(RED if not self.simulation_environment.loaded else GREEN),
-            )
-            self.simulation_environment.menu()
-            if imgui.button(label="Load"):
-                threading.Thread(target=self.simulation_environment.load, args=(self.mesh,)).start()
-
-            self.simulation_spec_visible = self.simulation_environment.loaded
-
-            self.simulation_spec_expanded, self.simulation_spec_visible = imgui.collapsing_header(
-                "Sim Config", self.simulation_spec_visible, imgui.TREE_NODE_DEFAULT_OPEN
-            )
-            if self.simulation_spec_expanded:
-                imgui.text("Timesteps")
-                _, self.n_timesteps = imgui.input_int("##timesteps", self.n_timesteps)
-
-                if imgui.button(label="Start Sim"):
-                    self.sim_runtime_focused = True
-                    self.start_simulation()
-                imgui.same_line()
-                if imgui.button(label="Reset Sim"):
-                    self.reset_simulation()
-
-    def capture_param_menu(self):
-        self.behavior_matching_expanded, self.behavior_matching_visible = imgui.collapsing_header(
-            "Behavior Match", self.behavior_matching_visible
-        )
-        if self.behavior_matching_expanded:
-            if imgui.button(label="Calibrate"):
-                if self.behavior_matching.streaming:
-                    self.behavior_matching.stop_matching()
-                self.behavior_matching.calibrate()
-
-            _, self.capture_window_visible = imgui.checkbox("Capturing", self.capture_window_visible)
-            if self.capture_window_visible:
-                self.capture_window()
-                self.behavior_matching.start_matching()
-            else:
-                self.behavior_matching.stop_matching()
-
-            if self.behavior_matching.streaming:
-                if imgui.button(label="Capture Shape"):
-                    mask = np.clip(self.behavior_matching.mask, 0, 1)
-                    scalar_field = gyroid(0.2, 60)
-                    scalar_field = bintensor3(scalar_field)
-                    scalar_field.padding(0)
-                    scalar_field.padding(1)
-                    scalar_field.padding(2)
-                    v, f = scalar_field.tomesh()
-                    igl.write_obj("out.obj", v, f)
-
-    def capture_window(self):
-        imgui.begin("Capture Window")
-        self.capture_window_focused = imgui.is_window_focused() or imgui.is_item_clicked()
-        imgui.end()
-
-    def simulation_window(self):
-        (
-            simulation_window_width,
-            simulation_window_height,
-            simulation_window_x,
-            simulation_window_y,
-        ) = self.simulation_window_dimensions
-        imgui.set_next_window_size(simulation_window_width, simulation_window_height)
-        imgui.set_next_window_position(simulation_window_x, simulation_window_y)
-
-        imgui.begin(
-            "Simulation",
-            flags=imgui.WINDOW_NO_MOVE
-            | imgui.WINDOW_NO_RESIZE
-            | imgui.WINDOW_NO_COLLAPSE
-            | imgui.WINDOW_HORIZONTAL_SCROLLING_BAR,
-        )
-        self.simulation_window_focused = imgui.is_window_focused() or imgui.is_item_clicked()
-        imgui.text("Timestep")
-        imgui.text_colored(
-            "No Displacements, Please Start Sim First."
-            if len(self.simulation_environment.displacements) < self.n_timesteps
-            else "Displacements Ready",
-            *(RED if len(self.simulation_environment.displacements) < self.n_timesteps else GREEN),
-        )
-        imgui.push_item_width(-1)
-        _, self.current_timestep = imgui.slider_int(
-            "##timestep", self.current_timestep, min_value=0, max_value=self.n_timesteps
-        )
-        self.mesh.transform(self.simulation_environment.displacements[self.current_timestep])
-        imgui.pop_item_width()
-        imgui.end()
-
-    def placeholder_sim_param_menu(self):
-        imgui.text("Settings Here")
-
     def start_simulation(self):
         if self.simulation_environment is None:
             logger.error("Sim environment is empty, cannot start sim")
             return
 
         logger.info("Running simulation")
-        threading.Thread(target=self.simulation_environment.simulate, args=(self.mesh, self.n_timesteps)).start()
+        if self.sim_parameter_state["current_timestep"] > 0:
+            self.sim_parameter_state["current_timestep"] = 0
+        threading.Thread(
+            target=self.simulation_environment.simulate, args=(self.mesh, self.sim_parameter_state["n_timesteps"])
+        ).start()
 
     def reset_simulation(self):
         if self.simulation_environment is None:
@@ -334,8 +164,7 @@ class Visualizer(object):
         logger.success("Simulation was reset")
 
     def launch(self):
-        folder = os.path.dirname(os.path.abspath(__file__))
-        self.mesh = Mesh.from_file(f"{folder}/models/cube.obj")
+        self.mesh = Mesh.from_file(os.path.join(models.model_paths(), "cube.obj"))
         self.mesh.tetrahedralize()
         self.renderer = Renderer(self.mesh)
         self.camera.resize(self.window_width, self.window_height)
@@ -345,12 +174,7 @@ class Visualizer(object):
             self.imgui_impl.process_inputs()
 
             imgui.new_frame()
-            self.menu_window()
-            self.log_window()
-
-            # TODO(@jparr721) This variable is mis-named
-            if self.simulation_spec_visible:
-                self.simulation_window()
+            self._render_builtins()
 
             self.renderer.render(self.camera)
             imgui.render()
@@ -358,3 +182,90 @@ class Visualizer(object):
 
             glfw.swap_buffers(self.window)
         self.renderer.destroy()
+
+    def _init_builtins(self):
+        logs = self.windows["Logs"]
+        height = self.window_height * 0.2 if self.window_height >= 800 else 160
+        logs.dimensions = (
+            self.window_width,
+            height,
+        )
+        logs.position = (
+            0,
+            self.window_height - height,
+        )
+
+        menu = self.windows["Menu"]
+        _, height = logs.dimensions
+        menu.dimensions = (
+            self.window_width * 0.15 if self.window_width >= 800 else 130,
+            self.window_height - height,
+        )
+        sim_params_menu = SimParametersMenu()
+        sim_config_menu = SimulationConfigMenu()
+        sim_params_menu.add_submenu(sim_config_menu)
+
+        shape_capture_config_menu = ShapeCaptureConfigMenu()
+        menu.add_menu([sim_params_menu, shape_capture_config_menu])
+
+        sim = self.windows["Simulation"]
+        height = self.window_height * 0.12 if self.window_height >= 800 else 130
+        menu_window_width, _ = menu.dimensions
+        width = self.window_width - menu_window_width
+        sim.dimensions = (width - menu.dimensions[0], height)
+        sim.position = (menu_window_width, 0)
+
+        shape_capture = self.windows["Shape Capture"]
+        shape_capture.dimensions = copy.deepcopy(menu.dimensions)
+        shape_capture.position = (self.window_width - menu.dimensions[0], 0)
+
+    def _render_builtins(self):
+        self._extract_input_vars()
+        logs = self.windows["Logs"]
+        menu = self.windows["Menu"]
+        sim = self.windows["Simulation"]
+        shape_capture = self.windows["Shape Capture"]
+
+        def sim_params_menu_load_button_cb():
+            threading.Thread(target=self.simulation_environment.load, args=(self.mesh,)).start()
+
+        def sim_params_menu_sim_environment_menu_cb():
+            self.simulation_environment.menu()
+
+        def timestep_changed_cb(t):
+            if len(self.simulation_environment.displacements) == 0:
+                return
+            self.mesh.transform(self.simulation_environment.displacements[t])
+
+        logs()
+        menu(
+            mesh=self.mesh,
+            load_button_cb=sim_params_menu_load_button_cb,
+            sim_environment_menu_cb=sim_params_menu_sim_environment_menu_cb,
+            sim_status=self.simulation_environment.loaded,
+            behavior_matching_streaming=self.behavior_matching.streaming,
+            start_sim_button_cb=self.start_simulation,
+            reset_sim_button_cb=self.reset_simulation,
+            calibrate_button_cb=self.behavior_matching.calibrate,
+        )
+        sim(
+            sim_status=len(self.simulation_environment.displacements) > 1,
+            timestep_changed_cb=timestep_changed_cb,
+            max_timesteps=menu.menus["Sim Params"].submenus["Sim Config"].n_timesteps,
+        )
+        if self.sim_parameter_state["capturing"]:
+            self.behavior_matching.start_matching()
+            shape_capture()
+        else:
+            self.behavior_matching.stop_matching()
+
+    def _extract_input_vars(self):
+        for window in self.windows.values():
+            for key in window.attr_keys:
+                self.sim_parameter_state[key] = window.__dict__[key]
+            for menu in window.menus.values():
+                for key in menu.attr_keys:
+                    self.sim_parameter_state[key] = menu.__dict__[key]
+                for submenu in menu.submenus.values():
+                    for key in submenu.attr_keys:
+                        self.sim_parameter_state[key] = submenu.__dict__[key]
