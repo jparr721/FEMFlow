@@ -141,3 +141,9 @@ class ShapeCaptureWindow(VisualizerWindow):
 
         imgui.text_colored(*radius_text)
         imgui.text_colored(*thickness_text)
+
+        if radius_converged and thickness_converged:
+            imgui.push_item_width(-1)
+            if imgui.button("Generate Geometry"):
+                pass
+            imgui.pop_item_width()
