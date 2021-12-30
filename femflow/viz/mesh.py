@@ -50,6 +50,10 @@ class Mesh(object):
             self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(np.float32)
             logger.info(f"Random Color: {self.colors[:3]}")
 
+    @property
+    def tetrahedralized(self):
+        return self.tetrahedra is not None and self.tetrahedra.size > 0
+
     @staticmethod
     def from_file(filename: str):
         if filename.lower().endswith(".obj"):
@@ -71,9 +75,8 @@ class Mesh(object):
         self.textures = mesh.textures
 
     def transform(self, delta: csr_matrix):
+        # yay broadcasting!
         self.vertices[:] = np.add(self.world_coordinates, delta.toarray().reshape(-1))
-        # for i, row in enumerate(np.add(self.world_coordinates, delta.toarray().reshape(-1))):
-        #     self.vertices[i] = row
 
     def tetrahedralize(self):
         if self.tetrahedra.size > 0:

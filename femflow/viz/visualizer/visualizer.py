@@ -255,7 +255,12 @@ class Visualizer(object):
         )
         if self.sim_parameter_state["capturing"]:
             self.behavior_matching.start_matching()
-            shape_capture()
+            shape_capture(
+                radius_converged=self.behavior_matching.radius_convergence_reached,
+                thickness_converged=self.behavior_matching.thickness_convergence_reached,
+                radius=self.behavior_matching.void_radius,
+                thickness=self.behavior_matching.beam_thickness,
+            )
         else:
             self.behavior_matching.stop_matching()
 

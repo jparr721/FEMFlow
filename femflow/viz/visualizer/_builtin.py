@@ -130,4 +130,14 @@ class ShapeCaptureWindow(VisualizerWindow):
         super().__init__(name, flags)
 
     def render(self, **kwargs) -> None:
-        imgui.text("Capturing....")
+        radius_converged = self._unpack_kwarg("radius_converged", bool, **kwargs)
+        thickness_converged = self._unpack_kwarg("thickness_converged", bool, **kwargs)
+
+        radius = self._unpack_kwarg("radius", float, **kwargs)
+        thickness = self._unpack_kwarg("thickness", float, **kwargs)
+
+        radius_text = (f"Radius: {radius}", *(ui_colors.success if radius_converged else ui_colors.error))
+        thickness_text = (f"Thickness: {thickness}", *(ui_colors.success if thickness_converged else ui_colors.error))
+
+        imgui.text_colored(*radius_text)
+        imgui.text_colored(*thickness_text)

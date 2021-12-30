@@ -1,9 +1,10 @@
 import configparser
 import os
-from typing import Tuple
+from typing import List, Tuple
 
 import cv2
 import numpy as np
+from femflow.numerics.linear_algebra import distance
 from femflow.video.video_stream import VideoStream
 from loguru import logger
 
@@ -16,6 +17,8 @@ class BehaviorMatching(object):
 
         self.reconstruction_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reconstruction.ini")
         self.reconstruction_config = configparser.ConfigParser()
+        self.mask_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "masks")
+        self.texture_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "textures")
 
         if os.path.exists(self.reconstruction_file):
             try:
@@ -26,6 +29,22 @@ class BehaviorMatching(object):
         self.stream = VideoStream()
         self.mask = np.array([])
         self.frame = np.array([])
+
+        self.radius_convergence_reached = False
+        self.thickness_convergence_reached = False
+
+        self._void_radii: List[int] = []
+        self._beam_thicknesses: List[int] = []
+
+        # Convergence helpers
+        self._last_radius = 0
+        self._last_thickness = 0
+
+        self._convergence_patience = 100
+        self._last_radius_patience_threshold = 0
+        self._last_thickness_patience_threshold = 0
+
+        self.first_frame = True
 
     @property
     def lower_bound_color(self) -> Tuple[int, int, int]:
@@ -40,6 +59,20 @@ class BehaviorMatching(object):
     @property
     def streaming(self):
         return self.stream.streaming
+
+    @property
+    def void_radius(self):
+        if not self.radius_convergence_reached:
+            return float(np.average(self._void_radii) if len(self._void_radii) != 0 else 0)
+        else:
+            return float(self._last_radius)
+
+    @property
+    def beam_thickness(self):
+        if not self.thickness_convergence_reached:
+            return float(np.average(self._beam_thicknesses) if len(self._beam_thicknesses) != 0 else 0)
+        else:
+            return float(self._last_thickness)
 
     def save_frame(self):
         pass
@@ -79,7 +112,29 @@ class BehaviorMatching(object):
             x, y, w, h = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x + w, y + h), [255, 0, 0], 2)
             cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
+
+        circles = cv2.HoughCircles(
+            self.mask, cv2.HOUGH_GRADIENT, 1, 1, param1=100, param2=25, minRadius=0, maxRadius=100
+        )
+
+        if circles is not None:
+            circles = np.round(circles[0, :]).astype(np.int32)
+            self._save_beam_thickness(circles)
+            for x, y, r in circles:
+                self._save_radius(r)
+
+                # The circle
+                cv2.circle(frame, (x, y), r, (0, 0, 255), 2)
+
+                # The center
+                cv2.circle(frame, (x, y), 1, (0, 0, 255), 2)
+
+        if cv2.waitKey(10) & 0xFF == ord("s"):
+            logger.info("Saving image mask and source")
+            cv2.imwrite(os.path.join(self.mask_directory, "mask.png"), self.mask)
+            cv2.imwrite(os.path.join(self.texture_directory, "texture.png"), frame)
         frame = np.hstack((frame, mask_three_channel))
+        self._compute_convergences()
         return frame
 
     def start_matching(self):
@@ -87,3 +142,39 @@ class BehaviorMatching(object):
 
     def stop_matching(self):
         self.stream.stop()
+
+    def _compute_convergences(self):
+        if not self.radius_convergence_reached:
+            rad = self.void_radius
+            if np.isclose(self._last_radius, rad, atol=0.5):
+                self._last_radius_patience_threshold += 1
+            self._last_radius = rad
+            if self._last_radius_patience_threshold >= self._convergence_patience:
+                self.radius_convergence_reached = True
+                self._void_radii.clear()  # Free this memory
+        if not self.thickness_convergence_reached:
+            thicc = self.beam_thickness
+            if np.isclose(self._last_thickness, thicc) and thicc > 0.1:
+                self._last_thickness_patience_threshold += 1
+            self._last_thickness = thicc
+            if self._last_thickness_patience_threshold >= self._convergence_patience:
+                self.thickness_convergence_reached = True
+                self._beam_thicknesses.clear()
+
+    def _save_radius(self, r: int):
+        if not self.radius_convergence_reached:
+            self._void_radii.append(r)
+
+    def _save_beam_thickness(self, circles: List[np.ndarray]):
+        if not self.thickness_convergence_reached:
+            if len(circles) > 1:
+                for i, (x1, y1, _) in enumerate(circles):
+                    for j, (x2, y2, _) in enumerate(circles):
+                        if i == j:
+                            continue
+                        lcircle = np.array([x1, y1])
+                        rcircle = np.array([x2, y2])
+
+                        dist = distance(lcircle, rcircle)
+                        self._beam_thicknesses.append(dist)
+
