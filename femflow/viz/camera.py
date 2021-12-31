@@ -103,6 +103,7 @@ class Camera(object):
     def resize(self, width: int, height: int):
         self.width = width
         self.height = height
+        self.aspect_ratio = self.width / self.height
         self.set_perspective()
         self._compile()
 

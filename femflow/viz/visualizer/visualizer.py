@@ -36,8 +36,8 @@ from .visualizer_window import VisualizerWindow
 class Visualizer(object):
     def __init__(self, environment: Environment):
         self.WINDOW_TITLE = "FEMFlow Viewer"
-        self.window_width = 1800
-        self.window_height = 1200
+        self.window_width = 1200
+        self.window_height = 1000
         self.background_color = [1, 1, 1, 0]
 
         self.camera = Camera()
