@@ -136,8 +136,11 @@ class ShapeCaptureWindow(VisualizerWindow):
         radius = self._unpack_kwarg("radius", float, **kwargs)
         thickness = self._unpack_kwarg("thickness", float, **kwargs)
 
-        radius_text = (f"Radius: {radius}", *(ui_colors.success if radius_converged else ui_colors.error))
-        thickness_text = (f"Thickness: {thickness}", *(ui_colors.success if thickness_converged else ui_colors.error))
+        radius_text = (f"Radius: {radius/10}cm", *(ui_colors.success if radius_converged else ui_colors.error))
+        thickness_text = (
+            f"Thickness: {thickness/10}cm",
+            *(ui_colors.success if thickness_converged else ui_colors.error),
+        )
 
         imgui.text_colored(*radius_text)
         imgui.text_colored(*thickness_text)
@@ -145,5 +148,6 @@ class ShapeCaptureWindow(VisualizerWindow):
         if radius_converged and thickness_converged:
             imgui.push_item_width(-1)
             if imgui.button("Generate Geometry"):
-                pass
+                generate_geometry_cb = self._unpack_kwarg("generate_geometry_cb", callable, **kwargs)
+                generate_geometry_cb(radius / 10, thickness / 10)
             imgui.pop_item_width()

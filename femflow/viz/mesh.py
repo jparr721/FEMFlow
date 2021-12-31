@@ -47,8 +47,7 @@ class Mesh(object):
         self.world_coordinates = copy.deepcopy(self.vertices)
 
         if self.textures.size == 0 and self.colors.size == 0:
-            self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(np.float32)
-            logger.info(f"Random Color: {self.colors[:3]}")
+            self._set_random_color()
 
     @property
     def tetrahedralized(self):
@@ -64,6 +63,14 @@ class Mesh(object):
         if filename.lower().endswith(".mesh"):
             v, t, n, f = load_mesh_file(filename)
             return Mesh(vertices=v, tetrahedra=t, normals=n, faces=f)
+
+    def reload_from_surface(self, v: np.ndarray, f: np.ndarray):
+        mesh = Mesh(v, f)
+        self.vertices = mesh.vertices.copy()
+        self.faces = mesh.faces.copy()
+        self.tetrahedra = np.array([])
+        self.normals = self.as_vector(per_face_normals(v, f))
+        self._set_random_color()
 
     def reload_from_file(self, filename: str):
         mesh = Mesh.from_file(filename)
@@ -104,3 +111,7 @@ class Mesh(object):
             return array
         else:
             return array.reshape((array.shape[0] // cols, cols))
+
+    def _set_random_color(self):
+        self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(np.float32)
+        logger.info(f"Random Color: {self.colors[:3]}")

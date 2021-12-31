@@ -237,6 +237,14 @@ class Visualizer(object):
                 return
             self.mesh.transform(self.simulation_environment.displacements[t])
 
+        def generate_geometry_cb(radius: float, thickness: float):
+            scalar_field = gyroid(radius, 50)
+            scalar_field = bintensor3(scalar_field)
+            scalar_field.padding(0)
+            scalar_field.padding(1)
+            scalar_field.padding(2)
+            self.mesh = Mesh(*scalar_field.tomesh(thickness))
+
         logs()
         menu(
             mesh=self.mesh,

@@ -16,13 +16,13 @@ class bintensor3(object):
         Raises:
             ValueError: If the shape is not a vector3 this function throws
         """
-        if type(shape) == tuple:
+        if isinstance(shape, tuple):
             if len(shape) != 3:
                 raise ValueError("bintensor3 shape must be a vector3")
 
             self.shape = shape
             self.data = np.zeros(self.shape)
-        elif type(shape) == np.ndarray:
+        elif isinstance(shape, np.ndarray):
             self.shape = shape.shape
             self.data = deepcopy(shape)
         else:
@@ -101,13 +101,16 @@ class bintensor3(object):
             self.set(mask, axis, start)
             self.set(mask, axis, end)
 
-    def tomesh(self) -> Tuple[np.ndarray, np.ndarray]:
+    def tomesh(self, iso=0) -> Tuple[np.ndarray, np.ndarray]:
         """Convert the mask into a surface mesh (via marching cubes)
+
+        Args:
+            iso (int, optional): The iso value for marching cubes. Defaults to 0.
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: The vertices and faces
         """
-        v, f, _, _ = measure.marching_cubes(self.data, 0)
+        v, f, _, _ = measure.marching_cubes(self.data, iso)
         return v, f
 
     def save(self, filename: str):

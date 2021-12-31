@@ -22,6 +22,10 @@ def distance(a: np.array, b: np.array) -> float:
     return np.linalg.norm(a - b)
 
 
+def midpoint(a: np.ndarray, b: np.ndarray) -> float:
+    return np.median((a, b), axis=1)
+
+
 def angle_axis(angle, axis):
     return sp.linalg.expm(np.cross(np.eye(3), normalized(axis) * angle))
 
