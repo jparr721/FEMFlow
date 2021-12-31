@@ -4,14 +4,11 @@ import threading
 from typing import Dict, Iterable, Union
 
 import glfw
-import igl
 import imgui
-import numpy as np
 from femflow.meshing.implicit import gyroid
 from femflow.numerics.bintensor3 import bintensor3
 from femflow.reconstruction.behavior_matching import BehaviorMatching
 from femflow.simulation.environment import Environment
-from femflow.utils.filesystem import file_dialog
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
@@ -137,6 +134,7 @@ class Visualizer(object):
         self.imgui_impl.io.display_size = width, height
         self.window_width = width
         self.window_height = height
+        self._resize_windows()
 
         if self.renderer is not None:
             self.renderer.resize(self.window_width, self.window_height, self.camera)
@@ -183,31 +181,22 @@ class Visualizer(object):
             glfw.swap_buffers(self.window)
         self.renderer.destroy()
 
-    def _init_builtins(self):
+    def _resize_windows(self):
+        # Logs
         logs = self.windows["Logs"]
         height = self.window_height * 0.2 if self.window_height >= 800 else 160
-        logs.dimensions = (
-            self.window_width,
-            height,
-        )
-        logs.position = (
-            0,
-            self.window_height - height,
-        )
+        logs.dimensions = (self.window_width, height)
+        logs.position = (0, self.window_height - height)
 
+        # Menu
         menu = self.windows["Menu"]
         _, height = logs.dimensions
         menu.dimensions = (
             self.window_width * 0.15 if self.window_width >= 800 else 130,
             self.window_height - height,
         )
-        sim_params_menu = SimParametersMenu()
-        sim_config_menu = SimulationConfigMenu()
-        sim_params_menu.add_submenu(sim_config_menu)
 
-        shape_capture_config_menu = ShapeCaptureConfigMenu()
-        menu.add_menu([sim_params_menu, shape_capture_config_menu])
-
+        # Simulation
         sim = self.windows["Simulation"]
         height = self.window_height * 0.12 if self.window_height >= 800 else 130
         menu_window_width, _ = menu.dimensions
@@ -215,9 +204,20 @@ class Visualizer(object):
         sim.dimensions = (width - menu.dimensions[0], height)
         sim.position = (menu_window_width, 0)
 
+        # Shape Capture
         shape_capture = self.windows["Shape Capture"]
         shape_capture.dimensions = copy.deepcopy(menu.dimensions)
         shape_capture.position = (self.window_width - menu.dimensions[0], 0)
+
+    def _init_builtins(self):
+        self._resize_windows()
+        sim_params_menu = SimParametersMenu()
+        sim_config_menu = SimulationConfigMenu()
+        sim_params_menu.add_submenu(sim_config_menu)
+
+        menu = self.windows["Menu"]
+        shape_capture_config_menu = ShapeCaptureConfigMenu()
+        menu.add_menu([sim_params_menu, shape_capture_config_menu])
 
     def _render_builtins(self):
         self._extract_input_vars()
