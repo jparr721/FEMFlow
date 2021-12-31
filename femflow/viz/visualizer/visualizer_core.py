@@ -1,4 +1,5 @@
 import abc
+import re
 from typing import Any, Callable
 
 
@@ -33,11 +34,18 @@ class VisualizerCore(abc.ABC):
         if key not in self.attr_keys:
             raise ValueError("Register an input before mapping to a class member")
 
-        label = key if use_key_as_label else f"##{key}"
+        def beautify_label(label: str):
+            return " ".join(w for w in re.split(r"\W", label) if w).capitalize()
+
+        label = beautify_label(key) if use_key_as_label else f"##{key}"
         _, self.__dict__[key] = fn(label, self.__dict__[key], **kwargs)
 
     def _register_input(self, name: str, default: Any):
+        if " " in name:
+            raise ValueError(f"Key {name} is invalid due to being an invalid python variable name")
+
         if name in self.attr_keys:
             raise ValueError(f"Key {name} already exists as an input handler.")
+
         setattr(self, name, default)
         self.attr_keys.add(name)

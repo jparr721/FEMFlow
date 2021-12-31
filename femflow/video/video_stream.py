@@ -40,12 +40,13 @@ class VideoStream(object):
             if not self.streaming:
                 break
             _, self.frame = self.stream.read()
-            self.frame = transform(self.frame)
-            if self.frame is None:
-                raise ValueError("Transform function returned 'None'")
+            if self.frame is not None:
+                self.frame = transform(self.frame)
+                if self.frame is None:
+                    raise ValueError("Transform function returned 'None'")
 
-            if self.displaying:
-                cv2.imshow("Stream", self.frame)
-                if cv2.waitKey(10) & 0xFF == ord("q"):
-                    self.stop()
-                    cv2.destroyAllWindows()
+                if self.displaying:
+                    cv2.imshow("Stream", self.frame)
+                    if cv2.waitKey(10) & 0xFF == ord("q"):
+                        self.stop()
+                        cv2.destroyAllWindows()

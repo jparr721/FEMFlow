@@ -33,12 +33,11 @@ from .visualizer_window import VisualizerWindow
 class Visualizer(object):
     def __init__(self, environment: Environment):
         self.WINDOW_TITLE = "FEMFlow Viewer"
-        self.window_width = 1200
-        self.window_height = 1000
         self.background_color = [1, 1, 1, 0]
 
         self.camera = Camera()
-        self.camera.resize(self.window_width, self.window_height)
+
+        self.renderer = None
 
         self.callback_environment_loader = lambda: logger.error("No functionality implemented yet!")
         self.callback_start_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
@@ -57,6 +56,12 @@ class Visualizer(object):
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL_TRUE)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+
+        monitor = glfw.get_primary_monitor()
+        mode = glfw.get_video_mode(monitor)
+        self.window_width = int(mode.size.width * 0.5)
+        self.window_height = int(mode.size.height * 0.5)
+        self.camera.resize(self.window_width, self.window_height)
 
         logger.debug("Drawing window")
 

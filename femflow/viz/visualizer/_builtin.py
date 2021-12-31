@@ -38,7 +38,7 @@ class SimulationConfigMenu(VisualizerMenu):
 
     def render(self, **kwargs) -> None:
         sim_status = self._unpack_kwarg("sim_status", bool, **kwargs)
-        self.visible = sim_status
+        self.expanded = sim_status
         imgui.text("Timestamps")
         self._generate_imgui_input("n_timesteps", imgui.input_int, step=50)
 
@@ -128,26 +128,40 @@ class SimulationWindow(VisualizerWindow):
 class ShapeCaptureWindow(VisualizerWindow):
     def __init__(self, *, name="Shape Capture", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE):
         super().__init__(name, flags)
+        self._register_input("use_custom_measurement", True)
+        self._register_input("radius", 0.0)
+        self._register_input("thickness", 0.0)
 
     def render(self, **kwargs) -> None:
-        radius_converged = self._unpack_kwarg("radius_converged", bool, **kwargs)
-        thickness_converged = self._unpack_kwarg("thickness_converged", bool, **kwargs)
+        self._generate_imgui_input("use_custom_measurement", imgui.checkbox, use_key_as_label=True)
 
-        radius = self._unpack_kwarg("radius", float, **kwargs)
-        thickness = self._unpack_kwarg("thickness", float, **kwargs)
+        if self.use_custom_measurement:
+            self._generate_imgui_input("radius", imgui.input_float, step=0.1, use_key_as_label=True)
+            self._generate_imgui_input("thickness", imgui.input_float, step=0.1, use_key_as_label=True)
+            self.radius_converged = True
+            self.thickness_converged = True
+        else:
+            self.radius_converged = self._unpack_kwarg("radius_converged", bool, **kwargs)
+            self.thickness_converged = self._unpack_kwarg("thickness_converged", bool, **kwargs)
 
-        radius_text = (f"Radius: {radius/10}cm", *(ui_colors.success if radius_converged else ui_colors.error))
-        thickness_text = (
-            f"Thickness: {thickness/10}cm",
-            *(ui_colors.success if thickness_converged else ui_colors.error),
-        )
+            self.radius = self._unpack_kwarg("radius", float, **kwargs)
+            self.thickness = self._unpack_kwarg("thickness", float, **kwargs)
 
-        imgui.text_colored(*radius_text)
-        imgui.text_colored(*thickness_text)
+            radius_text = (
+                f"Radius: {self.radius:.2f}",
+                *(ui_colors.success if self.radius_converged else ui_colors.error),
+            )
+            thickness_text = (
+                f"Thickness: {self.thickness:.2f}",
+                *(ui_colors.success if self.thickness_converged else ui_colors.error),
+            )
 
-        if radius_converged and thickness_converged:
+            imgui.text_colored(*radius_text)
+            imgui.text_colored(*thickness_text)
+
+        if self.radius_converged and self.thickness_converged:
             imgui.push_item_width(-1)
             if imgui.button("Generate Geometry"):
                 generate_geometry_cb = self._unpack_kwarg("generate_geometry_cb", callable, **kwargs)
-                generate_geometry_cb(radius / 10, thickness / 10)
+                generate_geometry_cb(self.radius, self.thickness)
             imgui.pop_item_width()
