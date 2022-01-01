@@ -1,9 +1,10 @@
 from typing import Tuple
 
 import numpy as np
-from femflow.numerics.geometry import (index_sparse_matrix_by_indices,
-                                       tet_volume)
+from femflow.numerics.geometry import index_sparse_matrix_by_indices, tet_volume
 from femflow.numerics.linear_algebra import sparse
+from femflow.utils.physical_units import numpy_bytes_human_readable
+from loguru import logger
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 
@@ -27,7 +28,9 @@ class LinearGalerkinNonDynamic(object):
         self.U_e = np.zeros(len(self.boundary_conditions) * 3)
 
         ke = self.make_element_stiffnesses(v.reshape((v.shape[0] // 3, 3)), t.reshape((t.shape[0] // 4, 4)))
+        logger.info(f"ke takes up {numpy_bytes_human_readable(ke)}")
         K = self.assemble_global_stiffness_matrix(ke, self.n_vertices)
+        logger.info(f"K takes up {numpy_bytes_human_readable(K)}")
         self.assemble_boundary_forces(K)
 
     def solve(self):

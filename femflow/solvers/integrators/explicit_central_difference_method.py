@@ -2,6 +2,8 @@ from copy import deepcopy
 
 import numpy as np
 from femflow.numerics.linear_algebra import fast_diagonal_inverse
+from femflow.utils.physical_units import numpy_bytes_human_readable
+from loguru import logger
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import inv
 
@@ -26,9 +28,14 @@ class ExplicitCentralDifferenceMethod(object):
         self.initial_force = initial_force
 
         self.mass_matrix = mass_matrix
+        if not isinstance(self.mass_matrix, csr_matrix):
+            raise TypeError("Mass matrix must be sparse")
+
+        logger.info(f"self.mass_matrix takes up {numpy_bytes_human_readable(self.inverse_mass_matrix)}")
 
         self.inverse_mass_matrix = deepcopy(self.mass_matrix)
         fast_diagonal_inverse(self.inverse_mass_matrix)
+        logger.info(f"self.inverse_mass_matrix takes up {numpy_bytes_human_readable(self.inverse_mass_matrix)}")
 
         self.a0 = 1 / dt ** 2
         self.a1 = 1 / 2 * dt
@@ -51,7 +58,9 @@ class ExplicitCentralDifferenceMethod(object):
         self.a1damping_matrix = self.a1 * self.damping_matrix
 
         self.stiff_mass_diff = self.stiffness - self.a2mass_matrix
+        logger.debug(f"type(stiff_mass_diff) {type(self.stiff_mass_diff)}")
         self.a0mass_damping_diff = self.a0mass_matrix - self.a1damping_matrix
+        logger.debug(f"type(a0mass_damping_diff) {type(self.a0mass_damping_diff)}")
 
     def integrate(self, forces: np.ndarray, displacements: np.ndarray) -> np.ndarray:
         v1 = self.stiff_mass_diff.dot(displacements.T)

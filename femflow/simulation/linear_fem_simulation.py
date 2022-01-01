@@ -1,23 +1,18 @@
-import time
 from collections import defaultdict
 
 import imgui
 import numpy as np
 from femflow.solvers.fea import linear_galerkin_nondynamic
 from femflow.solvers.fea.boundary_conditions import (
-    basic_dirilecht_boundary_conditions,
-    top_bottom_plate_dirilect_conditions,
-)
-from femflow.solvers.integrators.explicit_central_difference_method import ExplicitCentralDifferenceMethod
+    basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions)
+from femflow.solvers.integrators.explicit_central_difference_method import \
+    ExplicitCentralDifferenceMethod
 from femflow.solvers.material import (
     hookes_law_isotropic_constitutive_matrix,
-    hookes_law_orthotropic_constitutive_matrix,
-)
-from femflow.utils.timing import Timer
+    hookes_law_orthotropic_constitutive_matrix)
 from femflow.viz.mesh import Mesh
 from loguru import logger
 from scipy.sparse import identity
-from scipy.sparse.csr import csr_matrix
 from tqdm import tqdm
 
 from .environment import Environment

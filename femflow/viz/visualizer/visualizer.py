@@ -248,7 +248,8 @@ class Visualizer(object):
             scalar_field.padding(0)
             scalar_field.padding(1)
             scalar_field.padding(2)
-            self.mesh = Mesh(*scalar_field.tomesh(thickness))
+            self.mesh.reload_from_surface(*scalar_field.tomesh(thickness))
+            self.mesh.tetrahedralize()
 
         logs()
         menu(
@@ -273,6 +274,7 @@ class Visualizer(object):
                 thickness_converged=self.behavior_matching.thickness_convergence_reached,
                 radius=self.behavior_matching.void_radius,
                 thickness=self.behavior_matching.beam_thickness,
+                generate_geometry_cb=generate_geometry_cb,
             )
         else:
             self.behavior_matching.stop_matching()
