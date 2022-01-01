@@ -28,9 +28,8 @@ class LinearGalerkinNonDynamic(object):
         self.U_e = np.zeros(len(self.boundary_conditions) * 3)
 
         ke = self.make_element_stiffnesses(v.reshape((v.shape[0] // 3, 3)), t.reshape((t.shape[0] // 4, 4)))
-        logger.info(f"ke takes up {numpy_bytes_human_readable(ke)}")
         K = self.assemble_global_stiffness_matrix(ke, self.n_vertices)
-        logger.info(f"K takes up {numpy_bytes_human_readable(K)}")
+        logger.debug(f"K takes up {numpy_bytes_human_readable(K)}")
         self.assemble_boundary_forces(K)
 
     def solve(self):
