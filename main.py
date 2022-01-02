@@ -135,6 +135,9 @@ def make_gyroid(
         "gyroid", amplitude=amplitude, resolution=resolution, dimension=dimension
     )
 
+    if not os.path.exists("cli_assets"):
+        os.mkdir("cli_assets")
+
     if not mesh.save(os.path.join("cli_assets", path)):
         logger.error("Mesh failed to save")
 
