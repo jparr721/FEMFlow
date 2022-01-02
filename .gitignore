@@ -133,3 +133,6 @@ debug.ipynb
 
 mask.npy
 __tracked_surface.stl
+
+cli_assets/
+femflow.log

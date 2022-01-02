@@ -37,6 +37,10 @@ class LinearFemSimulation(Environment):
         self.material_options = ["isotropic", "orthotropic"]
         self.rayleigh_lambda = 0.0
         self.rayleigh_mu = 0.0
+        self.material_coefficients = (
+            float(self.youngs_modulus),
+            float(self.poissons_ratio),
+        )
 
         # Sim parameters
         self.boundary_conditions = defaultdict(np.ndarray)
@@ -218,4 +222,11 @@ class LinearFemSimulation(Environment):
 
     def solve_static(self):
         self.solver.solve_static()
+        self.displacements.append(self.solver.U)
         logger.success("Simulation is done")
+
+    def loss(self, batch):
+        pass
+
+    def accuracy(self, batch):
+        pass

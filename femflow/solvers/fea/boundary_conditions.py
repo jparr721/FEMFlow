@@ -7,20 +7,28 @@ BoundaryConditions = dict[int, np.ndarray]
 
 
 def __find(axis: int, v: np.ndarray, boundary: float, epsilon: float) -> List[int]:
-    return [i for i, node in enumerate(v) if np.isclose(node[axis], boundary, atol=epsilon)]
+    return [
+        i for i, node in enumerate(v) if np.isclose(node[axis], boundary, atol=epsilon)
+    ]
 
 
-def find_max_surface_nodes(axes: List[int], v: np.ndarray, epsilon: float = 0.0) -> np.ndarray:
+def find_max_surface_nodes(
+    axes: List[int], v: np.ndarray, epsilon: float = 0.0
+) -> np.ndarray:
     axis_maxes = v.max(axis=0)
     return np.concatenate([__find(axis, v, axis_maxes[axis], epsilon) for axis in axes])
 
 
-def find_min_surface_nodes(axes: List[int], v: np.ndarray, epsilon: float = 0.0) -> np.ndarray:
+def find_min_surface_nodes(
+    axes: List[int], v: np.ndarray, epsilon: float = 0.0
+) -> np.ndarray:
     axis_mins = v.min(axis=0)
     return np.concatenate([__find(axis, v, axis_mins[axis], epsilon) for axis in axes])
 
 
-def top_bottom_plate_dirilect_conditions(v: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def top_bottom_plate_dirilect_conditions(
+    v: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Finds the boundary conditions for the top-bottom plates of a uniaxial compression
 
     Args:
@@ -38,12 +46,13 @@ def top_bottom_plate_dirilect_conditions(v: np.ndarray) -> Tuple[np.ndarray, np.
     force_nodes.sort()
     fixed_nodes = find_min_surface_nodes(axis, v, epsilon)
     fixed_nodes.sort()
-    interior_nodes = np.array([i for i in range(len(v)) if i not in force_nodes and i not in fixed_nodes])
+    interior_nodes = np.array(
+        [i for i in range(len(v)) if i not in force_nodes and i not in fixed_nodes]
+    )
     interior_nodes.sort()
     return force_nodes, interior_nodes, fixed_nodes
 
 
-@nb.njit
 def basic_dirilecht_boundary_conditions(
     force: np.ndarray, force_nodes: np.ndarray, active_nodes: np.ndarray
 ) -> BoundaryConditions:
