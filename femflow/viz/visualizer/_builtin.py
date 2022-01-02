@@ -8,26 +8,38 @@ from . import ui_colors
 from .visualizer_menu import VisualizerMenu
 from .visualizer_window import VisualizerWindow
 
-_IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE = [imgui.WINDOW_NO_MOVE, imgui.WINDOW_NO_RESIZE, imgui.WINDOW_NO_COLLAPSE]
+_IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE = [
+    imgui.WINDOW_NO_MOVE,
+    imgui.WINDOW_NO_RESIZE,
+    imgui.WINDOW_NO_COLLAPSE,
+]
 _IMGUIFLAGS_TREENODE_OPEN = [imgui.TREE_NODE_DEFAULT_OPEN]
 
 
 class ShapeCaptureConfigMenu(VisualizerMenu):
-    def __init__(self, name="Shape Matching", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN):
+    def __init__(
+        self, name="Shape Matching", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN
+    ):
         super().__init__(name, flags)
         self._register_input("capturing", False)
 
     def render(self, **kwargs) -> None:
-        behavior_matching_streaming = self._unpack_kwarg("behavior_matching_streaming", bool, **kwargs)
+        behavior_matching_streaming = self._unpack_kwarg(
+            "behavior_matching_streaming", bool, **kwargs
+        )
         if imgui.button(label="Calibrate"):
-            calibrate_button_cb: Callable = self._unpack_kwarg("calibrate_button_cb", callable, **kwargs)
+            calibrate_button_cb: Callable = self._unpack_kwarg(
+                "calibrate_button_cb", callable, **kwargs
+            )
             calibrate_button_cb()
 
         self._generate_imgui_input("capturing", imgui.checkbox, use_key_as_label=True)
 
         if behavior_matching_streaming:
             if imgui.button(label="Capture Shape"):
-                capture_shape_button_cb: Callable = self._unpack_kwarg("capture_shape_button_cb", callable, **kwargs)
+                capture_shape_button_cb: Callable = self._unpack_kwarg(
+                    "capture_shape_button_cb", callable, **kwargs
+                )
                 capture_shape_button_cb()
 
 
@@ -43,20 +55,28 @@ class SimulationConfigMenu(VisualizerMenu):
         self._generate_imgui_input("n_timesteps", imgui.input_int, step=50)
 
         if imgui.button(label="Start Sim"):
-            start_sim_button_cb: Callable = self._unpack_kwarg("start_sim_button_cb", callable, **kwargs)
+            start_sim_button_cb: Callable = self._unpack_kwarg(
+                "start_sim_button_cb", callable, **kwargs
+            )
             start_sim_button_cb()
         imgui.same_line()  # Maybe we can parameterize the layouts at some point.
         if imgui.button(label="Reset Sim"):
-            reset_sim_button_cb: Callable = self._unpack_kwarg("reset_sim_button_cb", callable, **kwargs)
+            reset_sim_button_cb: Callable = self._unpack_kwarg(
+                "reset_sim_button_cb", callable, **kwargs
+            )
             reset_sim_button_cb()
 
 
 class SimParametersMenu(VisualizerMenu):
-    def __init__(self, *, name: str = "Sim Params", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN):
+    def __init__(
+        self, *, name: str = "Sim Params", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN
+    ):
         super().__init__(name, flags)
 
     def render(self, **kwargs) -> None:
-        sim_environment_menu_cb: Callable = self._unpack_kwarg("sim_environment_menu_cb", callable, **kwargs)
+        sim_environment_menu_cb: Callable = self._unpack_kwarg(
+            "sim_environment_menu_cb", callable, **kwargs
+        )
         sim_status: bool = self._unpack_kwarg("sim_status", bool, **kwargs)
 
         sim_status_text = ("Sim Status: Not Loaded", *ui_colors.error)
@@ -68,12 +88,16 @@ class SimParametersMenu(VisualizerMenu):
         sim_environment_menu_cb()
 
         if imgui.button(label="Load"):
-            load_button_cb: Callable = self._unpack_kwarg("load_button_cb", callable, **kwargs)
+            load_button_cb: Callable = self._unpack_kwarg(
+                "load_button_cb", callable, **kwargs
+            )
             load_button_cb()
 
 
 class LogWindow(VisualizerWindow):
-    def __init__(self, *, name="Logs", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE):
+    def __init__(
+        self, *, name="Logs", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE
+    ):
         super().__init__(name, flags)
 
     def render(self, **kwargs) -> None:
@@ -86,7 +110,9 @@ class LogWindow(VisualizerWindow):
 
 
 class MenuWindow(VisualizerWindow):
-    def __init__(self, *, name="Menu", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE):
+    def __init__(
+        self, *, name="Menu", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE
+    ):
         super().__init__(name, flags)
 
     def render(self, **kwargs) -> None:
@@ -102,7 +128,9 @@ class MenuWindow(VisualizerWindow):
 
 
 class SimulationWindow(VisualizerWindow):
-    def __init__(self, *, name="Simulation", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE):
+    def __init__(
+        self, *, name="Simulation", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE
+    ):
         super().__init__(name, flags)
         self._register_input("current_timestep", 0)
 
@@ -111,38 +139,58 @@ class SimulationWindow(VisualizerWindow):
 
         max_timesteps = self._unpack_kwarg("max_timesteps", int, **kwargs)
         sim_status = self._unpack_kwarg("sim_status", bool, **kwargs)
-        timestep_changed_cb = self._unpack_kwarg("timestep_changed_cb", callable, **kwargs)
+        timestep_changed_cb = self._unpack_kwarg(
+            "timestep_changed_cb", callable, **kwargs
+        )
 
-        displacements_text = ("No displacements, please start sim first", *ui_colors.error)
+        displacements_text = (
+            "No displacements, please start sim first",
+            *ui_colors.error,
+        )
 
         if sim_status:
             displacements_text = ("Displacements ready", *ui_colors.success)
 
         imgui.text_colored(*displacements_text)
         imgui.push_item_width(-1)
-        self._generate_imgui_input("current_timestep", imgui.slider_int, min_value=0, max_value=max_timesteps)
+        self._generate_imgui_input(
+            "current_timestep", imgui.slider_int, min_value=0, max_value=max_timesteps
+        )
         timestep_changed_cb(self.current_timestep)
         imgui.pop_item_width()
 
 
 class ShapeCaptureWindow(VisualizerWindow):
-    def __init__(self, *, name="Shape Capture", flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE):
+    def __init__(
+        self,
+        *,
+        name="Shape Capture",
+        flags: List[int] = _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE,
+    ):
         super().__init__(name, flags)
         self._register_input("use_custom_measurement", True)
         self._register_input("radius", 0.0)
         self._register_input("thickness", 0.0)
 
     def render(self, **kwargs) -> None:
-        self._generate_imgui_input("use_custom_measurement", imgui.checkbox, use_key_as_label=True)
+        self._generate_imgui_input(
+            "use_custom_measurement", imgui.checkbox, use_key_as_label=True
+        )
 
         if self.use_custom_measurement:
-            self._generate_imgui_input("radius", imgui.input_float, step=0.1, use_key_as_label=True)
-            self._generate_imgui_input("thickness", imgui.input_float, step=0.1, use_key_as_label=True)
+            self._generate_imgui_input(
+                "radius", imgui.input_float, step=0.1, use_key_as_label=True
+            )
+            self._generate_imgui_input(
+                "thickness", imgui.input_float, step=0.1, use_key_as_label=True
+            )
             self.radius_converged = True
             self.thickness_converged = True
         else:
             self.radius_converged = self._unpack_kwarg("radius_converged", bool, **kwargs)
-            self.thickness_converged = self._unpack_kwarg("thickness_converged", bool, **kwargs)
+            self.thickness_converged = self._unpack_kwarg(
+                "thickness_converged", bool, **kwargs
+            )
 
             self.radius = self._unpack_kwarg("radius", float, **kwargs)
             self.thickness = self._unpack_kwarg("thickness", float, **kwargs)
@@ -162,6 +210,8 @@ class ShapeCaptureWindow(VisualizerWindow):
         if self.radius_converged and self.thickness_converged:
             imgui.push_item_width(-1)
             if imgui.button("Generate Geometry"):
-                generate_geometry_cb = self._unpack_kwarg("generate_geometry_cb", callable, **kwargs)
+                generate_geometry_cb = self._unpack_kwarg(
+                    "generate_geometry_cb", callable, **kwargs
+                )
                 generate_geometry_cb(self.radius, self.thickness)
             imgui.pop_item_width()

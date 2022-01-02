@@ -1,19 +1,24 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
-from femflow.numerics.geometry import index_sparse_matrix_by_indices, tet_volume
-from femflow.numerics.linear_algebra import sparse
-from femflow.utils.physical_units import numpy_bytes_human_readable
 from loguru import logger
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
+
+from femflow.numerics.geometry import index_sparse_matrix_by_indices, tet_volume
+from femflow.numerics.linear_algebra import sparse
+from femflow.utils.physical_units import numpy_bytes_human_readable
 
 from .boundary_conditions import BoundaryConditions
 
 
 class LinearGalerkinNonDynamic(object):
     def __init__(
-        self, boundary_conditions: BoundaryConditions, constitutive_matrix: np.ndarray, v: np.ndarray, t: np.ndarray
+        self,
+        boundary_conditions: BoundaryConditions,
+        constitutive_matrix: np.ndarray,
+        v: np.ndarray,
+        t: np.ndarray,
     ):
         self.boundary_conditions = boundary_conditions
         self.constitutive_matrix = constitutive_matrix
@@ -27,7 +32,9 @@ class LinearGalerkinNonDynamic(object):
         # Active DOF displacements
         self.U_e = np.zeros(len(self.boundary_conditions) * 3)
 
-        ke = self.make_element_stiffnesses(v.reshape((v.shape[0] // 3, 3)), t.reshape((t.shape[0] // 4, 4)))
+        ke = self.make_element_stiffnesses(
+            v.reshape((v.shape[0] // 3, 3)), t.reshape((t.shape[0] // 4, 4))
+        )
         K = self.assemble_global_stiffness_matrix(ke, self.n_vertices)
         logger.debug(f"K takes up {numpy_bytes_human_readable(K)}")
         self.assemble_boundary_forces(K)
@@ -69,7 +76,9 @@ class LinearGalerkinNonDynamic(object):
 
         self.K_e = csr_matrix(index_sparse_matrix_by_indices(K, I_e))
 
-    def make_element_stiffnesses(self, v: np.ndarray, t: np.ndarray):
+    def make_element_stiffnesses(
+        self, v: np.ndarray, t: np.ndarray
+    ) -> List[Tuple[np.ndarray, np.ndarray]]:
         if len(v.shape) == 1:
             raise ValueError("v cannot be a vector, it's easier this way, trust me")
 
@@ -88,15 +97,28 @@ class LinearGalerkinNonDynamic(object):
         for row in t:
             B = self.assemble_shape_fn_matrix(*v[row])
             tets = np.array([v[row[0]], v[row[1]], v[row[2]], v[row[3]]])
-            element_stiffnesses.append(self.assemble_element_stiffness_matrix(row, tets, B, self.constitutive_matrix))
+            element_stiffnesses.append(
+                self.assemble_element_stiffness_matrix(
+                    row, tets, B, self.constitutive_matrix
+                )
+            )
         return element_stiffnesses
 
-    def assemble_shape_fn_matrix(self, a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> np.ndarray:
+    def assemble_shape_fn_matrix(
+        self, a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray
+    ) -> np.ndarray:
         V = tet_volume(a, b, c, d)
 
         def _beta(beta: float, gamma: float, delta: float) -> np.ndarray:
             return np.array(
-                [[beta, 0, 0], [0, gamma, 0], [0, 0, delta], [gamma, beta, 0], [0, delta, gamma], [delta, 0, beta]]
+                [
+                    [beta, 0, 0],
+                    [0, gamma, 0],
+                    [0, 0, delta],
+                    [gamma, beta, 0],
+                    [0, delta, gamma],
+                    [delta, 0, beta],
+                ]
             )
 
         def _shape_fn(p0, p1, p2, p3, p4, p5) -> float:
@@ -137,13 +159,15 @@ class LinearGalerkinNonDynamic(object):
 
     def assemble_element_stiffness_matrix(
         self, tet_indices: np.ndarray, tets: np.ndarray, B: np.ndarray, D: np.ndarray
-    ):
+    ) -> Tuple[np.ndarray, np.ndarray]:
         p1, p2, p3, p4 = tets
         V = tet_volume(p1, p2, p3, p4)
         e_stiffness = np.matmul(np.matmul(V * B.T, D), B)
         return (e_stiffness, tet_indices)
 
-    def assemble_global_stiffness_matrix(self, elements: Tuple[np.ndarray, np.ndarray], rows: int) -> csr_matrix:
+    def assemble_global_stiffness_matrix(
+        self, elements: List[Tuple[np.ndarray, np.ndarray]], rows: int
+    ) -> csr_matrix:
         triplets = []
         for element in elements:
             k, tetrahedral = element
@@ -311,4 +335,4 @@ class LinearGalerkinNonDynamic(object):
         i, j, v = zip(*triplets)
         del triplets
 
-        return csr_matrix((v, (i, j)), shape=(rows, rows)).astype(np.float32)
+        return csr_matrix((v, (i, j)), shape=(rows, rows), dtype=np.float32)

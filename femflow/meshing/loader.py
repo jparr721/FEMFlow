@@ -5,7 +5,9 @@ import numpy as np
 from femflow.numerics.geometry import per_face_normals
 
 
-def load_mesh_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def load_mesh_file(
+    filename: str,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if not filename.lower().endswith(".mesh"):
         raise ValueError("Input filename is not a .mesh file")
 
@@ -25,9 +27,7 @@ def load_mesh_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, n
     return v, t, n, f
 
 
-def load_obj_file(
-    filename: str, include_uv=False
-) -> Union[Tuple[np.ndarray, np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+def load_obj_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if not filename.lower().endswith(".obj"):
         raise ValueError("Input filename is not a .obj file")
 
@@ -42,6 +42,4 @@ def load_obj_file(
 
     f = f.astype(np.uint32)
 
-    if include_uv:
-        return v, tc, n, f
-    return v, n, f
+    return v, tc, n, f

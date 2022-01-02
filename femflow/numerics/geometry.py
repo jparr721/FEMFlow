@@ -10,7 +10,9 @@ from scipy.sparse import csr_matrix
 from .linear_algebra import normalized
 
 
-def per_face_normals(v: np.ndarray, f: np.ndarray, z: np.ndarray = np.zeros(3)) -> np.ndarray:
+def per_face_normals(
+    v: np.ndarray, f: np.ndarray, z: np.ndarray = np.zeros(3)
+) -> np.ndarray:
     """Computes the per face normals with default for degenerate cases
 
     Args:
@@ -44,7 +46,9 @@ def per_face_normals(v: np.ndarray, f: np.ndarray, z: np.ndarray = np.zeros(3)) 
 TetMesh = namedtuple("TetMesh", ["vertices", "tetrahedra", "faces"])
 
 
-def tetrahedralize_surface_mesh(v: np.ndarray, f: np.ndarray, stop_quality=1000) -> TetMesh:
+def tetrahedralize_surface_mesh(
+    v: np.ndarray, f: np.ndarray, stop_quality=1000
+) -> TetMesh:
     """Computes a tetrahedral mesh from a surface mesh, recomputes faces and returns them. The types are automatically
     converted the the appropriate value.
 
@@ -73,7 +77,7 @@ def tetrahedralize_surface_mesh(v: np.ndarray, f: np.ndarray, stop_quality=1000)
 
 
 @nb.njit
-def tet_volume(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> float:
+def tet_volume(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> np.float32:
     x1, y1, z1 = a
     x2, y2, z2 = b
     x3, y3, z3 = c
@@ -84,12 +88,15 @@ def tet_volume(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> fl
     return np.float32(np.linalg.det(x) / 6)
 
 
-def index_sparse_matrix_by_indices(X: csr_matrix, R: np.ndarray, C: np.ndarray = None) -> np.ndarray:
+def index_sparse_matrix_by_indices(
+    X: csr_matrix, R: np.ndarray, C: np.ndarray = None
+) -> np.ndarray:
     if C is None:
         C = copy.deepcopy(R)
     assert R.ndim == 1 and C.ndim == 1, "Rows and cols must be vectors"
     rows = R.size
     cols = C.size
+    size = rows * cols
     RR = []
     CC = []
     for row in range(rows):

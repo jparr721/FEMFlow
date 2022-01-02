@@ -2,7 +2,7 @@ import abc
 from collections.abc import Iterable
 from typing import Dict
 from typing import Iterable as _Iterable
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import imgui
 
@@ -12,13 +12,19 @@ from .visualizer_menu import VisualizerMenu
 
 class VisualizerWindow(VisualizerCore):
     def __init__(
-        self, name: str, flags: List[int] = [imgui.WINDOW_NO_COLLAPSE], focused=False, visible=False,
+        self,
+        name: str,
+        flags: List[int] = [imgui.WINDOW_NO_COLLAPSE],
+        focused=False,
+        visible=False,
     ):
         super().__init__()
         self.name = name
 
         if not isinstance(flags, list):
-            raise TypeError(f"Type: {type(flags)} is unsupported for flags, type must be a list.")
+            raise TypeError(
+                f"Type: {type(flags)} is unsupported for flags, type must be a list."
+            )
 
         self.flags = flags
         if imgui.WINDOW_NO_COLLAPSE not in self.flags:
@@ -30,8 +36,8 @@ class VisualizerWindow(VisualizerCore):
 
         self.menus: Dict[str, VisualizerMenu] = dict()
 
-        self.dimensions = (0, 0)
-        self.position = (0, 0)
+        self.dimensions: Tuple[int, int] = (0, 0)
+        self.position: Tuple[int, int] = (0, 0)
 
     def __eq__(self, name: str):
         return self.name == name

@@ -1,7 +1,7 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Union
 
 import numpy as np
-import scipy as sp
+from scipy.linalg import expm
 from scipy.sparse.csr import csr_matrix
 from scipy.spatial.transform import Rotation as R
 
@@ -18,7 +18,7 @@ def angle_between_vectors(a: np.ndarray, b: np.ndarray) -> float:
     return np.arccos(np.clip(np.dot(a, b), -1.0, 1.0))
 
 
-def distance(a: np.array, b: np.array) -> float:
+def distance(a: np.ndarray, b: np.ndarray) -> float:
     return np.linalg.norm(a - b)
 
 
@@ -27,7 +27,7 @@ def midpoint(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def angle_axis(angle, axis):
-    return sp.linalg.expm(np.cross(np.eye(3), normalized(axis) * angle))
+    return expm(np.cross(np.eye(3), normalized(axis) * angle))
 
 
 def rotation_as_quat(rot: R) -> np.ndarray:
@@ -44,7 +44,11 @@ def rotation_as_quat(rot: R) -> np.ndarray:
 
 
 def sparse(
-    i: Union[np.ndarray, List[int]], j: Union[np.ndarray, List[int]], v: Union[np.ndarray, List[Any]], m: int, n: int
+    i: Union[np.ndarray, List[int]],
+    j: Union[np.ndarray, List[int]],
+    v: Union[np.ndarray, List[Any]],
+    m: int,
+    n: int,
 ) -> csr_matrix:
     """Computes a sparse matrix from an input set of indices in 2D and their values as a bijection followed by the shape
 

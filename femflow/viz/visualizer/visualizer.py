@@ -5,13 +5,14 @@ from typing import Dict, Iterable, Union
 
 import glfw
 import imgui
+from imgui.integrations.glfw import GlfwRenderer
+from loguru import logger
+from OpenGL.GL import *
+
 from femflow.meshing.implicit import gyroid
 from femflow.numerics.bintensor3 import bintensor3
 from femflow.reconstruction.behavior_matching import BehaviorMatching
 from femflow.simulation.environment import Environment
-from imgui.integrations.glfw import GlfwRenderer
-from loguru import logger
-from OpenGL.GL import *
 
 from .. import models
 from ..camera import Camera
@@ -36,12 +37,19 @@ class Visualizer(object):
         self.background_color = [1, 1, 1, 0]
 
         self.camera = Camera()
-
+        self.mesh: Mesh = Mesh.from_file(os.path.join(models.model_paths(), "cube.obj"))
+        self.mesh.tetrahedralize()
         self.renderer = None
 
-        self.callback_environment_loader = lambda: logger.error("No functionality implemented yet!")
-        self.callback_start_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
-        self.callback_reset_sim_button_pressed = lambda: logger.error("No functionality implemented yet!")
+        self.callback_environment_loader = lambda: logger.error(
+            "No functionality implemented yet!"
+        )
+        self.callback_start_sim_button_pressed = lambda: logger.error(
+            "No functionality implemented yet!"
+        )
+        self.callback_reset_sim_button_pressed = lambda: logger.error(
+            "No functionality implemented yet!"
+        )
 
         self.simulation_environment: Environment = environment
         self.sim_parameter_state = dict()
@@ -65,7 +73,9 @@ class Visualizer(object):
 
         logger.debug("Drawing window")
 
-        self.window = glfw.create_window(self.window_width, self.window_height, self.WINDOW_TITLE, None, None)
+        self.window = glfw.create_window(
+            self.window_width, self.window_height, self.WINDOW_TITLE, None, None
+        )
 
         assert self.window, "GLFW failed to open the window"
 
@@ -112,11 +122,13 @@ class Visualizer(object):
     def add_window(self, windows: Union[VisualizerWindow, Iterable[VisualizerWindow]]):
         if isinstance(windows, Iterable):
             for window in windows:
-                self.add_menu(window)
+                self.add_window(window)
         elif isinstance(windows, VisualizerWindow):
             self.windows[windows.name] = windows
         else:
-            raise TypeError(f"Windows must be iterable or window type, got {type(windows)}")
+            raise TypeError(
+                f"Windows must be iterable or window type, got {type(windows)}"
+            )
 
     def scroll_callback(self, window, xoffset, yoffset):
         if not self.any_window_focused:
@@ -153,7 +165,8 @@ class Visualizer(object):
         if self.sim_parameter_state["current_timestep"] > 0:
             self.sim_parameter_state["current_timestep"] = 0
         threading.Thread(
-            target=self.simulation_environment.simulate, args=(self.mesh, self.sim_parameter_state["n_timesteps"])
+            target=self.simulation_environment.simulate,
+            args=(self.mesh, self.sim_parameter_state["n_timesteps"]),
         ).start()
 
     def reset_simulation(self):
@@ -167,7 +180,6 @@ class Visualizer(object):
         logger.success("Simulation was reset")
 
     def launch(self):
-        self.mesh = Mesh.from_file(os.path.join(models.model_paths(), "cube.obj"))
         self.mesh.tetrahedralize()
         self.renderer = Renderer(self.mesh)
         self.camera.resize(self.window_width, self.window_height)
@@ -232,7 +244,9 @@ class Visualizer(object):
         shape_capture = self.windows["Shape Capture"]
 
         def sim_params_menu_load_button_cb():
-            threading.Thread(target=self.simulation_environment.load, args=(self.mesh,)).start()
+            threading.Thread(
+                target=self.simulation_environment.load, args=(self.mesh,)
+            ).start()
 
         def sim_params_menu_sim_environment_menu_cb():
             self.simulation_environment.menu()

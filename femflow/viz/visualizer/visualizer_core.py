@@ -23,14 +23,20 @@ class VisualizerCore(abc.ABC):
 
         if type == callable:
             if not callable(kwargs[key]):
-                raise TypeError(f"Expected key '{key}' to be a callable, but got {type(kwargs[key])} instead.")
+                raise TypeError(
+                    f"Expected key '{key}' to be a callable, but got {type(kwargs[key])} instead."
+                )
         else:
             if not isinstance(kwargs[key], type):
-                raise TypeError(f"Expected key '{key}' to be {type} but got {type(kwargs[key])} instead.")
+                raise TypeError(
+                    f"Expected key '{key}' to be {type} but got {type(kwargs[key])} instead."
+                )
 
         return kwargs[key]
 
-    def _generate_imgui_input(self, key: str, fn: Callable, use_key_as_label=False, **kwargs):
+    def _generate_imgui_input(
+        self, key: str, fn: Callable, use_key_as_label=False, **kwargs
+    ):
         if key not in self.attr_keys:
             raise ValueError("Register an input before mapping to a class member")
 
@@ -42,7 +48,9 @@ class VisualizerCore(abc.ABC):
 
     def _register_input(self, name: str, default: Any):
         if " " in name:
-            raise ValueError(f"Key {name} is invalid due to being an invalid python variable name")
+            raise ValueError(
+                f"Key {name} is invalid due to being an invalid python variable name"
+            )
 
         if name in self.attr_keys:
             raise ValueError(f"Key {name} already exists as an input handler.")
