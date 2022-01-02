@@ -94,16 +94,7 @@ def index_sparse_matrix_by_indices(
     if C is None:
         C = copy.deepcopy(R)
     assert R.ndim == 1 and C.ndim == 1, "Rows and cols must be vectors"
-    rows = R.size
-    cols = C.size
-    size = rows * cols
-    RR = []
-    CC = []
-    for row in range(rows):
-        for col in range(cols):
-            RR.append(R[row])
-            CC.append(C[col])
-    return X[RR, CC].reshape(rows, cols)
+    return X[np.ix_(R, C)]
 
 
 @nb.njit

@@ -244,6 +244,8 @@ class Visualizer(object):
         shape_capture = self.windows["Shape Capture"]
 
         def sim_params_menu_load_button_cb():
+            self.simulation_environment.loaded = False
+            self.sim_parameter_state["current_timestep"] = 0
             threading.Thread(
                 target=self.simulation_environment.load, args=(self.mesh,)
             ).start()
@@ -254,7 +256,8 @@ class Visualizer(object):
         def timestep_changed_cb(t):
             if len(self.simulation_environment.displacements) == 0:
                 return
-            self.mesh.transform(self.simulation_environment.displacements[t])
+            if self.simulation_environment.loaded:
+                self.mesh.transform(self.simulation_environment.displacements[t])
 
         def generate_geometry_cb(radius: float, thickness: float):
             scalar_field = gyroid(radius, 50)
