@@ -1,6 +1,7 @@
 from typing import Callable, List
 
 import imgui
+
 from femflow.utils.filesystem import file_dialog
 
 from ..mesh import Mesh
@@ -47,19 +48,34 @@ class SimulationConfigMenu(VisualizerMenu):
     def __init__(self, name="Sim Config", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN):
         super().__init__(name, flags)
         self._register_input("n_timesteps", 100)
+        self._register_input("simulation_type", "dynamic")
 
     def render(self, **kwargs) -> None:
         sim_status = self._unpack_kwarg("sim_status", bool, **kwargs)
         self.expanded = sim_status
-        imgui.text("Timestamps")
-        self._generate_imgui_input("n_timesteps", imgui.input_int, step=50)
+        imgui.text("Simulation Type")
+        self._generate_imgui_input(
+            "simulation_type", imgui.listbox, items=["dynamic", "static"]
+        )
 
-        if imgui.button(label="Start Sim"):
-            start_sim_button_cb: Callable = self._unpack_kwarg(
-                "start_sim_button_cb", callable, **kwargs
-            )
-            start_sim_button_cb()
+        if self.simulation_type == "dynamic":
+            imgui.text("Timestamps")
+            self._generate_imgui_input("n_timesteps", imgui.input_int, step=50)
+
+        if self.simulation_type == "dynamic":
+            if imgui.button(label="Start Sim"):
+                start_sim_button_cb: Callable = self._unpack_kwarg(
+                    "start_sim_button_cb", callable, **kwargs
+                )
+                start_sim_button_cb()
+
+        if self.simulation_type == "static":
+            if imgui.button(label="Start Sim"):
+                static_sim_button_cb: Callable = self._unpack_kwarg(
+                    "static_sim_button_cb", callable, **kwargs
+                )
         imgui.same_line()  # Maybe we can parameterize the layouts at some point.
+
         if imgui.button(label="Reset Sim"):
             reset_sim_button_cb: Callable = self._unpack_kwarg(
                 "reset_sim_button_cb", callable, **kwargs

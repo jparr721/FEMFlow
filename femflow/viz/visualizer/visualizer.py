@@ -169,6 +169,14 @@ class Visualizer(object):
             args=(self.mesh, self.sim_parameter_state["n_timesteps"]),
         ).start()
 
+    def run_static_simulation(self):
+        if self.simulation_environment is None:
+            logger.error("Sim environment is empty, cannot start sim")
+            return
+
+        logger.info("Running static form")
+        threading.Thread(target=self.simulation_environment.solve_static).start()
+
     def reset_simulation(self):
         if self.simulation_environment is None:
             logger.error("Sim environment is empty, cannot reset sim")
@@ -250,6 +258,9 @@ class Visualizer(object):
                 target=self.simulation_environment.load, args=(self.mesh,)
             ).start()
 
+        def static_sim_button_cb():
+            pass
+
         def sim_params_menu_sim_environment_menu_cb():
             self.simulation_environment.menu()
 
@@ -266,6 +277,7 @@ class Visualizer(object):
             scalar_field.padding(1)
             scalar_field.padding(2)
             self.mesh.reload_from_surface(*scalar_field.tomesh(thickness))
+            logger.info("Created gyroid, tetrahedralizing")
             self.mesh.tetrahedralize()
 
         logs()

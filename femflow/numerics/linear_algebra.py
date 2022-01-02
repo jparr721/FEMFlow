@@ -26,7 +26,7 @@ def midpoint(a: np.ndarray, b: np.ndarray) -> float:
     return np.median((a, b), axis=1)
 
 
-def angle_axis(angle, axis):
+def angle_axis(angle: float, axis: np.ndarray):
     return expm(np.cross(np.eye(3), normalized(axis) * angle))
 
 
@@ -65,7 +65,7 @@ def sparse(
     return csr_matrix((v, (i, j)), shape=(m, n))
 
 
-def fast_diagonal_inverse(mat: np.ndarray):
+def fast_diagonal_inverse(mat: csr_matrix):
     """Computes the fast diagonal inverse of a diagonal matrix.
 
     Args:

@@ -1,13 +1,13 @@
 from typing import List, Tuple
 
 import numpy as np
-from loguru import logger
+from jax import grad
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 
-from femflow.numerics.geometry import index_sparse_matrix_by_indices, tet_volume
+from femflow.numerics.geometry import (index_sparse_matrix_by_indices,
+                                       tet_volume)
 from femflow.numerics.linear_algebra import sparse
-from femflow.utils.physical_units import numpy_bytes_human_readable
 
 from .boundary_conditions import BoundaryConditions
 
@@ -36,7 +36,6 @@ class LinearGalerkinNonDynamic(object):
             v.reshape((v.shape[0] // 3, 3)), t.reshape((t.shape[0] // 4, 4))
         )
         K = self.assemble_global_stiffness_matrix(ke, self.n_vertices)
-        logger.debug(f"K takes up {numpy_bytes_human_readable(K)}")
         self.assemble_boundary_forces(K)
 
     def solve(self):

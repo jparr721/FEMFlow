@@ -2,18 +2,23 @@ from collections import defaultdict
 
 import imgui
 import numpy as np
-from femflow.solvers.fea import linear_galerkin_nondynamic
-from femflow.solvers.fea.boundary_conditions import (
-    basic_dirilecht_boundary_conditions, top_bottom_plate_dirilect_conditions)
-from femflow.solvers.integrators.explicit_central_difference_method import \
-    ExplicitCentralDifferenceMethod
-from femflow.solvers.material import (
-    hookes_law_isotropic_constitutive_matrix,
-    hookes_law_orthotropic_constitutive_matrix)
-from femflow.viz.mesh import Mesh
 from loguru import logger
 from scipy.sparse import identity
 from tqdm import tqdm
+
+from femflow.solvers.fea import linear_galerkin_nondynamic
+from femflow.solvers.fea.boundary_conditions import (
+    basic_dirilecht_boundary_conditions,
+    top_bottom_plate_dirilect_conditions,
+)
+from femflow.solvers.integrators.explicit_central_difference_method import (
+    ExplicitCentralDifferenceMethod,
+)
+from femflow.solvers.material import (
+    hookes_law_isotropic_constitutive_matrix,
+    hookes_law_orthotropic_constitutive_matrix,
+)
+from femflow.viz.mesh import Mesh
 
 from .environment import Environment
 
@@ -40,7 +45,9 @@ class LinearFemSimulation(Environment):
     def load(self, mesh: Mesh):
         logger.info("Loading simulation with saved parameters")
 
-        force_nodes, interior_nodes, _ = top_bottom_plate_dirilect_conditions(mesh.as_matrix(mesh.vertices, 3))
+        force_nodes, interior_nodes, _ = top_bottom_plate_dirilect_conditions(
+            mesh.as_matrix(mesh.vertices, 3)
+        )
 
         try:
             self.boundary_conditions = basic_dirilecht_boundary_conditions(
@@ -72,7 +79,9 @@ class LinearFemSimulation(Environment):
                     values = map(float, E_vals)
                     youngs_modulus = np.array(E_vals)
                 else:
-                    logger.error("Invalid number of younds modulus' provided for orthotropic material")
+                    logger.error(
+                        "Invalid number of younds modulus' provided for orthotropic material"
+                    )
                     return
 
                 v_vals = poissons_ratio.split(",")
@@ -86,7 +95,9 @@ class LinearFemSimulation(Environment):
                     values = map(float, v_vals)
                     poissons_ratio = np.array(values)
                 else:
-                    logger.error("Invalid number of poissons ratios provided for orthotropic material")
+                    logger.error(
+                        "Invalid number of poissons ratios provided for orthotropic material"
+                    )
                     return
 
                 G_vals = shear_modulus.split(",")
@@ -97,7 +108,9 @@ class LinearFemSimulation(Environment):
                     value = map(float, G_vals)
                     shear_modulus = np.array(G_vals)
                 else:
-                    logger.error("Invalid number of shear moduli provided for orthotropic material")
+                    logger.error(
+                        "Invalid number of shear moduli provided for orthotropic material"
+                    )
             except Exception as e:
                 logger.error(
                     "Failed to parse youngs modulus, poissions ratio, and shear modulus for orthhotropic material"
@@ -121,7 +134,9 @@ class LinearFemSimulation(Environment):
                     np.array((float(youngs_modulus), float(poissons_ratio)))
                 )
             except Exception as e:
-                logger.error("Failed to parse youngs modulus and poissions ratio for isotropic material")
+                logger.error(
+                    "Failed to parse youngs modulus and poissions ratio for isotropic material"
+                )
                 logger.error(f"Stack trace was: {repr(e)}")
                 return
 
@@ -149,7 +164,9 @@ class LinearFemSimulation(Environment):
             _, self.rayleigh_mu = imgui.input_double("##mu", self.rayleigh_mu)
 
         imgui.text("Material Type")
-        _, self.material_type = imgui.listbox("##Material Type", self.material_type, ["isotropic", "orthotropic"])
+        _, self.material_type = imgui.listbox(
+            "##Material Type", self.material_type, ["isotropic", "orthotropic"]
+        )
 
         imgui.text("E")
         _, self.youngs_modulus = imgui.input_text("##E", self.youngs_modulus, 512)
@@ -162,12 +179,20 @@ class LinearFemSimulation(Environment):
         if self.material_type == 0:
             self.material_coefficients = (self.youngs_modulus, self.poissons_ratio)
         else:
-            self.material_coefficients = (self.youngs_modulus, self.poissons_ratio, self.shear_modulus)
+            self.material_coefficients = (
+                self.youngs_modulus,
+                self.poissons_ratio,
+                self.shear_modulus,
+            )
 
     def reset(self, mesh: Mesh):
         self.solver = linear_galerkin_nondynamic.LinearGalerkinNonDynamic(
-            self.boundary_conditions, self.constitutive_matrix, mesh.vertices, mesh.tetrahedra
+            self.boundary_conditions,
+            self.constitutive_matrix,
+            mesh.vertices,
+            mesh.tetrahedra,
         )
+        logger.success("Solver created")
 
         mass_matrix = identity(self.solver.K_e.shape[0], format="csr") * self.mass
         self.cd_integrator = ExplicitCentralDifferenceMethod(
@@ -179,11 +204,18 @@ class LinearFemSimulation(Environment):
             rayleigh_lambda=self.rayleigh_lambda,
             rayleigh_mu=self.rayleigh_mu,
         )
+        logger.success("Integrator created")
         self.displacements = [self.solver.U]
 
     def simulate(self, mesh: Mesh, timesteps: int):
         for _ in tqdm(range(timesteps)):
-            self.solver.U_e = self.cd_integrator.integrate(self.solver.F_e, self.solver.U_e)
+            self.solver.U_e = self.cd_integrator.integrate(
+                self.solver.F_e, self.solver.U_e
+            )
             self.solver.solve()
             self.displacements.append(self.solver.U)
+        logger.success("Simulation is done")
+
+    def solve_static(self):
+        self.solver.solve_static()
         logger.success("Simulation is done")

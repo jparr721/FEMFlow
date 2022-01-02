@@ -4,9 +4,10 @@ from typing import List, Tuple
 
 import cv2
 import numpy as np
+from loguru import logger
+
 from femflow.numerics.linear_algebra import distance
 from femflow.video.video_stream import VideoStream
-from loguru import logger
 
 from .calibration import calibrate_hsv
 
@@ -15,10 +16,16 @@ class BehaviorMatching(object):
     def __init__(self):
         self.HSV_CALIBRATION_KEY = "HSVCalibration"
 
-        self.reconstruction_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reconstruction.ini")
+        self.reconstruction_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "reconstruction.ini"
+        )
         self.reconstruction_config = configparser.ConfigParser()
-        self.mask_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "masks")
-        self.texture_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "textures")
+        self.mask_directory = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "masks"
+        )
+        self.texture_directory = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "textures"
+        )
 
         if os.path.exists(self.reconstruction_file):
             try:
@@ -63,14 +70,20 @@ class BehaviorMatching(object):
     @property
     def void_radius(self):
         if not self.radius_convergence_reached:
-            return float(np.average(self._void_radii) if len(self._void_radii) != 0 else 0)
+            return float(
+                np.average(self._void_radii) if len(self._void_radii) != 0 else 0
+            )
         else:
             return float(self._last_radius)
 
     @property
     def beam_thickness(self):
         if not self.thickness_convergence_reached:
-            return float(np.average(self._beam_thicknesses) if len(self._beam_thicknesses) != 0 else 0)
+            return float(
+                np.average(self._beam_thicknesses)
+                if len(self._beam_thicknesses) != 0
+                else 0
+            )
         else:
             return float(self._last_thickness)
 
@@ -92,7 +105,9 @@ class BehaviorMatching(object):
 
     def transform_frame(self, frame: np.ndarray) -> np.ndarray:
         if self.HSV_CALIBRATION_KEY not in self.reconstruction_config:
-            logger.warning(f"Config Option: {self.HSV_CALIBRATION_KEY} not found, starting calibration.")
+            logger.warning(
+                f"Config Option: {self.HSV_CALIBRATION_KEY} not found, starting calibration."
+            )
             self.calibrate()
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -104,7 +119,9 @@ class BehaviorMatching(object):
         mask_three_channel = cv2.cvtColor(self.mask, cv2.COLOR_GRAY2BGR)
 
         frameray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-        contours, _ = cv2.findContours(frameray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            frameray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         if len(contours) > 0:
             contour = max(contours, key=cv2.contourArea)
@@ -114,7 +131,14 @@ class BehaviorMatching(object):
             cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
 
         circles = cv2.HoughCircles(
-            self.mask, cv2.HOUGH_GRADIENT, 1, 1, param1=100, param2=25, minRadius=0, maxRadius=100
+            self.mask,
+            cv2.HOUGH_GRADIENT,
+            1,
+            1,
+            param1=100,
+            param2=25,
+            minRadius=0,
+            maxRadius=100,
         )
 
         if circles is not None:
@@ -174,7 +198,5 @@ class BehaviorMatching(object):
                             continue
                         lcircle = np.array([x1, y1])
                         rcircle = np.array([x2, y2])
-
-                        dist = distance(lcircle, rcircle)
-                        self._beam_thicknesses.append(dist)
+                        self._beam_thicknesses.append(int(distance(lcircle, rcircle)))
 

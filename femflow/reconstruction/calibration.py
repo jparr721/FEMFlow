@@ -5,7 +5,9 @@ import cv2
 import numpy as np
 from loguru import logger
 
-HSVCalibration = namedtuple("HSVCalibration", ["h_min", "s_min", "v_min", "h_max", "s_max", "v_max"])
+HSVCalibration = namedtuple(
+    "HSVCalibration", ["h_min", "s_min", "v_min", "h_max", "s_max", "v_max"]
+)
 MASKS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "masks")
 TEXTURES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "textures")
 
@@ -64,7 +66,9 @@ def calibrate_hsv() -> HSVCalibration:
             | (pv_max != v_max)
         ):
             logger.info("New Values")
-            logger.info(f"h_min {h_min} s_min {s_min} v_min {v_min} h_max {h_max} s_max {s_max} v_max {v_max}")
+            logger.info(
+                f"h_min {h_min} s_min {s_min} v_min {v_min} h_max {h_max} s_max {s_max} v_max {v_max}"
+            )
             ph_min = h_min
             ps_min = s_min
             pv_min = v_min
@@ -127,7 +131,9 @@ def calibrate_bb():
         res = cv2.bitwise_and(img, img, mask=mask)
 
         imgray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-        contours, hierarchy = cv2.findContours(imgray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(
+            imgray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         if len(contours) > 0:
             contour = max(contours, key=cv2.contourArea)
