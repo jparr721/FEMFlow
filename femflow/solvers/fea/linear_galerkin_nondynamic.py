@@ -1,12 +1,10 @@
 from typing import List, Tuple
 
 import numpy as np
-from jax import grad
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 
-from femflow.numerics.geometry import (index_sparse_matrix_by_indices,
-                                       tet_volume)
+from femflow.numerics.geometry import index_sparse_matrix_by_indices, tet_volume
 from femflow.numerics.linear_algebra import sparse
 
 from .boundary_conditions import BoundaryConditions

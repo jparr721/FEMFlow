@@ -223,7 +223,7 @@ class Visualizer(object):
 
         # Simulation
         sim = self.windows["Simulation"]
-        height = self.window_height * 0.12 if self.window_height >= 800 else 130
+        height = 150
         menu_window_width, _ = menu.dimensions
         width = self.window_width - menu_window_width
         sim.dimensions = (width - menu.dimensions[0], height)
@@ -259,7 +259,8 @@ class Visualizer(object):
             ).start()
 
         def static_sim_button_cb():
-            pass
+            menu.menus["Sim Params"].submenus["Sim Config"].n_timesteps = 1
+            self.run_static_simulation()
 
         def sim_params_menu_sim_environment_menu_cb():
             self.simulation_environment.menu()
@@ -290,6 +291,7 @@ class Visualizer(object):
             start_sim_button_cb=self.start_simulation,
             reset_sim_button_cb=self.reset_simulation,
             calibrate_button_cb=self.behavior_matching.calibrate,
+            static_sim_button_cb=static_sim_button_cb,
         )
         sim(
             sim_status=len(self.simulation_environment.displacements) > 1,

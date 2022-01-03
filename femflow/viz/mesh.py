@@ -63,7 +63,7 @@ class Mesh(object):
         self.world_coordinates = copy.deepcopy(self.vertices)
 
         if self.textures.size == 0 and self.colors.size == 0:
-            self._set_random_color()
+            self._set_default_color()
 
     def save(self, filename: str) -> bool:
         """Saves this mesh to an obj file
@@ -159,7 +159,7 @@ class Mesh(object):
         self.faces = mesh.faces.copy()
         self.tetrahedra = np.array([])
         self.normals = self.as_vector(per_face_normals(v, f))
-        self._set_random_color()
+        self._set_default_color()
 
     def reload_from_file(self, filename: str) -> None:
         mesh = Mesh.from_file(filename)
@@ -184,11 +184,9 @@ class Mesh(object):
         self.vertices = self.as_vector(v)
         self.faces = self.as_vector(f)
         self.tetrahedra = self.as_vector(t)
-        self.normals = self.as_vector(per_face_normals(v, f))
+        self.normals = -self.as_vector(per_face_normals(v, f))
         # TODO(@jparr721) Change this later
-        self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(
-            np.float32
-        )
+        self._set_default_color()
         self.world_coordinates = copy.deepcopy(self.vertices)
         logger.info(f"Random Color: {self.colors[:3]}")
 
@@ -205,8 +203,9 @@ class Mesh(object):
         else:
             return array.reshape((array.shape[0] // cols, cols))
 
-    def _set_random_color(self):
-        self.colors = np.tile(np.random.rand(3), len(self.vertices.data) // 3).astype(
-            np.float32
-        )
+    def _set_default_color(self):
+        color = np.array((51.0 / 255.0, 43.0 / 255.0, 33.3 / 255.0))
+        color = np.array((255.0 / 255.0, 228.0 / 255.0, 58.0 / 255.0))
+        color = np.array((255.0 / 255.0, 235.0 / 255.0, 80.0 / 255.0))
+        self.colors = np.tile(color, len(self.vertices.data) // 3).astype(np.float32)
         logger.info(f"Random Color: {self.colors[:3]}")

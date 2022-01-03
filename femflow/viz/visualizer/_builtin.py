@@ -74,6 +74,7 @@ class SimulationConfigMenu(VisualizerMenu):
                 static_sim_button_cb: Callable = self._unpack_kwarg(
                     "static_sim_button_cb", callable, **kwargs
                 )
+                static_sim_button_cb()
         imgui.same_line()
 
         if imgui.button(label="Reset Sim"):
@@ -133,13 +134,19 @@ class MenuWindow(VisualizerWindow):
 
     def render(self, **kwargs) -> None:
         self.menu_window_focused = imgui.is_window_focused()
+
+        mesh: Mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
+
+        imgui.text("Current Mesh Stats")
+        imgui.text(f"Vertices: {mesh.vertices.size}")
+        imgui.text(f"Faces: {mesh.vertices.size}")
+        imgui.text(f"Tetrahedra: {mesh.tetrahedra.size}")
+
         if imgui.button(label="Load Mesh"):
-            mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
             filename = file_dialog.file_dialog_open()
             mesh.reload_from_file(filename)
         imgui.same_line()
         if imgui.button(label="Save Mesh"):
-            mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
             file_dialog.file_dialog_save_mesh(mesh)
 
 
