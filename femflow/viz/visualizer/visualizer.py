@@ -27,6 +27,7 @@ from ._builtin import (
     SimParametersMenu,
     SimulationConfigMenu,
     SimulationWindow,
+    ShapeCaptureExperimentMenu,
 )
 from .visualizer_window import VisualizerWindow
 
@@ -230,9 +231,11 @@ class Visualizer(object):
         sim.position = (menu_window_width, 0)
 
         # Shape Capture
+        shape_capture_experiment = ShapeCaptureExperimentMenu()
         shape_capture = self.windows["Shape Capture"]
         shape_capture.dimensions = copy.deepcopy(menu.dimensions)
         shape_capture.position = (self.window_width - menu.dimensions[0], 0)
+        shape_capture.add_menu(shape_capture_experiment)
 
     def _init_builtins(self):
         self._resize_windows()
@@ -306,6 +309,12 @@ class Visualizer(object):
                 radius=self.behavior_matching.void_radius,
                 thickness=self.behavior_matching.beam_thickness,
                 generate_geometry_cb=generate_geometry_cb,
+                set_initial_height_cb=self.behavior_matching.set_starting_calibrated_rectangle_height,
+                set_ending_height_cb=self.behavior_matching.set_ending_calibrated_rectangle_height,
+                strain_pct=self.behavior_matching.strain_pct,
+                compute_coefficients_cb=lambda x: print("Prescribed load: ", x),
+                initial_height=self.behavior_matching.starting_calibrated_rectangle_height,
+                ending_height=self.behavior_matching.ending_calibrated_rectangle_height,
             )
         else:
             self.behavior_matching.stop_matching()

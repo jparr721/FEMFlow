@@ -1,6 +1,7 @@
 import configparser
 import os
 from typing import List, Tuple
+import copy
 
 import cv2
 import numpy as np
@@ -51,6 +52,10 @@ class BehaviorMatching(object):
         self._last_radius_patience_threshold = 0
         self._last_thickness_patience_threshold = 0
 
+        self.starting_calibrated_rectangle_height: int = 0
+        self.ending_calibrated_rectangle_height: int = 0
+        self.current_rectangle_height: int = 0
+
         self.first_frame = True
 
     @property
@@ -86,6 +91,25 @@ class BehaviorMatching(object):
             )
         else:
             return float(self._last_thickness)
+
+    @property
+    def strain_pct(self) -> float:
+        if self.starting_calibrated_rectangle_height > 0.0:
+            return 100 - (
+                (
+                    self.ending_calibrated_rectangle_height
+                    / self.starting_calibrated_rectangle_height
+                )
+                * 100
+            )
+        else:
+            return 0.0
+
+    def set_starting_calibrated_rectangle_height(self):
+        self.starting_calibrated_rectangle_height = self.current_rectangle_height
+
+    def set_ending_calibrated_rectangle_height(self):
+        self.ending_calibrated_rectangle_height = self.current_rectangle_height
 
     def save_frame(self):
         pass
@@ -127,6 +151,9 @@ class BehaviorMatching(object):
             contour = max(contours, key=cv2.contourArea)
             # for cnt in contours:
             x, y, w, h = cv2.boundingRect(contour)
+
+            self.current_rectangle_height = h
+
             cv2.rectangle(frame, (x, y), (x + w, y + h), [255, 0, 0], 2)
             cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
 

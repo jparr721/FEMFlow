@@ -1,5 +1,7 @@
 import os
 from collections import namedtuple
+import configparser
+from typing import Union
 
 import cv2
 import numpy as np
@@ -8,11 +10,34 @@ from loguru import logger
 HSVCalibration = namedtuple(
     "HSVCalibration", ["h_min", "s_min", "v_min", "h_max", "s_max", "v_max"]
 )
+HSV_CALIBRATION_KEY = "HSVCalibration"
 MASKS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "masks")
 TEXTURES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "textures")
 
 
+def read_calibration_file(filename: str) -> configparser.ConfigParser:
+    config = configparser.ConfigParser()
+    config.read_file(open(filename))
+    return config
+
+
+def write_calibration_file(
+    key: str,
+    filename: str,
+    config: configparser.ConfigParser,
+    calibration: HSVCalibration,
+):
+    config[key] = dict(calibration._asdict())
+    with open(filename, "w+") as f:
+        config.write(f)
+
+
 def calibrate_hsv() -> HSVCalibration:
+    reconstruction_file = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "reconstruction.ini"
+    )
+    logger.info("When you're done calibrating, press q to save and quit")
+
     cap = cv2.VideoCapture(0)
 
     # Create a window
@@ -38,6 +63,8 @@ def calibrate_hsv() -> HSVCalibration:
 
     while True:
         _, image = cap.read()
+        if image is None:
+            continue
 
         # Get current positions of all trackbars
         h_min = cv2.getTrackbarPos("h_min", "Calibration")
@@ -65,10 +92,6 @@ def calibrate_hsv() -> HSVCalibration:
             | (ps_max != s_max)
             | (pv_max != v_max)
         ):
-            logger.info("New Values")
-            logger.info(
-                f"h_min {h_min} s_min {s_min} v_min {v_min} h_max {h_max} s_max {s_max} v_max {v_max}"
-            )
             ph_min = h_min
             ps_min = s_min
             pv_min = v_min
@@ -82,7 +105,11 @@ def calibrate_hsv() -> HSVCalibration:
             break
 
     cv2.destroyAllWindows()
-    return HSVCalibration(h_min, s_min, v_min, h_max, s_max, v_max)
+
+    calibration = HSVCalibration(h_min, s_min, v_min, h_max, s_max, v_max)
+    config = read_calibration_file(reconstruction_file)
+    write_calibration_file(HSV_CALIBRATION_KEY, reconstruction_file, config, calibration)
+    logger.success("Calibration has been saved")
 
 
 def calibrate_mask():

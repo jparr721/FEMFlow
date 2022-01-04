@@ -7,7 +7,7 @@ from typing_extensions import Protocol
 
 
 class TransformationFn(Protocol):
-    def __call__(self, a: np.ndarray) -> np.ndarray:
+    def __call__(self, frame: np.ndarray) -> np.ndarray:
         ...
 
 

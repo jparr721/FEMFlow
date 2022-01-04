@@ -17,6 +17,54 @@ _IMGUIFLAGS_NOCLOSE_NOMOVE_NORESIZE = [
 _IMGUIFLAGS_TREENODE_OPEN = [imgui.TREE_NODE_DEFAULT_OPEN]
 
 
+class ShapeCaptureExperimentMenu(VisualizerMenu):
+    def __init__(self, name="Experiment", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN):
+        super().__init__(name, flags)
+        self._register_input("size_mm", 0)
+        self._register_input("prescribed_load_g", 0)
+        self.initial_height_set = False
+        self.ending_height_set = False
+
+    def render(self, **kwargs) -> None:
+        imgui.text("Size (mm)")
+        self._generate_imgui_input("size_mm", imgui.input_float, step=1)
+
+        if imgui.button(label="Set Initial Height"):
+            set_initial_height_cb = self._unpack_kwarg(
+                "set_initial_height_cb", callable, **kwargs
+            )
+            set_initial_height_cb()
+            self.initial_height_set = True
+
+        if self.initial_height_set:
+            initial_height = self._unpack_kwarg("initial_height", int, **kwargs)
+            imgui.text(f"Initial Height {initial_height}px")
+            strain_pct = self._unpack_kwarg("strain_pct", float, **kwargs)
+            imgui.text(f"Strain: {strain_pct:.2f}%")
+
+            if imgui.button(label="Set Ending Height"):
+                set_ending_height_cb = self._unpack_kwarg(
+                    "set_ending_height_cb", callable, **kwargs
+                )
+                set_ending_height_cb()
+                self.ending_height_set = True
+
+        if self.ending_height_set:
+            ending_height = self._unpack_kwarg("ending_height", int, **kwargs)
+            imgui.text(f"Ending Height {ending_height}px")
+
+            imgui.text("Prescribed Load (g)")
+            self._generate_imgui_input("prescribed_load_g", imgui.input_float, step=1)
+
+            if imgui.button(label="Compute Coefficients"):
+                compute_coefficients_cb = self._unpack_kwarg(
+                    "compute_coefficients_cb", callable, **kwargs
+                )
+                compute_coefficients_cb(self.prescribed_load_g)
+
+        # Maybe add a save function here.
+
+
 class ShapeCaptureConfigMenu(VisualizerMenu):
     def __init__(
         self, name="Shape Matching", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN
@@ -238,3 +286,4 @@ class ShapeCaptureWindow(VisualizerWindow):
                 )
                 generate_geometry_cb(self.radius, self.thickness)
             imgui.pop_item_width()
+

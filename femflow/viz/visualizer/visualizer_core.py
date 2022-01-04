@@ -1,6 +1,7 @@
 import abc
 import re
 from typing import Any, Callable
+import threading
 
 
 class VisualizerCore(abc.ABC):
@@ -15,7 +16,7 @@ class VisualizerCore(abc.ABC):
         kws = [f"{key}={value!r}" for key, value in self.__dict__.items()]
         return f"{type(self).__name__}({', '.join(kws)})"
 
-    def _unpack_kwarg(self, key: str, type, **kwargs) -> Any:
+    def _unpack_kwarg(self, key: str, type: Any, **kwargs) -> Any:
         if key not in kwargs:
             raise KeyError(
                 f"Key {key} with type {type.__name__} is an expected paramter for class {self.__class__.__name__}"
@@ -26,6 +27,7 @@ class VisualizerCore(abc.ABC):
                 raise TypeError(
                     f"Expected key '{key}' to be a callable, but got {type(kwargs[key])} instead."
                 )
+            # return threading.Thread(target=kwargs[key])
         else:
             if not isinstance(kwargs[key], type):
                 raise TypeError(
