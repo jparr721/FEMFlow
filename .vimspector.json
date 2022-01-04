@@ -1,0 +1,66 @@
+{
+  "$schema": "https://puremourning.github.io/vimspector/schema/vimspector.schema.json",
+  "adapters": {
+    "run_with_debugpy": {
+      "command": [ "${workspaceRoot}/run_with_debugpy" ],
+      "port": 9876,
+      "env": {
+        "DEBUG_PORT": "9876"
+      }
+    },
+    "python-remote-docker": {
+      "variables": {
+        "port": "8765"
+      },
+      "port": "${port}",
+      "launch": {
+        "remote": {
+          "container": "${ContainerID}",
+          "runCommand": [
+            "python3", "-m", "debugpy", "--listen", "0.0.0.0:${port}",
+                                        "--wait-for-client",
+                                        "%CMD%"
+          ]
+        },
+        "delay": "5000m"
+      }
+    },
+    "python-remote-ssh": {
+      "extends": "python-remote-docker",
+      "host": "${host}",
+      "launch": {
+        "remote": {
+          "!container": "REMOVE",
+          "!delay": "REMOVE",
+
+          "!!test": "This is a !test",
+
+          "host": "${host}",
+          "account": "${account}"
+        }
+      }
+    }
+  },
+  "configurations": {
+    "run - main.py": {
+      "adapter": "debugpy",
+      "configuration": {
+        "request": "launch",
+        "type": "python",
+        "cwd": "${workspaceRoot}",
+        "program": "${workspaceRoot}/main.py",
+        "python": "/home/nightmare/anaconda3/envs/femflow/bin/python3",
+        "stopOnEntry": false,
+        "console": "integratedTerminal",
+        "args": ["visualize"]
+      },
+      "breakpoints": {
+        "exception": {
+          "raised": "N",
+          "uncaught": "",
+          "userUnhandled": ""
+        }
+      }
+    }
+  }
+}

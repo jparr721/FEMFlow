@@ -12,6 +12,7 @@ from OpenGL.GL import *
 from femflow.meshing.implicit import gyroid
 from femflow.numerics.bintensor3 import bintensor3
 from femflow.reconstruction.behavior_matching import BehaviorMatching
+from femflow.simulation.galerkin_optimizer import GalerkinOptimizer
 
 from .. import models
 from ..camera import Camera
@@ -274,8 +275,8 @@ class Visualizer(object):
             if self.simulation_environment.loaded:
                 self.mesh.transform(self.simulation_environment.displacements[t])
 
-        def generate_geometry_cb(radius: float, thickness: float):
-            scalar_field = gyroid(radius, 50)
+        def generate_geometry_cb(radius: float, thickness: float, size: int):
+            scalar_field = gyroid(radius, size)
             scalar_field = bintensor3(scalar_field)
             scalar_field.padding(0)
             scalar_field.padding(1)
@@ -283,6 +284,11 @@ class Visualizer(object):
             self.mesh.reload_from_surface(*scalar_field.tomesh(thickness))
             logger.info("Created gyroid, tetrahedralizing")
             self.mesh.tetrahedralize()
+
+        def compute_coefficients_cb(load: float, strain_pct: float, height: int):
+            target_height = (100 - strain_pct) * height
+            galerkin_optimizer = GalerkinOptimizer(self.mesh, -load, target_height)
+            galerkin_optimizer.train()
 
         logs()
         menu(
@@ -311,7 +317,7 @@ class Visualizer(object):
                 set_initial_height_cb=self.behavior_matching.set_starting_calibrated_rectangle_height,
                 set_ending_height_cb=self.behavior_matching.set_ending_calibrated_rectangle_height,
                 strain_pct=self.behavior_matching.strain_pct,
-                compute_coefficients_cb=lambda x: print(f"Prescribed load: {x}g"),
+                compute_coefficients_cb=compute_coefficients_cb,
                 initial_height=self.behavior_matching.starting_calibrated_rectangle_height,
                 ending_height=self.behavior_matching.ending_calibrated_rectangle_height,
             )

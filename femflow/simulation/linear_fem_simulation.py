@@ -209,23 +209,19 @@ class LinearFemSimulationHeadless(object):
         self.solver = LinearGalerkinNonDynamic(
             boundary_conditions, constitutive_matrix, mesh.vertices, mesh.tetrahedra
         )
-        logger.success("Solver created")
 
         mass_matrix = identity(self.solver.K_e.shape[0], format="csr") * self.mass
         self.integrator = ExplicitCentralDifferenceMethod(
             self.dt, mass_matrix, self.solver.K_e, self.solver.U_e, self.solver.F_e
         )
-        logger.success("Integrator creaed")
 
     def solve_dynamic(self, timesteps: int):
         for _ in tqdm(range(timesteps)):
             self.solver.U_e = self.integrator.integrate(self.solver.F_e, self.solver.U_e)
             self.solver.solve()
             self.displacements.append(self.solver.U)
-        logger.success("Simulation is done")
 
     def solve_static(self):
         self.solver.solve_static()
         self.displacements.append(self.solver.U)
-        logger.success("Simulation is done")
 

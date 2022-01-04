@@ -35,12 +35,15 @@ class GalerkinOptimizer(object):
         simulation.solve_static()
         mesh_clone.transform(simulation.solver.U)
         # Average the force-applied nodes (top)
-        force_nodes = map(
-            lambda x: x[1],
-            mesh_clone.as_matrix(mesh_clone.vertices, 3)[simulation.force_nodes],
+        force_nodes = list(
+            map(
+                lambda x: x[1],
+                mesh_clone.as_matrix(mesh_clone.vertices, 3)[simulation.force_nodes],
+            )
         )
         # The displacement calculation, no activation fn
-        return np.average(force_nodes)
+        avg = np.average(force_nodes)
+        return avg
 
     def train(self):
         initial_prediction = self.predict()
@@ -49,9 +52,15 @@ class GalerkinOptimizer(object):
 
         gradient_loss_fn = grad(self.loss)
 
+        progressbar = tqdm(range(self.epochs))
         for _ in tqdm(range(self.epochs)):
             displacement = self.predict()
+            progressbar.set_postfix(
+                {"loss": self.loss(displacement), "E": self.youngs_modulus}
+            )
             self.youngs_modulus -= gradient_loss_fn(displacement) * self.learning_rate
+
+        logger.success(f"Optimum value of E has been saved.")
 
     def loss(self, sample: float) -> np.float32:
         """Standard mean squared error loss function. This function

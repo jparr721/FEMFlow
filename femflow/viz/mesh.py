@@ -190,7 +190,6 @@ class Mesh(object):
         self.normals = -self.as_vector(per_face_normals(v, f))
         self._set_default_color()
         self.world_coordinates = copy.deepcopy(self.vertices)
-        logger.info(f"Random Color: {self.colors[:3]}")
 
     def as_vector(self, array: np.ndarray) -> np.ndarray:
         assert array.ndim < 3, "Must be at most 2D"
@@ -210,4 +209,3 @@ class Mesh(object):
         color = np.array((255.0 / 255.0, 228.0 / 255.0, 58.0 / 255.0))
         color = np.array((255.0 / 255.0, 235.0 / 255.0, 80.0 / 255.0))
         self.colors = np.tile(color, len(self.vertices.data) // 3).astype(np.float32)
-        logger.info(f"Random Color: {self.colors[:3]}")

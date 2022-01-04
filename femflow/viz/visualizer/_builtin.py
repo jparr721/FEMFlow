@@ -1,4 +1,5 @@
 from typing import Callable, List
+import threading
 
 import imgui
 
@@ -27,7 +28,7 @@ class ShapeCaptureExperimentMenu(VisualizerMenu):
 
     def render(self, **kwargs) -> None:
         imgui.text("Size (mm)")
-        self._generate_imgui_input("size_mm", imgui.input_float, step=1)
+        self._generate_imgui_input("size_mm", imgui.input_int, step=1)
 
         if imgui.button(label="Set Initial Height"):
             set_initial_height_cb = self._unpack_kwarg(
@@ -60,7 +61,8 @@ class ShapeCaptureExperimentMenu(VisualizerMenu):
                 compute_coefficients_cb = self._unpack_kwarg(
                     "compute_coefficients_cb", callable, **kwargs
                 )
-                compute_coefficients_cb(self.prescribed_load_g)
+                strain_pct = self._unpack_kwarg("strain_pct", float, **kwargs)
+                compute_coefficients_cb(self.prescribed_load_g, strain_pct, self.size_mm)
 
         # Maybe add a save function here.
 
@@ -264,10 +266,18 @@ class ShapeCaptureWindow(VisualizerWindow):
 
         if self.radius_converged and self.thickness_converged:
             imgui.push_item_width(-1)
-            if imgui.button("Generate Geometry"):
-                generate_geometry_cb = self._unpack_kwarg(
-                    "generate_geometry_cb", callable, **kwargs
-                )
-                generate_geometry_cb(self.radius, self.thickness)
+            if self.menus["Experiment"].size_mm > 0:
+                if imgui.button("Generate Geometry"):
+                    generate_geometry_cb = self._unpack_kwarg(
+                        "generate_geometry_cb", callable, **kwargs
+                    )
+                    threading.Thread(
+                        target=generate_geometry_cb,
+                        args=(
+                            self.radius,
+                            self.thickness,
+                            self.menus["Experiment"].size_mm,
+                        ),
+                    ).start()
             imgui.pop_item_width()
 
