@@ -1,7 +1,6 @@
 import configparser
 import os
 from typing import List, Tuple
-import copy
 
 import cv2
 import numpy as np
@@ -9,8 +8,6 @@ from loguru import logger
 
 from femflow.numerics.linear_algebra import distance
 from femflow.video.video_stream import VideoStream
-
-from .calibration import calibrate_hsv
 
 
 class BehaviorMatching(object):
@@ -117,22 +114,9 @@ class BehaviorMatching(object):
     def destroy(self):
         self.stream.destroy()
 
-    def calibrate(self):
-        logger.info("Calibration routine starting, press 'q' to save new parameters")
-        config = calibrate_hsv()
-        if self.HSV_CALIBRATION_KEY in self.reconstruction_config:
-            logger.warning("Overriding existing reconstruction entry")
-        self.reconstruction_config[self.HSV_CALIBRATION_KEY] = dict(config._asdict())
-
-        with open(self.reconstruction_file, "w+") as f:
-            self.reconstruction_config.write(f)
-
     def transform_frame(self, frame: np.ndarray) -> np.ndarray:
         if self.HSV_CALIBRATION_KEY not in self.reconstruction_config:
-            logger.warning(
-                f"Config Option: {self.HSV_CALIBRATION_KEY} not found, starting calibration."
-            )
-            self.calibrate()
+            raise RuntimeError("No calibration found! Run the calibrator first")
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 

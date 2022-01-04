@@ -12,7 +12,6 @@ from OpenGL.GL import *
 from femflow.meshing.implicit import gyroid
 from femflow.numerics.bintensor3 import bintensor3
 from femflow.reconstruction.behavior_matching import BehaviorMatching
-from femflow.simulation.environment import Environment
 
 from .. import models
 from ..camera import Camera
@@ -30,10 +29,11 @@ from ._builtin import (
     ShapeCaptureExperimentMenu,
 )
 from .visualizer_window import VisualizerWindow
+from femflow.simulation.linear_fem_simulation import LinearFemSimulation
 
 
 class Visualizer(object):
-    def __init__(self, environment: Environment):
+    def __init__(self, environment: LinearFemSimulation):
         self.WINDOW_TITLE = "FEMFlow Viewer"
         self.background_color = [1, 1, 1, 0]
 
@@ -52,7 +52,7 @@ class Visualizer(object):
             "No functionality implemented yet!"
         )
 
-        self.simulation_environment: Environment = environment
+        self.simulation_environment: LinearFemSimulation = environment
         self.sim_parameter_state = dict()
 
         assert glfw.init(), "GLFW is not initialized!"
@@ -293,7 +293,6 @@ class Visualizer(object):
             behavior_matching_streaming=self.behavior_matching.streaming,
             start_sim_button_cb=self.start_simulation,
             reset_sim_button_cb=self.reset_simulation,
-            calibrate_button_cb=self.behavior_matching.calibrate,
             static_sim_button_cb=static_sim_button_cb,
         )
         sim(
@@ -312,7 +311,7 @@ class Visualizer(object):
                 set_initial_height_cb=self.behavior_matching.set_starting_calibrated_rectangle_height,
                 set_ending_height_cb=self.behavior_matching.set_ending_calibrated_rectangle_height,
                 strain_pct=self.behavior_matching.strain_pct,
-                compute_coefficients_cb=lambda x: print("Prescribed load: ", x),
+                compute_coefficients_cb=lambda x: print(f"Prescribed load: {x}g"),
                 initial_height=self.behavior_matching.starting_calibrated_rectangle_height,
                 ending_height=self.behavior_matching.ending_calibrated_rectangle_height,
             )

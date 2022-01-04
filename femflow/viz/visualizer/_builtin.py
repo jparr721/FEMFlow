@@ -73,23 +73,7 @@ class ShapeCaptureConfigMenu(VisualizerMenu):
         self._register_input("capturing", False)
 
     def render(self, **kwargs) -> None:
-        behavior_matching_streaming = self._unpack_kwarg(
-            "behavior_matching_streaming", bool, **kwargs
-        )
-        if imgui.button(label="Calibrate"):
-            calibrate_button_cb: Callable = self._unpack_kwarg(
-                "calibrate_button_cb", callable, **kwargs
-            )
-            calibrate_button_cb()
-
         self._generate_imgui_input("capturing", imgui.checkbox, use_key_as_label=True)
-
-        if behavior_matching_streaming:
-            if imgui.button(label="Capture Shape"):
-                capture_shape_button_cb: Callable = self._unpack_kwarg(
-                    "capture_shape_button_cb", callable, **kwargs
-                )
-                capture_shape_button_cb()
 
 
 class SimulationConfigMenu(VisualizerMenu):

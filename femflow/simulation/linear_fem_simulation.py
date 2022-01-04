@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import List, Tuple, Union
 
 import imgui
 import numpy as np
@@ -19,32 +20,80 @@ from femflow.solvers.material import (
     hookes_law_orthotropic_constitutive_matrix,
 )
 from femflow.viz.mesh import Mesh
+from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
+from .parsers import *
 
-from .environment import Environment
 
-
-class LinearFemSimulation(Environment):
-    def __init__(self, name="linear_galerkin"):
-        super().__init__(name)
-        self.dt = 0.001
-        self.mass = 10
-        self.force = -100
-        self.youngs_modulus = "50000"
-        self.poissons_ratio = "0.3"
-        self.shear_modulus = "1000"
-        self.use_damping = False
-        self.material_type = 0
+class LinearFemSimulationMenu(VisualizerMenu):
+    def __init__(
+        self, name="Simulation Options", flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN]
+    ):
+        super().__init__(name, flags)
         self.material_options = ["isotropic", "orthotropic"]
-        self.rayleigh_lambda = 0.0
-        self.rayleigh_mu = 0.0
-        self.material_coefficients = (
-            float(self.youngs_modulus),
-            float(self.poissons_ratio),
+
+        self._register_input("dt", 0.001)
+        self._register_input("mass", 10)
+        self._register_input("force", -100)
+        self._register_input("youngs_modulus", "50000")
+        self._register_input("poissons_ratio", "0.3")
+        self._register_input("shear_modulus", "1000")
+        self._register_input("use_damping", False)
+        self._register_input("material_type", 0)
+        self._register_input("rayleigh_lambda", 0.0)
+        self._register_input("rayleigh_mu", 0.0)
+
+        # Initial material coefficients
+        self.material_coefficients: Union[Tuple[str, str], Tuple[str, str, str]] = (
+            self.youngs_modulus,
+            self.poissons_ratio,
         )
 
+    def render(self, **kwargs) -> None:
+        imgui.text("dt")
+        self._generate_imgui_input("dt", imgui.input_float)
+        imgui.text("Mass")
+        self._generate_imgui_input("mass", imgui.input_float)
+        imgui.text("Force")
+        self._generate_imgui_input("force", imgui.input_float)
+        self._generate_imgui_input("use_damping", imgui.checkbox, use_key_as_label=True)
+
+        if self.use_damping:
+            imgui.text("Rayleigh Lambda")
+            self._generate_imgui_input("rayleigh_lambda", imgui.input_float)
+            imgui.text("Rayleigh Mu")
+            self._generate_imgui_input("rayleigh_mu", imgui.input_float)
+
+        imgui.text("Material Type")
+        self._generate_imgui_input(
+            "material_type", imgui.listbox, items=self.material_options
+        )
+
+        imgui.text("E")
+        self._generate_imgui_input("youngs_modulus", imgui.input_text, buffer_length=512)
+        imgui.text("v")
+        self._generate_imgui_input("poissons_ratio", imgui.input_text, buffer_length=512)
+        if self.material_type == 1:
+            imgui.text("G")
+            self._generate_imgui_input(
+                "shear_modulus", imgui.input_text, buffer_length=512
+            )
+            self.material_coefficients = (
+                self.youngs_modulus,
+                self.poissons_ratio,
+                self.shear_modulus,
+            )
+        else:
+            self.material_coefficients = (self.youngs_modulus, self.poissons_ratio)
+
+
+class LinearFemSimulation(object):
+    def __init__(self, name="linear_galerkin"):
+        self.name = name
+        self.menu = LinearFemSimulationMenu()
         # Sim parameters
         self.boundary_conditions = defaultdict(np.ndarray)
-        self.displacements = []
+        self.displacements: List[np.ndarray] = []
+        self.loaded = False
 
     def load(self, mesh: Mesh):
         logger.info("Loading simulation with saved parameters")
@@ -55,94 +104,25 @@ class LinearFemSimulation(Environment):
 
         try:
             self.boundary_conditions = basic_dirilecht_boundary_conditions(
-                np.array([0, self.force, 0]), force_nodes, interior_nodes
+                np.array([0, self.menu.force, 0]), force_nodes, interior_nodes
             )
         except Exception as e:
             logger.error("Dirilect boundary condition assignment failed")
             logger.error(f"Boundary conditions had error: {e}")
             return
 
-        if self.material_type == "orthotropic":
-            if len(self.material_coefficients) != 3:
-                logger.error("Unable to properly deconstruct material coefficients!")
-                logger.error(f"Got options: {self.material_coefficients}")
-                return
-
-            youngs_modulus, poissons_ratio, shear_modulus = self.material_coefficients
-            try:
-                shear_modulus = "1000,1000,1000"
-                _, shear_modulus = imgui.input_text(label="G")
-
-                E_vals = youngs_modulus.split(",")
-
-                # Copy value for all entries
-                if len(E_vals) == 1:
-                    value = float(E_vals[0])
-                    youngs_modulus = np.array((value, value, value))
-                elif len(E_vals) == 3:
-                    values = map(float, E_vals)
-                    youngs_modulus = np.array(E_vals)
-                else:
-                    logger.error(
-                        "Invalid number of younds modulus' provided for orthotropic material"
-                    )
-                    return
-
-                v_vals = poissons_ratio.split(",")
-                if len(v_vals) == 1:
-                    value = float(v_vals[0])
-                    poissons_ratio = np.array((value, value, value, value, value, value))
-                elif len(E_vals) == 3:
-                    values = map(float, v_vals)
-                    poissons_ratio = np.array((*values, *values))
-                elif len(E_vals) == 6:
-                    values = map(float, v_vals)
-                    poissons_ratio = np.array(values)
-                else:
-                    logger.error(
-                        "Invalid number of poissons ratios provided for orthotropic material"
-                    )
-                    return
-
-                G_vals = shear_modulus.split(",")
-                if len(G_vals) == 1:
-                    value = float(G_vals[0])
-                    shear_modulus = np.array((value, value, value))
-                elif len(G_vals) == 3:
-                    value = map(float, G_vals)
-                    shear_modulus = np.array(G_vals)
-                else:
-                    logger.error(
-                        "Invalid number of shear moduli provided for orthotropic material"
-                    )
-            except Exception as e:
-                logger.error(
-                    "Failed to parse youngs modulus, poissions ratio, and shear modulus for orthhotropic material"
-                )
-                logger.error(f"Stack trace was: {repr(e)}")
-                return
-
+        if self.menu.material_type == 1:
             self.constitutive_matrix = hookes_law_orthotropic_constitutive_matrix(
-                np.array((*youngs_modulus, *poissons_ratio, *shear_modulus))
+                np.array(
+                    parse_orthotropic_material_coefficients(
+                        self.menu.material_coefficients
+                    )
+                )
             )
-
         else:
-            if len(self.material_coefficients) != 2:
-                logger.error("Unable to properly deconstruct material coefficients!")
-                logger.error(f"Got options: {self.material_coefficients}")
-                return
-            youngs_modulus, poissons_ratio = self.material_coefficients
-            try:
-                self.material_coefficients = (youngs_modulus, poissons_ratio)
-                self.constitutive_matrix = hookes_law_isotropic_constitutive_matrix(
-                    np.array((float(youngs_modulus), float(poissons_ratio)))
-                )
-            except Exception as e:
-                logger.error(
-                    "Failed to parse youngs modulus and poissions ratio for isotropic material"
-                )
-                logger.error(f"Stack trace was: {repr(e)}")
-                return
+            self.constitutive_matrix = hookes_law_isotropic_constitutive_matrix(
+                parse_isotropic_material_coefficients(self.menu.material_coefficients)
+            )
 
         if len(mesh.tetrahedra) == 0:
             logger.error("Mesh is not tetrahedralized, cannot simulate")
@@ -150,44 +130,6 @@ class LinearFemSimulation(Environment):
 
         self.reset(mesh)
         self.loaded = True
-
-    def menu(self):
-        imgui.text("dt")
-        _, self.dt = imgui.input_double("##dt", self.dt)
-        imgui.text("Mass")
-        _, self.mass = imgui.input_double("##Mass", self.mass)
-        imgui.text("Force")
-        _, self.force = imgui.input_double("##Force", self.force)
-
-        _, self.use_damping = imgui.checkbox("Use Damping", self.use_damping)
-
-        if self.use_damping:
-            imgui.text("Rayleigh Lambda")
-            _, self.rayleigh_lambda = imgui.input_double("##lambda", self.rayleigh_lambda)
-            imgui.text("Rayleigh Mu")
-            _, self.rayleigh_mu = imgui.input_double("##mu", self.rayleigh_mu)
-
-        imgui.text("Material Type")
-        _, self.material_type = imgui.listbox(
-            "##Material Type", self.material_type, ["isotropic", "orthotropic"]
-        )
-
-        imgui.text("E")
-        _, self.youngs_modulus = imgui.input_text("##E", self.youngs_modulus, 512)
-        imgui.text("v")
-        _, self.poissons_ratio = imgui.input_text("##v", self.poissons_ratio, 512)
-        if self.material_type == 1:
-            imgui.text("G")
-            _, self.shear_modulus = imgui.input_text("##G", self.shear_modulus, 512)
-
-        if self.material_type == 0:
-            self.material_coefficients = (self.youngs_modulus, self.poissons_ratio)
-        else:
-            self.material_coefficients = (
-                self.youngs_modulus,
-                self.poissons_ratio,
-                self.shear_modulus,
-            )
 
     def reset(self, mesh: Mesh):
         self.solver = linear_galerkin_nondynamic.LinearGalerkinNonDynamic(
@@ -198,15 +140,15 @@ class LinearFemSimulation(Environment):
         )
         logger.success("Solver created")
 
-        mass_matrix = identity(self.solver.K_e.shape[0], format="csr") * self.mass
+        mass_matrix = identity(self.solver.K_e.shape[0], format="csr") * self.menu.mass
         self.cd_integrator = ExplicitCentralDifferenceMethod(
-            self.dt,
+            self.menu.dt,
             mass_matrix,
             self.solver.K_e,
             self.solver.U_e,
             self.solver.F_e,
-            rayleigh_lambda=self.rayleigh_lambda,
-            rayleigh_mu=self.rayleigh_mu,
+            rayleigh_lambda=self.menu.rayleigh_lambda,
+            rayleigh_mu=self.menu.rayleigh_mu,
         )
         logger.success("Integrator created")
         self.displacements = [self.solver.U]

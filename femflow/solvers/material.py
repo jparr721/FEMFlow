@@ -2,7 +2,10 @@ import numpy as np
 
 
 def hookes_law_isotropic_constitutive_matrix(coefficients: np.ndarray) -> np.ndarray:
-    assert len(coefficients) == 2, "Too many coefficients! AHH"
+    if len(coefficients) != 2:
+        raise ValueError(
+            f"The number of coefficients to unpack is not 2 got {len(coefficients)}"
+        )
     E, v = coefficients
     return (E / ((1 + v) * (1 - 2 * v))) * np.array(
         [
@@ -17,9 +20,14 @@ def hookes_law_isotropic_constitutive_matrix(coefficients: np.ndarray) -> np.nda
 
 
 def hookes_law_orthotropic_constitutive_matrix(coefficients: np.ndarray) -> np.ndarray:
-    assert len(coefficients) == 12, "Too many coefficients! AHH"
+    if len(coefficients) != 2:
+        raise ValueError(
+            f"The number of coefficients to unpack is not 12 got {len(coefficients)}"
+        )
     E_x, E_y, E_z, G_yz, G_zx, G_xy, v_yx, v_zx, v_zy, v_xy, v_xz, v_yz = coefficients
-    delta = (1 - v_xy * v_yx - v_yz * v_zy - v_zx * v_xz - 2 * (v_xy * v_yz * v_zx)) / (np.prod(E_x, E_y, E_z))
+    delta = (1 - v_xy * v_yx - v_yz * v_zy - v_zx * v_xz - 2 * (v_xy * v_yz * v_zx)) / (
+        np.prod(E_x, E_y, E_z)
+    )
 
     constitutive_matrix = np.zeros((6, 6))
     constitutive_matrix[0, 0] = (1 - v_yz * v_zy) / (E_y * E_z * delta)

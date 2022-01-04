@@ -1,6 +1,5 @@
 from typing import List, Tuple
 
-import numba as nb
 import numpy as np
 
 BoundaryConditions = dict[int, np.ndarray]
@@ -64,7 +63,7 @@ def basic_dirilecht_boundary_conditions(
         active_nodes (np.ndarray): The nodes with non-fixed degrees of freedom
 
     Returns:
-        BoundaryConditions: The boundary conditions for this mesh, can be indexed directly by v.
+        BoundaryConditions: The boundary conditions for this mesh. can be indexed directly by v.
     """
     zero = np.zeros(3)
 

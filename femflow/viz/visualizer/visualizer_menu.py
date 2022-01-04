@@ -12,7 +12,9 @@ class VisualizerMenu(VisualizerCore):
         self.name = name
 
         if not isinstance(flags, list):
-            raise TypeError(f"Type: {type(flags)} is unsupported for flags, type must be a list.")
+            raise TypeError(
+                f"Type: {type(flags)} is unsupported for flags, type must be a list."
+            )
         self.flags = sum(flags)
 
         self.exapnded = True
@@ -20,11 +22,13 @@ class VisualizerMenu(VisualizerCore):
 
         self.submenus: Dict[str, VisualizerMenu] = dict()
 
-    def __eq__(self, name: str):
+    def __eq__(self, name: str) -> bool:
         return self.name == name
 
     def __call__(self, **kwargs):
-        self.expanded, self.visible = imgui.collapsing_header(self.name, self.visible, self.flags)
+        self.expanded, self.visible = imgui.collapsing_header(
+            self.name, self.visible, self.flags
+        )
 
         if self.expanded:
             self.render(**kwargs)
@@ -35,7 +39,7 @@ class VisualizerMenu(VisualizerCore):
     def add_submenu(self, menus: Union["VisualizerMenu", Iterable["VisualizerMenu"]]):
         if isinstance(menus, Iterable):
             for menu in menus:
-                self.add_menu(menu)
+                self.add_submenu(menu)
         elif isinstance(menus, VisualizerMenu):
             self.submenus[menus.name] = menus
         else:
