@@ -4,7 +4,10 @@ import os
 import numpy as np
 
 from femflow.reconstruction.calibration import calibrate_bb, calibrate_hsv, calibrate_mask
-from femflow.simulation.linear_fem_simulation import LinearFemSimulation
+from femflow.simulation.linear_fem_simulation import (
+    LinearFemSimulation,
+    LinearFemSimulationHeadless,
+)
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer import Visualizer
 
@@ -46,43 +49,26 @@ def headless(
     dt: float = typer.Option(0.001, "--dt"),
     mass: int = typer.Option(10, "--mass"),
     force: int = typer.Option(-100, "--force"),
-    youngs_modulus: str = typer.Option("50000", "--youngs_modulus"),
-    poissons_ratio: str = typer.Option("0.3", "--poissons_ratio"),
-    shear_modulus: str = typer.Option("1000", "--shear_modulus"),
-    use_damping: bool = typer.Option(False, "--use_damping"),
-    material_type: str = typer.Option("isotropic", "--material_type"),
+    youngs_modulus: float = typer.Option(50000, "--youngs_modulus"),
+    poissons_ratio: float = typer.Option(0.3, "--poissons_ratio"),
     rayleigh_lambda: float = typer.Option(0.0, "--rayleigh_lambda"),
     rayleigh_mu: float = typer.Option(0.0, "--rayleigh_mu"),
     timesteps: int = typer.Option(100, "--timesteps"),
 ):
     """Launches a headless version of the visualizer app
-
-    Args:
-        mesh_file (str): mesh_file
-        solver_type (str): solver_type
-        dt (float): dt
-        mass (int): mass
-        force (int): force
-        youngs_modulus (str): youngs_modulus
-        poissons_ratio (str): poissons_ratio
-        shear_modulus (str): shear_modulus
-        use_damping (bool): use_damping
-        material_type (str): material_type
-        rayleigh_lambda (float): rayleigh_lambda
-        rayleigh_mu (float): rayleigh_mu
-        timesteps (int): timesteps
     """
-    simulation = LinearFemSimulation()
-    simulation.dt = dt
-    simulation.mass = mass
-    simulation.force = force
-    simulation.youngs_modulus = youngs_modulus
-    simulation.poissons_ratio = poissons_ratio
-    simulation.shear_modulus = shear_modulus
-    simulation.use_damping = use_damping
-    simulation.material_type = 1 if material_type == "orthotropic" else 0
-    simulation.rayleigh_lambda = rayleigh_lambda
-    simulation.rayleigh_mu = rayleigh_mu
+    simulation = LinearFemSimulationHeadless(
+        "linear_galerkin_headless",
+        dt,
+        mass,
+        force,
+        youngs_modulus,
+        poissons_ratio,
+        0,
+        0,
+        rayleigh_lambda,
+        rayleigh_mu,
+    )
 
     mesh = Mesh.from_file(mesh_file)
     if not mesh.tetrahedralized:
@@ -90,7 +76,7 @@ def headless(
     simulation.load(mesh)
 
     if solver_type == "dynamic":
-        simulation.simulate(mesh, timesteps)
+        simulation.solve_dynamic(timesteps)
     else:
         logger.info("Solving static problem")
         simulation.solve_static()

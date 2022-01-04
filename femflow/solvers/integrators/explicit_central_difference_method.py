@@ -15,9 +15,8 @@ class ExplicitCentralDifferenceMethod(object):
         stiffness: csr_matrix,
         initial_displacement: np.ndarray,
         initial_force: np.ndarray,
-        *,
-        rayleigh_lambda=0.5,
-        rayleigh_mu=0.5,
+        rayleigh_lambda=0.0,
+        rayleigh_mu=0.0,
     ):
         self.dt = dt
 

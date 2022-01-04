@@ -4,10 +4,10 @@ from typing import List, Tuple, Union
 import imgui
 import numpy as np
 from loguru import logger
-from scipy.sparse import identity
+from scipy.sparse import identity, csr_matrix
 from tqdm import tqdm
 
-from femflow.solvers.fea import linear_galerkin_nondynamic
+from femflow.solvers.fea.linear_galerkin_nondynamic import LinearGalerkinNonDynamic
 from femflow.solvers.fea.boundary_conditions import (
     basic_dirilecht_boundary_conditions,
     top_bottom_plate_dirilect_conditions,
@@ -92,7 +92,7 @@ class LinearFemSimulation(object):
         self.menu = LinearFemSimulationMenu()
         # Sim parameters
         self.boundary_conditions = defaultdict(np.ndarray)
-        self.displacements: List[np.ndarray] = []
+        self.displacements: List[csr_matrix] = []
         self.loaded = False
 
     def load(self, mesh: Mesh):
@@ -132,7 +132,7 @@ class LinearFemSimulation(object):
         self.loaded = True
 
     def reset(self, mesh: Mesh):
-        self.solver = linear_galerkin_nondynamic.LinearGalerkinNonDynamic(
+        self.solver = LinearGalerkinNonDynamic(
             self.boundary_conditions,
             self.constitutive_matrix,
             mesh.vertices,
@@ -147,13 +147,13 @@ class LinearFemSimulation(object):
             self.solver.K_e,
             self.solver.U_e,
             self.solver.F_e,
-            rayleigh_lambda=self.menu.rayleigh_lambda,
-            rayleigh_mu=self.menu.rayleigh_mu,
+            self.menu.rayleigh_lambda,
+            self.menu.rayleigh_mu,
         )
         logger.success("Integrator created")
         self.displacements = [self.solver.U]
 
-    def simulate(self, mesh: Mesh, timesteps: int):
+    def simulate(self, timesteps: int):
         for _ in tqdm(range(timesteps)):
             self.solver.U_e = self.cd_integrator.integrate(
                 self.solver.F_e, self.solver.U_e
@@ -167,8 +167,63 @@ class LinearFemSimulation(object):
         self.displacements.append(self.solver.U)
         logger.success("Simulation is done")
 
-    def loss(self, batch):
-        pass
 
-    def accuracy(self, batch):
-        pass
+class LinearFemSimulationHeadless(object):
+    def __init__(
+        self,
+        name="linear_galerkin_headless",
+        dt=0.001,
+        mass=10,
+        force=-100,
+        youngs_modulus=50000,
+        poissons_ratio=0.3,
+        shear_modulus=1000,
+        material_type=0,
+        rayleigh_lambda=0.0,
+        rayleigh_mu=0.0,
+    ):
+        self.name = name
+        self.dt = dt
+        self.mass = mass
+        self.force = force
+        self.youngs_modulus = youngs_modulus
+        self.poissons_ratio = poissons_ratio
+        self.shear_modulus = shear_modulus
+        self.material_type = material_type
+        self.rayleigh_lambda = rayleigh_lambda
+        self.rayleigh_mu = rayleigh_mu
+        self.displacements = []
+
+    def load(self, mesh: Mesh):
+        force_nodes, interior_nodes, _ = top_bottom_plate_dirilect_conditions(
+            mesh.as_matrix(mesh.vertices, 3)
+        )
+        boundary_conditions = basic_dirilecht_boundary_conditions(
+            np.array([0, self.force, 0]), force_nodes, interior_nodes
+        )
+        constitutive_matrix = hookes_law_isotropic_constitutive_matrix(
+            np.array((self.youngs_modulus, self.poissons_ratio))
+        )
+        self.solver = LinearGalerkinNonDynamic(
+            boundary_conditions, constitutive_matrix, mesh.vertices, mesh.tetrahedra
+        )
+        logger.success("Solver created")
+
+        mass_matrix = identity(self.solver.K_e.shape[0], format="csr") * self.mass
+        self.integrator = ExplicitCentralDifferenceMethod(
+            self.dt, mass_matrix, self.solver.K_e, self.solver.U_e, self.solver.F_e
+        )
+        logger.success("Integrator creaed")
+
+    def solve_dynamic(self, timesteps: int):
+        for _ in tqdm(range(timesteps)):
+            self.solver.U_e = self.integrator.integrate(self.solver.F_e, self.solver.U_e)
+            self.solver.solve()
+            self.displacements.append(self.solver.U)
+        logger.success("Simulation is done")
+
+    def solve_static(self):
+        self.solver.solve_static()
+        self.displacements.append(self.solver.U)
+        logger.success("Simulation is done")
+

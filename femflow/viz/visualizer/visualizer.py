@@ -167,7 +167,7 @@ class Visualizer(object):
             self.sim_parameter_state["current_timestep"] = 0
         threading.Thread(
             target=self.simulation_environment.simulate,
-            args=(self.mesh, self.sim_parameter_state["n_timesteps"]),
+            args=(self.sim_parameter_state["n_timesteps"],),
         ).start()
 
     def run_static_simulation(self):
