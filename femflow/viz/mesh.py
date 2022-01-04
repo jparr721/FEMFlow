@@ -145,6 +145,9 @@ class Mesh(object):
 
         return Mesh()
 
+    def reset_positions(self) -> None:
+        self.vertices[:] = self.world_coordinates
+
     def reload_from_mesh(self, mesh: "Mesh") -> None:
         self.vertices = mesh.vertices
         self.faces = mesh.faces
@@ -185,7 +188,6 @@ class Mesh(object):
         self.faces = self.as_vector(f)
         self.tetrahedra = self.as_vector(t)
         self.normals = -self.as_vector(per_face_normals(v, f))
-        # TODO(@jparr721) Change this later
         self._set_default_color()
         self.world_coordinates = copy.deepcopy(self.vertices)
         logger.info(f"Random Color: {self.colors[:3]}")

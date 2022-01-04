@@ -194,12 +194,14 @@ class LinearFemSimulationHeadless(object):
         self.rayleigh_mu = rayleigh_mu
         self.displacements = []
 
+        self.force_nodes = np.array([])
+
     def load(self, mesh: Mesh):
-        force_nodes, interior_nodes, _ = top_bottom_plate_dirilect_conditions(
+        self.force_nodes, interior_nodes, _ = top_bottom_plate_dirilect_conditions(
             mesh.as_matrix(mesh.vertices, 3)
         )
         boundary_conditions = basic_dirilecht_boundary_conditions(
-            np.array([0, self.force, 0]), force_nodes, interior_nodes
+            np.array([0, self.force, 0]), self.force_nodes, interior_nodes
         )
         constitutive_matrix = hookes_law_isotropic_constitutive_matrix(
             np.array((self.youngs_modulus, self.poissons_ratio))
