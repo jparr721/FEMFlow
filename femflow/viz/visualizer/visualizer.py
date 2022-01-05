@@ -286,8 +286,10 @@ class Visualizer(object):
             self.mesh.tetrahedralize()
 
         def compute_coefficients_cb(load: float, strain_pct: float, height: int):
-            target_height = (100 - strain_pct) * height
-            galerkin_optimizer = GalerkinOptimizer(self.mesh, -load, target_height)
+            target_height = ((100 - strain_pct) / 100) * height
+            galerkin_optimizer = GalerkinOptimizer(
+                self.mesh, -load, target_height, learning_rate=1
+            )
             galerkin_optimizer.train()
 
         logs()

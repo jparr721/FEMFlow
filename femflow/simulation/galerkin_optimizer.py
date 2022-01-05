@@ -15,7 +15,8 @@ class GalerkinOptimizer(object):
 
         # Somewhere between here and solid steel
         # Youngs modulus represents our "weight" value
-        self.youngs_modulus = np.random.randint(0, 210e6)
+        # self.youngs_modulus = np.random.randint(0, 210e6)
+        self.youngs_modulus = 50000
         self.poissons_ratio = 0.3
 
         self.mesh = mesh
@@ -26,24 +27,47 @@ class GalerkinOptimizer(object):
 
     def predict(self) -> float:
         mesh_clone = copy.deepcopy(self.mesh)
+
         simulation = LinearFemSimulationHeadless(
             force=self.force,
             youngs_modulus=self.youngs_modulus,
             poissons_ratio=self.poissons_ratio,
         )
         simulation.load(mesh_clone)
-        simulation.solve_static()
-        mesh_clone.transform(simulation.solver.U)
-        # Average the force-applied nodes (top)
-        force_nodes = list(
+        start_top_nodes = list(
             map(
                 lambda x: x[1],
                 mesh_clone.as_matrix(mesh_clone.vertices, 3)[simulation.force_nodes],
             )
         )
-        # The displacement calculation, no activation fn
-        avg = np.average(force_nodes)
-        return avg
+        start_top = np.average(start_top_nodes)
+        bottom_nodes = list(
+            map(
+                lambda x: x[1],
+                mesh_clone.as_matrix(mesh_clone.vertices, 3)[simulation.fixed_nodes],
+            )
+        )
+        bottom = np.average(bottom_nodes)
+
+        # Initial height
+        initial_height = start_top - bottom
+
+        simulation.solve_static()
+        mesh_clone.transform(simulation.solver.U)
+        # Average the force-applied nodes (top)
+        end_top_nodes = list(
+            map(
+                lambda x: x[1],
+                mesh_clone.as_matrix(mesh_clone.vertices, 3)[simulation.force_nodes],
+            )
+        )
+        end_top = np.average(end_top_nodes)
+
+        # Bottom should not have changed
+        end_height = end_top - bottom
+
+        # We want the proportional difference
+        return 100 - ((end_height / initial_height) * 100)
 
     def train(self):
         initial_prediction = self.predict()
@@ -56,9 +80,14 @@ class GalerkinOptimizer(object):
         for _ in tqdm(range(self.epochs)):
             displacement = self.predict()
             progressbar.set_postfix(
-                {"loss": self.loss(displacement), "E": self.youngs_modulus}
+                {
+                    "loss": self.loss(displacement),
+                    "E": self.youngs_modulus,
+                    "displacement": displacement,
+                    "target": self.target_U,
+                }
             )
-            self.youngs_modulus -= gradient_loss_fn(displacement) * self.learning_rate
+            self.youngs_modulus += gradient_loss_fn(displacement) * self.learning_rate
 
         logger.success(f"Optimum value of E has been saved.")
 

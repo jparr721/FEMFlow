@@ -195,11 +195,14 @@ class LinearFemSimulationHeadless(object):
         self.displacements = []
 
         self.force_nodes = np.array([])
+        self.fixed_nodes = np.ndarray([])
 
     def load(self, mesh: Mesh):
-        self.force_nodes, interior_nodes, _ = top_bottom_plate_dirilect_conditions(
-            mesh.as_matrix(mesh.vertices, 3)
-        )
+        (
+            self.force_nodes,
+            interior_nodes,
+            self.fixed_nodes,
+        ) = top_bottom_plate_dirilect_conditions(mesh.as_matrix(mesh.vertices, 3))
         boundary_conditions = basic_dirilecht_boundary_conditions(
             np.array([0, self.force, 0]), self.force_nodes, interior_nodes
         )
