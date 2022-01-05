@@ -169,6 +169,7 @@ class Visualizer(object):
         threading.Thread(
             target=self.simulation_environment.simulate,
             args=(self.sim_parameter_state["n_timesteps"],),
+            daemon=True,
         ).start()
 
     def run_static_simulation(self):
@@ -177,7 +178,9 @@ class Visualizer(object):
             return
 
         logger.info("Running static form")
-        threading.Thread(target=self.simulation_environment.solve_static).start()
+        threading.Thread(
+            target=self.simulation_environment.solve_static, daemon=True
+        ).start()
 
     def reset_simulation(self):
         if self.simulation_environment is None:
@@ -258,9 +261,7 @@ class Visualizer(object):
         def sim_params_menu_load_button_cb():
             self.simulation_environment.loaded = False
             self.sim_parameter_state["current_timestep"] = 0
-            threading.Thread(
-                target=self.simulation_environment.load, args=(self.mesh,)
-            ).start()
+            self.simulation_environment.load(self.mesh)
 
         def static_sim_button_cb():
             menu.menus["Sim Params"].submenus["Sim Config"].n_timesteps = 1

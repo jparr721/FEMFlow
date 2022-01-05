@@ -278,6 +278,7 @@ class ShapeCaptureWindow(VisualizerWindow):
                             self.thickness,
                             self.menus["Experiment"].size_mm,
                         ),
+                        daemon=True,
                     ).start()
             imgui.pop_item_width()
 
