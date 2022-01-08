@@ -18,11 +18,23 @@ def hessian(d_h: np.ndarray, x: np.ndarray):
     pass
 
 
-def newtons_method(x0: np.ndarray, max_steps: int) -> float:
-    return 0.0
+def newtons_method(x0: np.ndarray, max_steps: int, epsilon: float = 2.1e-16) -> float:
+    """Computes newtons method from an initial point
+
+    Args:
+        x0 (np.ndarray): x0 The initial point for newtons search
+        max_steps (int): max_steps Max iterations for newtons method
+
+    Returns:
+        float: The update value for x0 (x1)
+    """
+    for i in range(max_steps):
+        d_g = d_implicit_euler_cost(x0)
+        if d_g < epsilon:
+            return d_g
 
 
-def d_implicit_euler_cost(dx: np.ndarray, x: np.ndarray):
+def d_implicit_euler_cost(dx: np.ndarray, x: np.ndarray) -> np.ndarray:
     pass
 
 
