@@ -143,11 +143,282 @@ class VariationalNeoHookean(object):
         Returns:
             np.ndarray The gradient of the potential enery for the tet.
         """
+        # Not tetrahedra, this is kinetic energy
         t = np.zeros((3, 4))
         for i in range(4):
             index = 3 * element[i]
             t[i] = self.q[index : index + 3]
-        return t
+
+        d_phi = self.d_tetrahedral_linear_shape_functions(element)
+        F = t * d_phi
+
+    def d_psi_neo_hookean_d_F(self, F: np.ndarray) -> np.ndarray:
+        """Computes the gradient of the potential energy function psi.
+
+        Args:
+            F (np.ndarray): F The deformation gradient of reference and world space
+            coordinates
+
+        Returns:
+            np.ndarray: The gradient of psi.
+        """
+        F1_1 = F[0, 0]
+        F1_2 = F[0, 1]
+        F1_3 = F[0, 2]
+        F2_1 = F[1, 0]
+        F2_2 = F[1, 1]
+        F2_3 = F[1, 2]
+        F3_1 = F[2, 0]
+        F3_2 = F[2, 1]
+        F3_3 = F[2, 2]
+
+        # Stolen from https://github.com/dilevin/Bartels/blob/master/src/dpsi_neohookean_dF.cpp
+        # Thanks, David!
+        dw = np.zeros(9)
+        dw[0] = (
+            self.mu
+            * (
+                F1_1 * 2.0
+                - ((F2_2 * F3_3 - F2_3 * F3_2) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            - self.lambda_
+            * (F2_2 * F3_3 - F2_3 * F3_2)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[1] = (
+            self.mu
+            * (
+                F2_1 * 2.0
+                + ((F1_2 * F3_3 - F1_3 * F3_2) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            + self.lambda_
+            * (F1_2 * F3_3 - F1_3 * F3_2)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[2] = (
+            self.mu
+            * (
+                F3_1 * 2.0
+                - ((F1_2 * F2_3 - F1_3 * F2_2) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            - self.lambda_
+            * (F1_2 * F2_3 - F1_3 * F2_2)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[3] = (
+            self.mu
+            * (
+                F1_2 * 2.0
+                + ((F2_1 * F3_3 - F2_3 * F3_1) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            + self.lambda_
+            * (F2_1 * F3_3 - F2_3 * F3_1)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[4] = (
+            self.mu
+            * (
+                F2_2 * 2.0
+                - ((F1_1 * F3_3 - F1_3 * F3_1) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            - self.lambda_
+            * (F1_1 * F3_3 - F1_3 * F3_1)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[5] = (
+            self.mu
+            * (
+                F3_2 * 2.0
+                + ((F1_1 * F2_3 - F1_3 * F2_1) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            + self.lambda_
+            * (F1_1 * F2_3 - F1_3 * F2_1)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[6] = (
+            self.mu
+            * (
+                F1_3 * 2.0
+                - ((F2_1 * F3_2 - F2_2 * F3_1) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            - self.lambda_
+            * (F2_1 * F3_2 - F2_2 * F3_1)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[7] = (
+            self.mu
+            * (
+                F2_3 * 2.0
+                + ((F1_1 * F3_2 - F1_2 * F3_1) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            + self.lambda_
+            * (F1_1 * F3_2 - F1_2 * F3_1)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        dw[8] = (
+            self.mu
+            * (
+                F3_3 * 2.0
+                - ((F1_1 * F2_2 - F1_2 * F2_1) * 2.0)
+                / (
+                    F1_1 * F2_2 * F3_3
+                    - F1_1 * F2_3 * F3_2
+                    - F1_2 * F2_1 * F3_3
+                    + F1_2 * F2_3 * F3_1
+                    + F1_3 * F2_1 * F3_2
+                    - F1_3 * F2_2 * F3_1
+                )
+            )
+            - self.lambda_
+            * (F1_1 * F2_2 - F1_2 * F2_1)
+            * (
+                -F1_1 * F2_2 * F3_3
+                + F1_1 * F2_3 * F3_2
+                + F1_2 * F2_1 * F3_3
+                - F1_2 * F2_3 * F3_1
+                - F1_3 * F2_1 * F3_2
+                + F1_3 * F2_2 * F3_1
+                + 1.0
+            )
+            * 2.0
+        )
+        return dw
 
     def _d_v_linear_tetrahedral_d_q(
         self, element: np.ndarray, volume: float
@@ -161,6 +432,5 @@ class VariationalNeoHookean(object):
         Returns:
             np.ndarray: d_v partial derivative of potential enery with respect to q.
         """
-
         return self._quadrature(volume, element)
 
