@@ -1,14 +1,15 @@
 import copy
-import igl
 
-from femflow.meshing.implicit import gyroid
-from femflow.numerics.bintensor3 import bintensor3
+import igl
 import numpy as np
-from femflow.meshing.loader import load_mesh_file, load_obj_file
-from femflow.numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
 from loguru import logger
 from PIL import Image
 from scipy.sparse import csr_matrix
+
+from femflow.meshing.implicit import gyroid
+from femflow.meshing.loader import load_mesh_file, load_obj_file
+from femflow.numerics.bintensor3 import bintensor3
+from femflow.numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
 
 _MESH_TYPES = {"gyroid", "cuboid"}
 
@@ -187,7 +188,7 @@ class Mesh(object):
         self.vertices = self.as_vector(v)
         self.faces = self.as_vector(f)
         self.tetrahedra = self.as_vector(t)
-        self.normals = -self.as_vector(per_face_normals(v, f))
+        self.normals = self.as_vector(per_face_normals(v, f))
         self._set_default_color()
         self.world_coordinates = copy.deepcopy(self.vertices)
 

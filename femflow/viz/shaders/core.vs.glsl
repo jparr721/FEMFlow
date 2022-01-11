@@ -7,15 +7,22 @@ layout(location = 3) in vec3 color;
 
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 light;
+uniform vec3 light;
+uniform mat4 normal_matrix;
 
 out vec2 texture_coordinatesi;
-out vec3 normali;
-out vec4 colori;
+out vec3 surface_normal;
+out vec4 ambient_color;
+out vec3 light_dir;
 
 void main() {
-  normali = (light * vec4(normal, 0.0f)).xyz;
-  gl_Position = projection * view * vec4(position, 1.0);
+  vec4 vertex_pos = vec4(position, 1.0);
+
+  light_dir = normalize(light - position);
+  surface_normal = normalize(normal_matrix * vec4(normal, 1.0f)).xyz;
+
+  gl_Position = projection * view * vertex_pos;
+
   texture_coordinatesi = texture_coordinates;
-  colori = vec4(color, 1.0f);
+  ambient_color = vec4(color, 1.0f);
 }

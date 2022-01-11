@@ -47,6 +47,12 @@ class ShaderProgram(object):
 
         glUniformMatrix4fv(location, 1, GL_FALSE, uniform)
 
+    def set_vector_uniform(self, location: Union[int, str], uniform):
+        if type(location) == str:
+            location = self.uniform_location(location)
+
+        glUniform3f(location, *uniform)
+
     def uniform_location(self, name: str) -> int:
         return glGetUniformLocation(self.id, name)
 
