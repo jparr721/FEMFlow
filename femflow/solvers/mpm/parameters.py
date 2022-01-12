@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class MPMParameters(object):
+    mass: float
     volume: float
     hardening: float
 

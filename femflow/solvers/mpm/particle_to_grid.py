@@ -58,10 +58,10 @@ def fixed_corotated_stress(params: MPMParameters, particle: NeoHookeanParticle):
     r, _ = polar(particle.deformation_gradient)
 
     # Cauchy stress
-    PF = (
-        2 * particle.mu * (particle.deformation_gradient - r)
-        + particle.deformation_gradient.T
-        + particle.lambda_ * (current_volume - 1) * current_volume
+    PF = np.matmul(
+        2 * particle.mu * (particle.deformation_gradient - r),
+        particle.deformation_gradient
+        + particle.lambda_ * (current_volume - 1) * current_volume,
     )
 
     # params.dx is 1 / grid res so inv dx is grid res
@@ -88,8 +88,8 @@ def particle_to_grid(
     grid[:, :, :] = 0
 
     for p in particles:
-        cell_index = np.floor(
-            p.position * params.grid_resolution - nvec(0.5), dtype=np.int32
+        cell_index = np.floor(p.position * params.grid_resolution - nvec(0.5)).astype(
+            np.int32
         )
 
         # fx
@@ -117,5 +117,5 @@ def particle_to_grid(
 
                 # Compute the density for this particle in relation to the others
                 grid[cell_index[0] + i, cell_index[1] + j] += weight * (
-                    mv + np.array((*(affine * dpos), 0))
+                    mv + np.array((*np.dot(affine, dpos), 0))
                 )
