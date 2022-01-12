@@ -1,5 +1,5 @@
 import os
-from enum import Enum
+from enum import IntEnum
 
 import numpy as np
 from loguru import logger
@@ -50,7 +50,7 @@ def make_shader_program(vert_shader_path: str, frag_shader_path: str) -> ShaderP
     return shader_program
 
 
-class RenderMode(Enum):
+class RenderMode(IntEnum):
     MESH = 0
     LINES = 1
     MESH_AND_LINES = 2
@@ -85,6 +85,7 @@ class Renderer(object):
 
         self.rebuild_buffers()
         glEnable(GL_DEPTH_TEST)
+
         self.phi = 0.0001
         self.r = 10
         self.light_x = np.cos(self.phi) * self.r
@@ -107,39 +108,23 @@ class Renderer(object):
 
     def render(self, camera: Camera):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        self.apply_render_mode()
+
         self.rebuild_buffers()
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
-        if self.mesh is not None:
-            glEnable(GL_POLYGON_OFFSET_LINE)
-            glPolygonOffset(-1.0, -1.0)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-            glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
 
-            build_vertex_buffer(3, self.color_vbo, 3, self._wireframe_color)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-            glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-            glDisable(GL_POLYGON_OFFSET_LINE)
+        if self.mesh is not None:
+            if self.render_mode == RenderMode.MESH:
+                self._render_mesh()
+            elif self.render_mode == RenderMode.LINES:
+                self._render_lines()
+            else:
+                self._render_mesh_and_lines()
 
         self.shader_program.release()
 
-    def append_mesh(self, mesh: Mesh):
-        if self.mesh is not None:
-            self.mesh += mesh
-        else:
-            self.mesh = mesh
-
-        self.rebuild_buffers()
-
     def resize(self, width: int, height: int, camera: Camera):
         logger.debug(f"Resizing to width: {width}, height: {height}")
-        # camera.snap_to_mesh(
-        #     self.mesh.axis_max(2),
-        #     (self.mesh.axis_max(0) - self.mesh.axis_min(1)) / 2,
-        #     (self.mesh.axis_max(1) - self.mesh.axis_min(1)) / 2,
-        # )
         glViewport(0, 0, width, height)
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.projection, camera.projection_matrix)
@@ -157,31 +142,31 @@ class Renderer(object):
         # If we have no meshes, we have no data to add
         if self.mesh:
             build_vertex_buffer(0, self.position_vbo, 3, self.mesh.vertices)
-            build_vertex_buffer(3, self.color_vbo, 3, self.mesh.colors)
+            build_vertex_buffer(2, self.color_vbo, 3, self.mesh.colors)
 
             if self.mesh.colors.shape != self._wireframe_color.shape:
                 self._wireframe_color = np.zeros(self.mesh.colors.shape)
 
             if self.mesh.normals.size > 0:
-                build_vertex_buffer(2, self.normal_vbo, 3, self.mesh.normals)
-
-            if self.mesh.textures.size > 0:
-                build_texture(
-                    self.texture_vbo,
-                    self.mesh.textures.data,
-                    self.mesh.textures.u,
-                    self.mesh.textures.v,
-                    GL_REPEAT,
-                    GL_LINEAR,
-                )
+                build_vertex_buffer(1, self.normal_vbo, 3, self.mesh.normals)
 
             build_index_buffer(self.faces_ibo, self.mesh.faces)
 
-    def apply_render_mode(self):
-        if self.render_mode == RenderMode.MESH:
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        elif self.render_mode == RenderMode.LINES:
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-        else:
-            # TODO(@jparr721) - Show mesh and lines.
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    def _render_mesh(self):
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
+
+    def _render_lines(self):
+        build_vertex_buffer(2, self.color_vbo, 3, self._wireframe_color)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glDrawElements(GL_TRIANGLES, self.mesh.faces.size, GL_UNSIGNED_INT, None)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+
+    def _render_mesh_and_lines(self):
+        glEnable(GL_POLYGON_OFFSET_LINE)
+        glPolygonOffset(-1.0, -1.0)
+
+        self._render_mesh()
+        self._render_lines()
+
+        glDisable(GL_POLYGON_OFFSET_LINE)

@@ -13,24 +13,24 @@ from femflow.meshing.implicit import gyroid
 from femflow.numerics.bintensor3 import bintensor3
 from femflow.reconstruction.behavior_matching import BehaviorMatching
 from femflow.simulation.galerkin_optimizer import GalerkinOptimizer
+from femflow.simulation.linear_fem_simulation import LinearFemSimulation
 
 from .. import models
 from ..camera import Camera
 from ..input import Input
 from ..mesh import Mesh
-from ..renderer import Renderer
+from ..renderer import Renderer, RenderMode
 from ._builtin import (
     LogWindow,
     MenuWindow,
     ShapeCaptureConfigMenu,
+    ShapeCaptureExperimentMenu,
     ShapeCaptureWindow,
     SimParametersMenu,
     SimulationConfigMenu,
     SimulationWindow,
-    ShapeCaptureExperimentMenu,
 )
 from .visualizer_window import VisualizerWindow
-from femflow.simulation.linear_fem_simulation import LinearFemSimulation
 
 
 class Visualizer(object):
@@ -41,7 +41,7 @@ class Visualizer(object):
         self.camera = Camera()
         self.mesh: Mesh = Mesh.from_file(os.path.join(models.model_paths(), "cube.obj"))
         self.mesh.tetrahedralize()
-        self.renderer = None
+        self.renderer: Renderer = None
 
         self.callback_environment_loader = lambda: logger.error(
             "No functionality implemented yet!"
@@ -293,6 +293,9 @@ class Visualizer(object):
             )
             galerkin_optimizer.train()
 
+        def set_sim_render_mode(render_mode: int):
+            self.renderer.render_mode = RenderMode(render_mode)
+
         logs()
         menu(
             mesh=self.mesh,
@@ -303,6 +306,7 @@ class Visualizer(object):
             start_sim_button_cb=self.start_simulation,
             reset_sim_button_cb=self.reset_simulation,
             static_sim_button_cb=static_sim_button_cb,
+            render_mode_cb=set_sim_render_mode,
         )
         sim(
             sim_status=len(self.simulation_environment.displacements) > 1,

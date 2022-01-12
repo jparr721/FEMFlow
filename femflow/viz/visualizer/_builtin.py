@@ -1,5 +1,5 @@
-from typing import Callable, List
 import threading
+from typing import Callable, List
 
 import imgui
 
@@ -123,6 +123,7 @@ class SimParametersMenu(VisualizerMenu):
         self, *, name: str = "Sim Params", flags: List[int] = _IMGUIFLAGS_TREENODE_OPEN
     ):
         super().__init__(name, flags)
+        self._register_input("render_mode", 2)
 
     def render(self, **kwargs) -> None:
         sim_environment_menu_cb: Callable = self._unpack_kwarg(
@@ -143,6 +144,13 @@ class SimParametersMenu(VisualizerMenu):
                 "load_button_cb", callable, **kwargs
             )
             load_button_cb()
+
+        imgui.text("Render Mode")
+        self._generate_imgui_input(
+            "render_mode", imgui.listbox, items=["Lines", "Filled", "Lines and Filled"],
+        )
+        render_mode_cb = self._unpack_kwarg("render_mode_cb", callable, **kwargs)
+        render_mode_cb(self.render_mode)
 
 
 class LogWindow(VisualizerWindow):

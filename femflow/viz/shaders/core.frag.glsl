@@ -1,16 +1,10 @@
 #version 330
 
-in vec2 texture_coordinatesi;
 in vec3 surface_normal;
 in vec4 ambient_color;
 in vec3 light_dir;
 
 out vec4 frag_color;
-
-uniform sampler2D sampler_texture;
-uniform sampler2D diffuse_texture;
-uniform sampler2D normal_texture;
-uniform sampler2D specular_texture;
 
 void main() {
   frag_color = ambient_color;

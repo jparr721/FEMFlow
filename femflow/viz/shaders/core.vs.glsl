@@ -1,16 +1,14 @@
 #version 330
 
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec2 texture_coordinates;
-layout(location = 2) in vec3 normal;
-layout(location = 3) in vec3 color;
+layout(location = 1) in vec3 normal;
+layout(location = 2) in vec3 color;
 
 uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 light;
 uniform mat4 normal_matrix;
 
-out vec2 texture_coordinatesi;
 out vec3 surface_normal;
 out vec4 ambient_color;
 out vec3 light_dir;
@@ -23,6 +21,5 @@ void main() {
 
   gl_Position = projection * view * vertex_pos;
 
-  texture_coordinatesi = texture_coordinates;
   ambient_color = vec4(color, 1.0f);
 }
