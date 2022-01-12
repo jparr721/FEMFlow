@@ -1,4 +1,5 @@
 import numpy as np
+
 from femflow.numerics.linear_algebra import normalized
 
 
@@ -95,10 +96,6 @@ class Camera(object):
     def down_direction(self):
         self._compile()
         return -self.up
-
-    def snap_to_mesh(self, max_z: float, midx: float, midy: float):
-        self.r = 4 * max_z
-        self.displacement = np.array([0, 0, -2 * max_z])
 
     def resize(self, width: int, height: int):
         self.width = width
@@ -224,7 +221,9 @@ class Camera(object):
     def _compile(self):
         self.center = np.zeros(3)
         self.eye = self.spherical_to_cartesian(self.r, self.theta, self.phi)
-        self.up = normalized(self.sperical_to_cartesian_dPhi(self.r, self.theta, self.phi))
+        self.up = normalized(
+            self.sperical_to_cartesian_dPhi(self.r, self.theta, self.phi)
+        )
 
         # --------------------------------------------------------------------------------
         # Invert the up direction (since the spherical coordinates have phi
