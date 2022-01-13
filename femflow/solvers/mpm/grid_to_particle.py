@@ -14,8 +14,8 @@ def grid_to_particle(
     nvec = functools.partial(np.full, params.dimensions)
 
     for p in particles:
-        cell_index = np.floor(
-            p.position * params.grid_resolution - nvec(0.5), dtype=np.int32
+        cell_index = np.floor(p.position * params.grid_resolution - nvec(0.5)).astype(
+            np.int32
         )
 
         # fx
@@ -50,9 +50,10 @@ def grid_to_particle(
         p.position += params.dt * p.velocity
 
         # MLS-MPM F-Update
-        F = (
-            np.eye(params.dimensions) + params.dt * p.affine_momentum
-        ) * p.deformation_gradient
+        F = np.matmul(
+            np.eye(params.dimensions) + params.dt * p.affine_momentum,
+            p.deformation_gradient,
+        )
 
         U, sig, V = np.linalg.svd(F)
 
@@ -61,7 +62,7 @@ def grid_to_particle(
             sig[i, i] = np.clip(sig[i, i], 1.0 - 2.5e-2, 1.0 + 7.5e-3)
 
         oldJ = np.linalg.det(F)
-        F = U * sig * V.T
+        F = np.matmul(np.matmul(U, sig), V.T)
 
         J_p_new = np.clip(p.volume * oldJ / np.linalg.det(F), 0.6, 20.0)
 

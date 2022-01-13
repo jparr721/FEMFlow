@@ -1,9 +1,11 @@
 import os
+from collections import Counter
+from typing import List
 
 import numpy as np
 
 from ..parameters import MPMParameters
-from ..particle import make_particle
+from ..particle import NeoHookeanParticle, make_particle
 from ..particle_to_grid import *
 
 E = 1e4
@@ -23,26 +25,6 @@ params = MPMParameters(
     grid_resolution=80,
     dimensions=2,
 )
-
-
-def read_outfile() -> np.ndarray:
-    values = []
-
-    with open(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "out.txt"), "r"
-    ) as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith("value:"):
-                ln = lines[i + 1]
-                group_start = ln.index("(") + 1
-                group_end = ln.index(")")
-                ln = ln[group_start:group_end]
-
-                x, y, z = ln.split()
-                values.append(np.array((x, y, z), dtype=np.float32))
-
-    return np.array(values)
 
 
 def test_hardening():
@@ -69,21 +51,30 @@ def test_fixed_corotated_stress():
 
 
 def test_particle_to_grid():
-    values = read_outfile()
+    def add_object(center: np.ndarray, particles: List[NeoHookeanParticle]):
+        particles.append(make_particle(center, np.zeros(2), np.zeros(3)))
 
-    p1pos = np.array((0.607899, 0.387073))
-    p1 = make_particle(p1pos, np.zeros(2), np.zeros(3))
+    particles = []
+    add_object(np.array((0.55, 0.45)), particles)
+    add_object(np.array((0.45, 0.65)), particles)
+    add_object(np.array((0.55, 0.85)), particles)
 
-    p2pos = np.array((0.524773, 0.894981))
-    p2 = make_particle(p2pos, np.zeros(2), np.zeros(3))
+    assert len(particles) == 3
 
-    particles = [p1, p2]
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    ground_truth_file_path = os.path.join(this_dir, "ground_truth_grid.txt")
+    ground_truth_grid = np.loadtxt(ground_truth_file_path)
 
     grid = np.zeros((params.grid_resolution + 1, params.grid_resolution + 1, 3))
 
     particle_to_grid(params, particles, grid)
 
-    rows, cols, _ = grid.nonzero()
-    print(grid[rows, cols])
+    r, c, _ = grid.nonzero()
 
-    assert np.isclose(grid[rows, cols], values).all()
+    # Counters are kinda not ideal here, but the grid nonzeros return in a different
+    # order than the ground truth is listed, so restructuring would be annoying, this
+    # was independently verified to be correct though.
+    c = Counter(grid[r, c].reshape(-1))
+    cc = Counter(ground_truth_grid.reshape(-1))
+
+    assert c == cc
