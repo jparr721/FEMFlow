@@ -1,6 +1,6 @@
+import configparser
 import os
 from collections import namedtuple
-import configparser
 from typing import Union
 
 import cv2
@@ -32,13 +32,13 @@ def write_calibration_file(
         config.write(f)
 
 
-def calibrate_hsv() -> HSVCalibration:
+def calibrate_hsv(camera: int) -> HSVCalibration:
     reconstruction_file = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "reconstruction.ini"
     )
     logger.info("When you're done calibrating, press q to save and quit")
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(camera)
 
     # Create a window
     cv2.namedWindow("Calibration")

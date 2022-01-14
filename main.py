@@ -9,7 +9,6 @@ from femflow.simulation.linear_fem_simulation import (
     LinearFemSimulation,
     LinearFemSimulationHeadless,
 )
-from femflow.simulation.mpm_simulation import MPMSimulation
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer import Visualizer
 
@@ -19,7 +18,7 @@ logger.add("femflow.log", mode="w+")
 
 
 @app.command()
-def calibrate(type: str):
+def calibrate(type: str, opt=typer.Option(0, "--camera")):
     """Calibrate with type "mask" "hsv" or "bb"
 
     Args:
@@ -28,7 +27,7 @@ def calibrate(type: str):
     if type == "mask":
         calibrate_mask()
     elif type == "hsv":
-        calibrate_hsv()
+        calibrate_hsv(int(opt))
     elif type == "bb":
         calibrate_bb()
     else:
@@ -36,7 +35,7 @@ def calibrate(type: str):
 
 
 @app.command()
-def visualize(type: str):
+def visualize(type: str = typer.Argument("fem")):
     """Launches the visualizer
 
     Args:
@@ -46,6 +45,8 @@ def visualize(type: str):
         with Visualizer(LinearFemSimulation()) as visualizer:
             visualizer.launch()
     else:
+        from femflow.simulation.mpm_simulation import MPMSimulation
+
         sim = MPMSimulation()
         sim.simulate(50)
 
@@ -136,5 +137,27 @@ def make_gyroid(
         logger.error("Mesh failed to save")
 
 
+@app.command()
+def list_cameras():
+    import cv2
+
+    dev_port = 0
+    working_ports = []
+    available_ports = []
+    for _ in range(30):
+        camera = cv2.VideoCapture(dev_port)
+        if camera.isOpened():
+            is_reading, img = camera.read()
+            w = camera.get(3)
+            h = camera.get(4)
+            if is_reading:
+                logger.info(f"Port {dev_port} is working and reads images ({h} x {w})")
+                working_ports.append(dev_port)
+        dev_port += 1
+    logger.success(f"Available Ports: {available_ports}")
+    logger.success(f"Working Ports: {working_ports}")
+
+
 if __name__ == "__main__":
     app()
+

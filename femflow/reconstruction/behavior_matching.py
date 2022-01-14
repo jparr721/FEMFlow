@@ -31,7 +31,8 @@ class BehaviorMatching(object):
             except Exception as e:
                 logger.error(f"Failed to parse config: {e}")
 
-        self.stream = VideoStream()
+        # self.stream = VideoStream("enxf2379f07f0e2", resolution=(640, 480))
+        self.stream = VideoStream(2)
         self.mask = np.array([])
         self.frame = np.array([])
 
@@ -133,38 +134,20 @@ class BehaviorMatching(object):
 
         if len(contours) > 0:
             contour = max(contours, key=cv2.contourArea)
-            # for cnt in contours:
+
             x, y, w, h = cv2.boundingRect(contour)
-
             self.current_rectangle_height = h
-
             cv2.rectangle(frame, (x, y), (x + w, y + h), [255, 0, 0], 2)
-            cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
 
-        circles = cv2.HoughCircles(
-            self.mask,
-            cv2.HOUGH_GRADIENT,
-            1,
-            1,
-            param1=100,
-            param2=25,
-            minRadius=0,
-            maxRadius=100,
-        )
+            min_y = np.amin(contour, axis=0)[0][1] * 1.1
 
-        if circles is not None:
-            circles = np.round(circles[0, :]).astype(np.int32)
-            self._save_beam_thickness(circles)
-            for x, y, r in circles:
-                self._save_radius(r)
+            top_contours = np.array([row for row in contour if row[0][1] <= min_y])
+            contours = np.array([row for row in contour if row[0][1] > min_y])
 
-                # The circle
-                cv2.circle(frame, (x, y), r, (0, 0, 255), 2)
+            cv2.drawContours(frame, top_contours, -1, (0, 0, 255), 3)
+            cv2.drawContours(frame, contours, -1, (0, 255, 0), 3)
 
-                # The center
-                cv2.circle(frame, (x, y), 1, (0, 0, 255), 2)
-
-        if cv2.waitKey(10) & 0xFF == ord("s"):
+        if cv2.waitKey(1) & 0xFF == ord("s"):
             logger.info("Saving image mask and source")
             cv2.imwrite(os.path.join(self.mask_directory, "mask.png"), self.mask)
             cv2.imwrite(os.path.join(self.texture_directory, "texture.png"), frame)
