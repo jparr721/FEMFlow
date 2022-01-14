@@ -1,13 +1,15 @@
+import os
+
+import numpy as np
 import typer
 from loguru import logger
-import os
-import numpy as np
 
 from femflow.reconstruction.calibration import calibrate_bb, calibrate_hsv, calibrate_mask
 from femflow.simulation.linear_fem_simulation import (
     LinearFemSimulation,
     LinearFemSimulationHeadless,
 )
+from femflow.simulation.mpm_simulation import MPMSimulation
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer import Visualizer
 
@@ -34,12 +36,18 @@ def calibrate(type: str):
 
 
 @app.command()
-def visualize():
+def visualize(type: str):
     """Launches the visualizer
+
+    Args:
+        type (str): The type of sim to run
     """
-    logger.info("Warming up...")
-    with Visualizer(LinearFemSimulation()) as visualizer:
-        visualizer.launch()
+    if type == "fem":
+        with Visualizer(LinearFemSimulation()) as visualizer:
+            visualizer.launch()
+    else:
+        sim = MPMSimulation()
+        sim.simulate(50)
 
 
 @app.command()

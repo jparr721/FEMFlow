@@ -1,9 +1,17 @@
+from typing import List
+
 import imgui
 import numpy as np
 import taichi as ti
-from solvers.mpm.parameters import MPMParameters
+from loguru import logger
+from tqdm import tqdm
 
 from femflow.numerics.fem import Ev_to_lame_coefficients
+from femflow.solvers.mpm.grid_to_particle import grid_to_particle
+from femflow.solvers.mpm.grid_velocity import grid_velocity
+from femflow.solvers.mpm.parameters import MPMParameters
+from femflow.solvers.mpm.particle import NeoHookeanParticle, make_particle
+from femflow.solvers.mpm.particle_to_grid import particle_to_grid
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 
 ti.init(arch=ti.gpu)
@@ -43,13 +51,13 @@ class MPMSimulationMenu(VisualizerMenu):
 class MPMSimulation(object):
     def __init__(
         self,
-        mass: float,
-        hardening: float,
-        E: float,
-        v: float,
-        gravity: float,
-        dt: float,
-        grid_resolution: int,
+        mass: float = 1.0,
+        hardening: float = 10.0,
+        E: float = 1e4,
+        v: float = 0.2,
+        gravity: float = -200,
+        dt: float = 0.0001,
+        grid_resolution: int = 80,
     ):
         mu, lambda_ = Ev_to_lame_coefficients(E, v)
         self.params = MPMParameters(
@@ -67,15 +75,41 @@ class MPMSimulation(object):
             2,
         )
 
-        self.grid = np.zeros([])
+        self.grid = np.array([])
+        self.particles: List[NeoHookeanParticle] = []
 
         self._initialize()
+        logger.success("Simulation initialized successfully")
+
+    def simulate(self, n_timesteps: int):
+        logger.info("Firing up simulation")
+        gui = ti.GUI()
+        while gui.running and not gui.get_event(gui.ESCAPE):
+            for _ in tqdm(range(n_timesteps)):
+                self._advance()
+            gui.clear(0x112F41)
+            all_particles = []
+            for particle in self.particles:
+                all_particles.append(particle.position)
+            all_particles = np.array(all_particles)
+            gui.circles(all_particles, radius=1.5, color=0xED553B)
+            gui.show()
+
+    def _advance(self):
+        particle_to_grid(self.params, self.particles, self.grid)
+        grid_velocity(self.params, self.grid)
+        grid_to_particle(self.params, self.particles, self.grid)
 
     def _initialize(self):
         self.grid = np.zeros(
             (self.params.grid_resolution + 1, self.params.grid_resolution + 1, 3)
         )
 
-    def advance(self):
-        pass
+        self._add_object(np.array((0.55, 0.45)), 0xED553B)
+        # self._add_object(np.array((0.45, 0.65)), 0xED553B)
+        # self._add_object(np.array((0.55, 0.85)), 0xED553B)
 
+    def _add_object(self, center: np.ndarray, c: int):
+        for _ in range(200):
+            pos = (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
+            self.particles.append(make_particle(pos, np.zeros(2), c))

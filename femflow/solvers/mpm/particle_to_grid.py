@@ -2,6 +2,7 @@ import functools
 from typing import List
 
 import numpy as np
+from loguru import logger
 from scipy.linalg import polar
 
 from .parameters import MPMParameters
@@ -88,12 +89,12 @@ def particle_to_grid(
     grid[:, :, :] = 0
 
     for p in particles:
-        cell_index = np.floor(p.position * params.grid_resolution - nvec(0.5)).astype(
-            np.int32
-        )
+        cell_index = (p.position * params.grid_resolution - nvec(0.5)).astype(np.int64)
 
         # fx
-        cell_difference = p.position * params.grid_resolution - cell_index
+        cell_difference = p.position * params.grid_resolution - cell_index.astype(
+            np.float64
+        )
 
         # Weight value w_p
         weights = quadric_kernel(cell_difference)
@@ -105,17 +106,27 @@ def particle_to_grid(
         affine = fixed_corotated_stress(params, p)
 
         # For all particles, map to grid and compute mass and momentum
-        for i in range(3):
-            for j in range(3):
-                # w_i_p The weight for the grid cell of this particle
-                weight = weights[i][0] * weights[j][1]
+        try:
+            for i in range(3):
+                for j in range(3):
+                    # w_i_p The weight for the grid cell of this particle
+                    weight = weights[i][0] * weights[j][1]
 
-                dpos = (np.array((i, j)) - cell_difference) * params.dx
+                    dpos = (np.array((i, j)) - cell_difference) * params.dx
 
-                # Compute the translational momentum of the particle
-                mv = np.array((*(p.velocity * p.mass), p.mass))
+                    # Compute the translational momentum of the particle
+                    mv = np.array((*(p.velocity * p.mass), p.mass))
 
-                # Compute the density for this particle in relation to the others
-                grid[cell_index[0] + i, cell_index[1] + j] += weight * (
-                    mv + np.array((*np.dot(affine, dpos), 0))
-                )
+                    # Compute the density for this particle in relation to the others
+                    grid[cell_index[0] + i, cell_index[1] + j] += weight * (
+                        mv + np.array((*np.dot(affine, dpos), 0))
+                    )
+        except Exception as e:
+            logger.error(f"Found an error: {e}")
+            logger.debug(f"Cell index: {cell_index}")
+
+            logger.debug("Loading broken particles...")
+            for i, particle in enumerate(particles):
+                if particle.position[0] > 1 or particle.position[1] > 1:
+                    logger.debug(f"Particle: {particle}")
+                    logger.debug(f"Index {i}")

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Union
 
 import numpy as np
 
@@ -23,14 +24,14 @@ class NeoHookeanParticle(object):
     # J_p, determinant of the deformation gradient
     volume: float
 
-    color: np.ndarray
+    color: Union[int, np.ndarray]
 
     # Lame's coefficients for the neo-hookean model
     lambda_: float
     mu: float
 
 
-def make_particle(x: np.ndarray, v: np.ndarray, c: np.ndarray):
+def make_particle(x: np.ndarray, v: np.ndarray, c: Union[np.ndarray, int]):
     return NeoHookeanParticle(
         position=x,
         mass=1,

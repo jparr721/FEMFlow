@@ -16,12 +16,12 @@ def grid_to_particle(
     nvec = functools.partial(np.full, params.dimensions)
 
     for p in particles:
-        cell_index = np.floor(p.position * params.grid_resolution - nvec(0.5)).astype(
-            np.int32
-        )
+        cell_index = (p.position * params.grid_resolution - nvec(0.5)).astype(np.int64)
 
         # fx
-        cell_difference = p.position * params.grid_resolution - cell_index
+        cell_difference = p.position * params.grid_resolution - cell_index.astype(
+            np.float64
+        )
 
         # Weight value w_p
         weights = quadric_kernel(cell_difference)
@@ -48,7 +48,9 @@ def grid_to_particle(
                 # Update the affine motion term via B_p
                 # Eqn 176. B_p = sum(w_i_p * v_i * (x_i - x_p)^T
                 inv_dx = params.grid_resolution
-                p.affine_momentum += 4 * inv_dx * np.outer(weight * grid_velocity, dpos)
+                p.affine_momentum += (
+                    4 * inv_dx * np.outer(np.dot(weight, grid_velocity), dpos)
+                )
 
         # Advection step
         p.position += params.dt * p.velocity
