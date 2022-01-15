@@ -56,7 +56,7 @@ class MPMSimulation(object):
         E: float = 1e4,
         v: float = 0.2,
         gravity: float = -200.0,
-        dt: float = 0.0001,
+        dt: float = 1e-4,
         grid_resolution: int = 80,
     ):
         mu, lambda_ = Ev_to_lame_coefficients(E, v)
@@ -73,6 +73,7 @@ class MPMSimulation(object):
             1 / grid_resolution,
             grid_resolution,
             2,
+            False,
         )
 
         self.grid = np.array([])
@@ -82,11 +83,18 @@ class MPMSimulation(object):
         logger.success("Simulation initialized successfully")
 
     def simulate(self, n_timesteps: int):
+        total_steps = 0
         logger.info("Firing up simulation")
         gui = ti.GUI()
         while gui.running and not gui.get_event(gui.ESCAPE):
             for _ in tqdm(range(n_timesteps)):
+                total_steps += 1
+                # if total_steps >= 620:
+                #     self.params.debug = True
+                # if self.params.debug:
+                #     logger.debug(f"TIMESTEP: {total_steps}")
                 self._advance()
+
             gui.clear(0x112F41)
             gui.rect(
                 np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F
@@ -106,7 +114,8 @@ class MPMSimulation(object):
     def _initialize(self):
         # Grid Layout is nxnx3 where each entry is [velocity_x, velocity_y, mass]
         self.grid = np.zeros(
-            (self.params.grid_resolution + 1, self.params.grid_resolution + 1, 3)
+            (self.params.grid_resolution + 1, self.params.grid_resolution + 1, 3),
+            dtype=np.float64,
         )
 
         self._add_object(np.array((0.55, 0.45)), 0xED553B)

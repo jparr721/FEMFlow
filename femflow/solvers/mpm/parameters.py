@@ -19,3 +19,6 @@ class MPMParameters(object):
 
     grid_resolution: int
     dimensions: int
+
+    # Turn on debug mode
+    debug: bool

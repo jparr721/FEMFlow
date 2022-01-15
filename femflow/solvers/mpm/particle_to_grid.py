@@ -3,7 +3,8 @@ from typing import List
 
 import numpy as np
 from loguru import logger
-from scipy.linalg import polar
+
+from femflow.numerics.linear_algebra import polar_decomp
 
 from .parameters import MPMParameters
 from .particle import NeoHookeanParticle
@@ -56,7 +57,7 @@ def fixed_corotated_stress(params: MPMParameters, particle: NeoHookeanParticle):
     current_volume = np.linalg.det(particle.deformation_gradient)
 
     # F = r, s; Rotation Matrix and Symmetric Matrix
-    r, _ = polar(particle.deformation_gradient)
+    r, _ = polar_decomp(particle.deformation_gradient)
 
     # Cauchy stress
     PF = np.matmul(
@@ -89,6 +90,11 @@ def particle_to_grid(
     grid[:, :, :] = 0
 
     for p in particles:
+        if params.debug:
+            logger.debug(f"Before: {p}")
+            logger.debug(
+                f"Grid Stats Before: {grid.max()} {len(grid.nonzero())} {grid.min()}"
+            )
         cell_index = (p.position * params.grid_resolution - nvec(0.5)).astype(np.int64)
 
         # fx
@@ -113,9 +119,14 @@ def particle_to_grid(
                     weight = weights[i][0] * weights[j][1]
 
                     dpos = (np.array((i, j)) - cell_difference) * params.dx
+                    vxy = p.velocity * p.mass
+
+                    assert len(vxy) == params.dimensions
 
                     # Compute the translational momentum of the particle
-                    mv = np.array((*(p.velocity * p.mass), p.mass))
+                    mv = np.array((vxy[0], vxy[1], p.mass))
+
+                    affinexdx = np.dot(affine, dpos)
 
                     # Compute the density for this particle in relation to the others
                     grid[cell_index[0] + i, cell_index[1] + j] += weight * (
@@ -126,3 +137,8 @@ def particle_to_grid(
             logger.debug(f"Cell index: {cell_index}")
             logger.debug(f"Particle: {p}")
             exit(1)
+        if params.debug:
+            logger.debug(f"After: {p}")
+            logger.debug(
+                f"Grid Stats After: {grid.max()} {len(grid.nonzero())} {grid.min()}"
+            )

@@ -2,6 +2,7 @@ import functools
 from typing import List
 
 import numpy as np
+from loguru import logger
 
 from femflow.numerics.linear_algebra import svd_2d
 
@@ -16,6 +17,11 @@ def grid_to_particle(
     nvec = functools.partial(np.full, params.dimensions)
 
     for p in particles:
+        if params.debug:
+            logger.warning(f"Before: {p}")
+            logger.warning(
+                f"Grid Stats Before: {grid.max()} {len(grid.nonzero())} {grid.min()}"
+            )
         cell_index = (p.position * params.grid_resolution - nvec(0.5)).astype(np.int64)
 
         # fx
@@ -41,16 +47,16 @@ def grid_to_particle(
                 # w_i_p The weight for the grid cell of this particle
                 weight = weights[i][0] * weights[j][1]
 
+                wxgv = weight * grid_velocity
+
                 # Update the velocity term, v_p
                 # Eqn 175. v_p = sum(w_i_p * v_i)
-                p.velocity += weight * grid_velocity
+                p.velocity += wxgv
 
                 # Update the affine motion term via B_p
-                # Eqn 176. B_p = sum(w_i_p * v_i * (x_i - x_p)^T
+                # Eqn 176. B_p = sum(w_i_p * v_i * (x_i - x_p)^T)
                 inv_dx = params.grid_resolution
-                p.affine_momentum += (
-                    4 * inv_dx * np.outer(np.dot(weight, grid_velocity), dpos)
-                )
+                p.affine_momentum += 4 * inv_dx * np.outer(wxgv, dpos)
 
         # Advection step
         p.position += params.dt * p.velocity
@@ -75,3 +81,8 @@ def grid_to_particle(
         p.volume = J_p_new
         p.deformation_gradient = F
 
+        if params.debug:
+            logger.warning(f"After: {p}")
+            logger.warning(
+                f"Grid Stats After: {grid.max()} {len(grid.nonzero())} {grid.min()}"
+            )

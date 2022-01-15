@@ -2,7 +2,7 @@ from collections import namedtuple
 from typing import Any, List, Tuple, Union
 
 import numpy as np
-from scipy.linalg import expm, polar
+from scipy.linalg import expm
 from scipy.sparse.csr import csr_matrix
 from scipy.spatial.transform import Rotation as R
 
@@ -76,6 +76,17 @@ def fast_diagonal_inverse(mat: csr_matrix):
         mat[i, i] = 1 / mat[i, i]
 
 
+def polar_decomp(m: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    x = m[0, 0] + m[1, 1]
+    y = m[1, 0] - m[0, 1]
+    scale = 1.0 / np.sqrt(x * x + y * y)
+    c = x * scale
+    s = y * scale
+    r = np.array([[c, -s], [s, c]])
+    s = r.T * m
+    return r, s
+
+
 SVD = namedtuple("SVD", ["u", "sigma", "v"])
 
 
@@ -93,12 +104,12 @@ def svd_2d(m: np.ndarray) -> SVD:
     """
     sig = np.zeros((2, 2))
     v = np.zeros((2, 2))
-    s, u = polar(m)
+    u, s = polar_decomp(m)
 
     c = 0
     s_ = 0
 
-    if abs(s[0, 1]) < 1e-6:
+    if abs(s[0, 1]) < 1e-5:
         sig = s.copy()
         c = 1
         s_ = 0
