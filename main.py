@@ -48,6 +48,7 @@ def visualize(type: str = typer.Argument("fem")):
         from femflow.simulation.mpm_simulation import MPMSimulation
 
         sim = MPMSimulation()
+        # sim.simulate(630)
         sim.simulate(50)
 
 

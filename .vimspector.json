@@ -52,7 +52,7 @@
         "python": "/home/nightmare/anaconda3/envs/femflow/bin/python3",
         "stopOnEntry": false,
         "console": "integratedTerminal",
-        "args": ["visualize"]
+        "args": ["visualize", "mpm"]
       },
       "breakpoints": {
         "exception": {

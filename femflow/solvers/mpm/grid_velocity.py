@@ -4,16 +4,14 @@ from .parameters import MPMParameters
 
 
 def grid_velocity(params: MPMParameters, grid: np.ndarray):
-    for i in range(params.grid_resolution):
-        for j in range(params.grid_resolution):
-            g = grid[i, j]
-
-            if g[2] > 0:
+    for i in range(grid.shape[0]):
+        for j in range(grid.shape[1]):
+            if grid[i, j][2] > 0:
                 # Normalize the grid item by the mass
-                g /= g[2]
+                grid[i, j] /= grid[i, j][2]
 
                 # Apply gravity
-                g += params.dt * np.array((0, params.gravity, 0))
+                grid[i, j] += params.dt * np.array((0, params.gravity, 0))
 
                 boundary = 0.05
 
@@ -23,8 +21,8 @@ def grid_velocity(params: MPMParameters, grid: np.ndarray):
 
                 if x < boundary or x > 1 - boundary or y > 1 - boundary:
                     # Stop the particle at this grid cell
-                    g = np.zeros(3)
+                    grid[i, j] = np.zeros(3)
 
                 # Don't let the objects go under
                 if y < boundary:
-                    g[1] = max(0, g[1])
+                    grid[i, j][1] = max(0, grid[i, j][1])

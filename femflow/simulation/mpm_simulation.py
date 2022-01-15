@@ -55,7 +55,7 @@ class MPMSimulation(object):
         hardening: float = 10.0,
         E: float = 1e4,
         v: float = 0.2,
-        gravity: float = -200,
+        gravity: float = -200.0,
         dt: float = 0.0001,
         grid_resolution: int = 80,
     ):
@@ -88,6 +88,9 @@ class MPMSimulation(object):
             for _ in tqdm(range(n_timesteps)):
                 self._advance()
             gui.clear(0x112F41)
+            gui.rect(
+                np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F
+            )
             all_particles = []
             for particle in self.particles:
                 all_particles.append(particle.position)
@@ -101,6 +104,7 @@ class MPMSimulation(object):
         grid_to_particle(self.params, self.particles, self.grid)
 
     def _initialize(self):
+        # Grid Layout is nxnx3 where each entry is [velocity_x, velocity_y, mass]
         self.grid = np.zeros(
             (self.params.grid_resolution + 1, self.params.grid_resolution + 1, 3)
         )
@@ -110,6 +114,6 @@ class MPMSimulation(object):
         # self._add_object(np.array((0.55, 0.85)), 0xED553B)
 
     def _add_object(self, center: np.ndarray, c: int):
-        for _ in range(200):
-            pos = (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
-            self.particles.append(make_particle(pos, np.zeros(2), c))
+        for _ in range(1):
+            # pos = (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
+            self.particles.append(make_particle(center, np.zeros(2), c))

@@ -61,7 +61,7 @@ def fixed_corotated_stress(params: MPMParameters, particle: NeoHookeanParticle):
     # Cauchy stress
     PF = np.matmul(
         2 * particle.mu * (particle.deformation_gradient - r),
-        particle.deformation_gradient
+        particle.deformation_gradient.T
         + particle.lambda_ * (current_volume - 1) * current_volume,
     )
 
@@ -124,9 +124,5 @@ def particle_to_grid(
         except Exception as e:
             logger.error(f"Found an error: {e}")
             logger.debug(f"Cell index: {cell_index}")
-
-            logger.debug("Loading broken particles...")
-            for i, particle in enumerate(particles):
-                if particle.position[0] > 1 or particle.position[1] > 1:
-                    logger.debug(f"Particle: {particle}")
-                    logger.debug(f"Index {i}")
+            logger.debug(f"Particle: {p}")
+            exit(1)
