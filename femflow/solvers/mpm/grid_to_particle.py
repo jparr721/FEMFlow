@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 from loguru import logger
 
-from femflow.numerics.linear_algebra import svd_2d
+from femflow.numerics.linear_algebra import svd
 
 from .parameters import MPMParameters
 from .particle import NeoHookeanParticle
@@ -41,8 +41,7 @@ def grid_to_particle(
                 # (x_i - x_p)^T
                 dpos = np.array((i, j)) - cell_difference
 
-                grid_velocity = grid[cell_index[0] + i, cell_index[1] + j]
-                grid_velocity = grid_velocity[:2]
+                grid_velocity = grid[cell_index[0] + i, cell_index[1] + j][:2]
 
                 # w_i_p The weight for the grid cell of this particle
                 weight = weights[i][0] * weights[j][1]
@@ -57,6 +56,7 @@ def grid_to_particle(
                 # Eqn 176. B_p = sum(w_i_p * v_i * (x_i - x_p)^T)
                 inv_dx = params.grid_resolution
                 p.affine_momentum += 4 * inv_dx * np.outer(wxgv, dpos)
+                print(p.affine_momentum)
 
         # Advection step
         p.position += params.dt * p.velocity
@@ -67,7 +67,7 @@ def grid_to_particle(
             p.deformation_gradient,
         )
 
-        U, sig, V = svd_2d(F)
+        U, sig, V = svd(F)
 
         # Snow plasticity
         for i in range(params.dimensions):

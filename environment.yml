@@ -16,7 +16,7 @@ dependencies:
   - brotlipy=0.7.0
   - brunsli=0.1
   - bzip2=1.0.8
-  - ca-certificates=2021.10.8
+  - ca-certificates=2021.10.26
   - certifi=2021.10.8
   - cffi=1.15.0
   - charls=2.2.0
@@ -39,6 +39,8 @@ dependencies:
   - imagecodecs=2021.4.28
   - imageio=2.9.0
   - importlib-metadata=4.8.2
+  - iniconfig=1.1.1
+  - isort=5.9.3
   - jax=0.2.26
   - jaxlib=0.1.75
   - jpeg=9d
@@ -93,13 +95,16 @@ dependencies:
   - pathspec=0.7.0
   - pillow=8.3.1
   - pip=21.3.1
+  - pluggy=1.0.0
   - pooch=1.5.2
+  - py=1.10.0
   - pycodestyle=2.7.0
   - pycparser=2.21
   - pyflakes=2.3.1
   - pyopenssl=21.0.0
   - pyparsing=3.0.6
   - pysocks=1.7.1
+  - pytest=6.2.5
   - python=3.9.9
   - python-dateutil=2.8.2
   - python-flatbuffers=2.0
@@ -124,6 +129,7 @@ dependencies:
   - toolz=0.11.2
   - tqdm=4.62.3
   - typed-ast=1.5.1
+  - typing_extensions=3.10.0.2
   - tzdata=2021e
   - urllib3=1.26.7
   - wheel=0.37.1
@@ -135,7 +141,10 @@ dependencies:
   - zlib=1.2.11
   - zstd=1.4.9
   - pip:
+    - astor==0.8.1
+    - dill==0.3.4
     - glfw==2.5.0
+    - goprocam==4.2.0
     - greenlet==1.1.2
     - ilupp==1.0.2
     - imgui==1.4.1
@@ -146,6 +155,8 @@ dependencies:
     - pynvim==0.4.3
     - pyopengl==3.1.5
     - pyopengl-accelerate==3.1.5
+    - sourceinspect==0.0.4
+    - taichi==0.8.9
     - typer==0.4.0
     - typing-extensions==4.0.1
 prefix: /home/nightmare/anaconda3/envs/femflow

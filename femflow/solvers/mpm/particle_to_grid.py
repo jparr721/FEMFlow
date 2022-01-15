@@ -44,7 +44,7 @@ def fixed_corotated_stress(params: MPMParameters, particle: NeoHookeanParticle):
 
     Where mu and lambda are our neo-hookean material coefficients, J is the
     jacobian, F is the deformation gradient, and R is the rotation component
-    from the polar decomposition of the deformation gradient. This gives us out
+    from the polar decomposition of the deformation gradient. This gives us our
     co-rotated stress responses in the snow plasticity model.
 
     Args:
@@ -58,6 +58,15 @@ def fixed_corotated_stress(params: MPMParameters, particle: NeoHookeanParticle):
 
     # F = r, s; Rotation Matrix and Symmetric Matrix
     r, _ = polar_decomp(particle.deformation_gradient)
+
+    # print("F:", particle.deformation_gradient)
+    # print("r:", r)
+
+    PF_lhs = np.dot(
+        2 * particle.mu * (particle.deformation_gradient - r),
+        particle.deformation_gradient,
+    )
+    PF_rhs = particle.lambda_ * (current_volume - 1) * current_volume
 
     # Cauchy stress
     PF = np.matmul(
@@ -128,9 +137,11 @@ def particle_to_grid(
 
                     affinexdx = np.dot(affine, dpos)
 
+                    assert len(affinexdx) == 2
+
                     # Compute the density for this particle in relation to the others
                     grid[cell_index[0] + i, cell_index[1] + j] += weight * (
-                        mv + np.array((*np.dot(affine, dpos), 0))
+                        mv + np.array((affinexdx[0], affinexdx[1], 0))
                     )
         except Exception as e:
             logger.error(f"Found an error: {e}")
