@@ -59,15 +59,6 @@ def fixed_corotated_stress(params: MPMParameters, particle: NeoHookeanParticle):
     # F = r, s; Rotation Matrix and Symmetric Matrix
     r, _ = polar_decomp(particle.deformation_gradient)
 
-    # print("F:", particle.deformation_gradient)
-    # print("r:", r)
-
-    PF_lhs = np.dot(
-        2 * particle.mu * (particle.deformation_gradient - r),
-        particle.deformation_gradient,
-    )
-    PF_rhs = particle.lambda_ * (current_volume - 1) * current_volume
-
     # Cauchy stress
     PF = np.matmul(
         2 * particle.mu * (particle.deformation_gradient - r),
@@ -99,11 +90,6 @@ def particle_to_grid(
     grid[:, :, :] = 0
 
     for p in particles:
-        if params.debug:
-            logger.debug(f"Before: {p}")
-            logger.debug(
-                f"Grid Stats Before: {grid.max()} {len(grid.nonzero())} {grid.min()}"
-            )
         cell_index = (p.position * params.grid_resolution - nvec(0.5)).astype(np.int64)
 
         # fx
@@ -121,35 +107,24 @@ def particle_to_grid(
         affine = fixed_corotated_stress(params, p)
 
         # For all particles, map to grid and compute mass and momentum
-        try:
-            for i in range(3):
-                for j in range(3):
-                    # w_i_p The weight for the grid cell of this particle
-                    weight = weights[i][0] * weights[j][1]
+        for i in range(3):
+            for j in range(3):
+                # w_i_p The weight for the grid cell of this particle
+                weight = weights[i][0] * weights[j][1]
 
-                    dpos = (np.array((i, j)) - cell_difference) * params.dx
-                    vxy = p.velocity * p.mass
+                dpos = (np.array((i, j)) - cell_difference) * params.dx
+                vxy = p.velocity * p.mass
 
-                    assert len(vxy) == params.dimensions
+                assert len(vxy) == params.dimensions
 
-                    # Compute the translational momentum of the particle
-                    mv = np.array((vxy[0], vxy[1], p.mass))
+                # Compute the translational momentum of the particle
+                mv = np.array((vxy[0], vxy[1], p.mass))
 
-                    affinexdx = np.dot(affine, dpos)
+                affinexdx = np.dot(affine, dpos)
 
-                    assert len(affinexdx) == 2
+                assert len(affinexdx) == 2
 
-                    # Compute the density for this particle in relation to the others
-                    grid[cell_index[0] + i, cell_index[1] + j] += weight * (
-                        mv + np.array((affinexdx[0], affinexdx[1], 0))
-                    )
-        except Exception as e:
-            logger.error(f"Found an error: {e}")
-            logger.debug(f"Cell index: {cell_index}")
-            logger.debug(f"Particle: {p}")
-            exit(1)
-        if params.debug:
-            logger.debug(f"After: {p}")
-            logger.debug(
-                f"Grid Stats After: {grid.max()} {len(grid.nonzero())} {grid.min()}"
-            )
+                # Compute the density for this particle in relation to the others
+                grid[cell_index[0] + i, cell_index[1] + j] += weight * (
+                    mv + np.array((affinexdx[0], affinexdx[1], 0))
+                )

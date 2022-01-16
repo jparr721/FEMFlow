@@ -114,7 +114,7 @@ class MPMSimulation(object):
     def _initialize(self):
         # Grid Layout is nxnx3 where each entry is [velocity_x, velocity_y, mass]
         self.grid = np.zeros(
-            (self.params.grid_resolution, self.params.grid_resolution, 3),
+            (self.params.grid_resolution + 1, self.params.grid_resolution + 1, 3),
             dtype=np.float64,
         )
 
