@@ -120,7 +120,7 @@ def particle_to_grid(
                 # Compute the translational momentum of the particle
                 mv = np.array((vxy[0], vxy[1], p.mass))
 
-                affinexdx = np.dot(affine, dpos)
+                affinexdx = np.matmul(affine, dpos)
 
                 assert len(affinexdx) == 2
 
