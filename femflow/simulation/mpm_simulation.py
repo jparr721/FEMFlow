@@ -7,49 +7,47 @@ from loguru import logger
 from scipy.linalg import polar
 from tqdm import tqdm
 
+from femflow.numerics.fem import Ev_to_lame_coefficients
 from femflow.numerics.linear_algebra import svd
+from femflow.solvers.mpm.grid_to_particle import grid_to_particle
+from femflow.solvers.mpm.grid_velocity import grid_velocity
+from femflow.solvers.mpm.parameters import MPMParameters
+from femflow.solvers.mpm.particle import NeoHookeanParticle, make_particle
+from femflow.solvers.mpm.particle_to_grid import particle_to_grid
+from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 
-# from femflow.numerics.fem import Ev_to_lame_coefficients
-# from femflow.solvers.mpm.grid_to_particle import grid_to_particle
-# from femflow.solvers.mpm.grid_velocity import grid_velocity
-# from femflow.solvers.mpm.parameters import MPMParameters
-# from femflow.solvers.mpm.particle import NeoHookeanParticle, make_particle
-# from femflow.solvers.mpm.particle_to_grid import particle_to_grid
-# from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
-
-
-# ti.init(arch=ti.gpu)
+ti.init(arch=ti.gpu)
 
 
-# class MPMSimulationMenu(VisualizerMenu):
-#     def __init__(self):
-#         name = "MPM Simulation Options"
-#         flags = [imgui.TREE_NODE_DEFAULT_OPEN]
-#         super().__init__(name, flags)
+class MPMSimulationMenu(VisualizerMenu):
+    def __init__(self):
+        name = "MPM Simulation Options"
+        flags = [imgui.TREE_NODE_DEFAULT_OPEN]
+        super().__init__(name, flags)
 
-#         self._register_input("dt", 0.001)
-#         self._register_input("mass", 10)
-#         self._register_input("force", -100)
-#         self._register_input("youngs_modulus", 50000)
-#         self._register_input("poissons_ratio", 0.3)
-#         self._register_input("hardening", 10.0)
-#         self._register_input("grid_resoution", 100)
+        self._register_input("dt", 0.001)
+        self._register_input("mass", 10)
+        self._register_input("force", -100)
+        self._register_input("youngs_modulus", 50000)
+        self._register_input("poissons_ratio", 0.3)
+        self._register_input("hardening", 10.0)
+        self._register_input("grid_resoution", 100)
 
-#     def render(self, **kwargs) -> None:
-#         imgui.text("dt")
-#         self._generate_imgui_input("dt", imgui.input_float)
-#         imgui.text("Mass")
-#         self._generate_imgui_input("mass", imgui.input_float)
-#         imgui.text("Force")
-#         self._generate_imgui_input("force", imgui.input_float)
-#         imgui.text("Youngs Modulus")
-#         self._generate_imgui_input("youngs_modulus", imgui.input_int)
-#         imgui.text("Poissons Ratio")
-#         self._generate_imgui_input("poissons_ratio", imgui.input_float)
-#         imgui.text("Hardening")
-#         self._generate_imgui_input("hardening", imgui.input_float)
-#         imgui.text("Grid Resolution")
-#         self._generate_imgui_input("grid_resolution", imgui.input_int)
+    def render(self, **kwargs) -> None:
+        imgui.text("dt")
+        self._generate_imgui_input("dt", imgui.input_float)
+        imgui.text("Mass")
+        self._generate_imgui_input("mass", imgui.input_float)
+        imgui.text("Force")
+        self._generate_imgui_input("force", imgui.input_float)
+        imgui.text("Youngs Modulus")
+        self._generate_imgui_input("youngs_modulus", imgui.input_int)
+        imgui.text("Poissons Ratio")
+        self._generate_imgui_input("poissons_ratio", imgui.input_float)
+        imgui.text("Hardening")
+        self._generate_imgui_input("hardening", imgui.input_float)
+        imgui.text("Grid Resolution")
+        self._generate_imgui_input("grid_resolution", imgui.input_int)
 
 
 # class MPMSimulation(object):
@@ -159,18 +157,6 @@ particles = []
 grid = np.zeros((n + 1, n + 1, 3))
 
 
-def sqr(v):
-    return pow(v, 2)
-
-
-def vec(v):
-    return np.array([v, v])
-
-
-def mat(v):
-    return np.eye(2) * v
-
-
 def advance(dt: float):
     grid = np.zeros((n + 1, n + 1, 3))
 
@@ -260,7 +246,10 @@ def advance(dt: float):
 
 
 def sim():
-    particles.append(Particle(np.array((0.55, 0.45)), 0xED553B))
+    for _ in range(1):
+        center = np.array((0.55, 0.45))
+        pos = (np.random.rand(2) * 2.0 - vec(1)) * 0.08 + center
+        particles.append(Particle(pos, 0xED553B))
 
     gui = ti.GUI()
     while gui.running and not gui.get_event(gui.ESCAPE):

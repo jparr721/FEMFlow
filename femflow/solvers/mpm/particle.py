@@ -1,45 +1,11 @@
-from dataclasses import dataclass
-from typing import Union
-
 import numpy as np
 
 
-@dataclass
-class NeoHookeanParticle(object):
-    # x
-    position: np.ndarray
-
-    # m
-    mass: float
-
-    # v
-    velocity: np.ndarray
-
-    # Affine Matrix B_p
-    affine_momentum: np.ndarray
-
-    # F
-    deformation_gradient: np.ndarray
-
-    # J_p, determinant of the deformation gradient
-    volume: float
-
-    color: Union[int, np.ndarray]
-
-    # Lame's coefficients for the neo-hookean model
-    lambda_: float
-    mu: float
-
-
-def make_particle(x: np.ndarray, v: np.ndarray, c: Union[np.ndarray, int]):
-    return NeoHookeanParticle(
-        position=x,
-        mass=1,
-        velocity=v,
-        affine_momentum=np.zeros((2, 2)),
-        deformation_gradient=np.eye(2),
-        volume=1,
-        color=c,
-        lambda_=0,
-        mu=0,
-    )
+class Particle(object):
+    def __init__(self, x: np.ndarray, c: int, v=np.zeros(2, dtype=np.float64)):
+        self.x = x
+        self.c = c
+        self.v = v
+        self.F = np.eye(2)
+        self.C = np.zeros(2)
+        self.Jp = 1
