@@ -5,6 +5,7 @@ from typing import Dict, Iterable, Union
 
 import glfw
 import imgui
+import numpy as np
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *

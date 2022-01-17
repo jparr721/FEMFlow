@@ -49,10 +49,6 @@ def visualize(type: str = typer.Argument("fem")):
 
         sim()
 
-        # sim = MPMSimulation()
-        # # sim.simulate(630)
-        # sim.simulate(50)
-
 
 @app.command()
 def headless(
