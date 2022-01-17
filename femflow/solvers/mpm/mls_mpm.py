@@ -1,10 +1,9 @@
 import functools
 from typing import List
 
+import numba as nb
 import numpy as np
 from scipy.linalg import polar
-
-from femflow.numerics.linear_algebra import svd
 
 from .parameters import Parameters
 from .particle import Particle
@@ -20,6 +19,46 @@ def _vec(dim: int, v):
 
 def _mat(dim: int, v):
     return np.eye(dim) * v
+
+
+@nb.njit(parallel=True)
+def _gv_2d(grid_resolution: int, dt: float, gravity: float, grid: np.ndarray):
+    for i in nb.prange(grid_resolution + 1):
+        for j in nb.prange(grid_resolution + 1):
+            if grid[i, j][2] > 0:
+                grid[i, j] /= grid[i, j][2]
+                grid[i, j] += dt * np.array((0, gravity, 0))
+                boundary = 0.05
+                x = i / grid_resolution
+                y = j / grid_resolution
+                if x < boundary or x > 1 - boundary or y > 1 - boundary:
+                    grid[i, j] = np.zeros(3)
+                if y < boundary:
+                    grid[i, j][1] = max(0.0, grid[i, j][1])
+
+
+@nb.njit(parallel=True)
+def _gv_3d(grid_resolution: int, dt: float, gravity: float, grid: np.ndarray):
+    for i in nb.prange(grid_resolution + 1):
+        for j in nb.prange(grid_resolution + 1):
+            for k in nb.prange(grid_resolution + 1):
+                if grid[i, j, k][3] > 0:
+                    grid[i, j, k] /= grid[i, j, k][3]
+                    grid[i, j, k] += dt * np.array((0, gravity, 0, 0))
+                    boundary = 0.05
+                    x = i / grid_resolution
+                    y = j / grid_resolution
+                    z = k / grid_resolution
+                    if (
+                        x < boundary
+                        or x > 1 - boundary
+                        or y > 1 - boundary
+                        or z < boundary
+                        or z > 1 - boundary
+                    ):
+                        grid[i, j, k] = np.zeros(4)
+                    if y < boundary:
+                        grid[i, j, k][1] = max(0.0, grid[i, j, k][1])
 
 
 def solve_mls_mpm_2d(params: Parameters, particles: List[Particle]):
@@ -63,18 +102,7 @@ def solve_mls_mpm_2d(params: Parameters, particles: List[Particle]):
                     mass_x_velocity + np.array((*(np.matmul(affine, dpos)), 0))
                 )
 
-    for i in range(params.grid_resolution + 1):
-        for j in range(params.grid_resolution + 1):
-            if grid[i, j][2] > 0:
-                grid[i, j] /= grid[i, j][2]
-                grid[i, j] += params.dt * np.array((0, params.gravity, 0))
-                boundary = 0.05
-                x = i / params.grid_resolution
-                y = j / params.grid_resolution
-                if x < boundary or x > 1 - boundary or y > 1 - boundary:
-                    grid[i, j] = np.zeros(3)
-                if y < boundary:
-                    grid[i, j][1] = max(0.0, grid[i, j][1])
+    _gv_2d(params.grid_resolution, params.dt, params.gravity, grid)
 
     for p in particles:
         base_coord = (p.x * params.inv_dx - vec(0.5)).astype(int)
@@ -123,7 +151,7 @@ def solve_mls_mpm_3d(params: Parameters, particles: List[Particle]):
             params.grid_resolution + 1,
             params.grid_resolution + 1,
             params.grid_resolution + 1,
-            3,
+            4,
         )
     )
 
@@ -158,24 +186,12 @@ def solve_mls_mpm_3d(params: Parameters, particles: List[Particle]):
                 for k in range(3):
                     dpos = (np.array((i, j, k)) - fx) * params.dx
                     mass_x_velocity = np.array((*(p.v * params.mass), params.mass))
-                    weight = w[i][0] * w[j][1]
-                    grid[base_coord[0] + i, base_coord[1] + j] += weight * (
-                        mass_x_velocity + np.array((*(np.matmul(affine, dpos)), 0))
-                    )
+                    weight = w[i][0] * w[j][1] * w[k][2]
+                    grid[
+                        base_coord[0] + i, base_coord[1] + j, base_coord[2] + k
+                    ] += weight * (mass_x_velocity + np.array((*(affine @ dpos), 0.0)))
 
-    for i in range(params.grid_resolution + 1):
-        for j in range(params.grid_resolution + 1):
-            for k in range(params.grid_resolution + 1):
-                if grid[i, j][2] > 0:
-                    grid[i, j] /= grid[i, j][2]
-                    grid[i, j] += params.dt * np.array((0, params.gravity, 0))
-                    boundary = 0.05
-                    x = i / params.grid_resolution
-                    y = j / params.grid_resolution
-                    if x < boundary or x > 1 - boundary or y > 1 - boundary:
-                        grid[i, j] = np.zeros(3)
-                    if y < boundary:
-                        grid[i, j][1] = max(0.0, grid[i, j][1])
+    _gv_3d(params.grid_resolution, params.dt, params.gravity, grid)
 
     for p in particles:
         base_coord = (p.x * params.inv_dx - vec(0.5)).astype(int)
@@ -193,9 +209,11 @@ def solve_mls_mpm_3d(params: Parameters, particles: List[Particle]):
         for i in range(3):
             for j in range(3):
                 for k in range(3):
-                    dpos = np.array((i, j)) - fx
-                    grid_v = grid[base_coord[0] + i, base_coord[1] + j][:2]
-                    weight = w[i][0] * w[j][1]
+                    dpos = np.array((i, j, k)) - fx
+                    grid_v = grid[
+                        base_coord[0] + i, base_coord[1] + j, base_coord[2] + k
+                    ][:3]
+                    weight = w[i][0] * w[j][1] * w[k][2]
                     p.v += weight * grid_v
                     p.C += 4 * params.inv_dx * np.outer(weight * grid_v, dpos)
 
@@ -205,7 +223,7 @@ def solve_mls_mpm_3d(params: Parameters, particles: List[Particle]):
         U, sig, V = np.linalg.svd(F)
         sig = np.eye(3) * sig
 
-        for i in range(2):
+        for i in range(3):
             sig[i, i] = np.clip(sig[i, i], 1.0 - 2.5e-2, 1.0 + 7.5e-3)
 
         old_J = np.linalg.det(F)

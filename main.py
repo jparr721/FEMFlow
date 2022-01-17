@@ -45,9 +45,10 @@ def visualize(type: str = typer.Argument("fem")):
         with Visualizer(LinearFemSimulation()) as visualizer:
             visualizer.launch()
     else:
-        from femflow.simulation.mpm_simulation import sim
+        from femflow.simulation.mpm_simulation import sim_2d, sim_3d
 
-        sim()
+        sim_2d()
+        # sim_3d()
 
 
 @app.command()

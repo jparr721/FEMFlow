@@ -3,7 +3,7 @@ import numpy as np
 import taichi as ti
 from tqdm import tqdm
 
-from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_2d
+from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_2d, solve_mls_mpm_3d
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.solvers.mpm.particle import Particle
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
@@ -55,8 +55,8 @@ grid_resolution = 80
 parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolution)
 
 
-def sim():
-    for _ in range(1):
+def sim_2d():
+    for _ in range(50):
         center = np.array((0.55, 0.45))
         pos = (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
         particles.append(Particle(pos, 0xED553B))
@@ -72,6 +72,39 @@ def sim():
         for particle in particles:
             all_particles.append(particle.x)
         all_particles = np.array(all_particles)
+        gui.circles(all_particles, radius=1.5, color=0xED553B)
+        gui.show()
+
+
+def sim_3d():
+    def map_position_2d(a: np.ndarray):
+        phi, theta = np.radians(28), np.radians(32)
+
+        a = a - 0.5
+        x, y, z = a[:, 0], a[:, 1], a[:, 2]
+        c, s = np.cos(phi), np.sin(phi)
+        C, S = np.cos(theta), np.sin(theta)
+        x, z = x * c + z * s, z * c - x * s
+        u, v = x, y * C + z * S
+        return np.array([u, v]).swapaxes(0, 1) + 0.5
+
+    for _ in range(1):
+        center = np.array((0.55, 0.45, 0.55))
+        pos = (np.random.rand(3) * 2.0 - np.ones(3)) * 0.08 + center
+        particles.append(Particle(pos, 0xED553B))
+
+    gui = ti.GUI()
+    while gui.running and not gui.get_event(gui.ESCAPE):
+        for _ in tqdm(range(50)):
+            solve_mls_mpm_3d(parameters, particles)
+
+        gui.clear(0x112F41)
+        all_particles = []
+        for particle in particles:
+            all_particles.append(particle.x)
+        all_particles = np.array(all_particles)
+        assert all_particles.shape[1] == 3
+        all_particles = map_position_2d(all_particles)
         gui.circles(all_particles, radius=1.5, color=0xED553B)
         gui.show()
 
