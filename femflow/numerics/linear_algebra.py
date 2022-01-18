@@ -1,7 +1,7 @@
 from collections import namedtuple
-from dataclasses import dataclass
 from typing import Any, List, Tuple, Union
 
+import numba as nb
 import numpy as np
 from scipy.linalg import expm
 from scipy.sparse.csr import csr_matrix
@@ -77,14 +77,15 @@ def fast_diagonal_inverse(mat: csr_matrix):
         mat[i, i] = 1 / mat[i, i]
 
 
-def polar_decomp(m: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+@nb.jit
+def polar_decomp_2d(m: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     x = m[0, 0] + m[1, 1]
     y = m[1, 0] - m[0, 1]
     scale = 1.0 / np.sqrt(x * x + y * y)
     c = x * scale
     s = y * scale
     r = np.array([[c, -s], [s, c]], dtype=np.float64)
-    s = np.matmul(r.T, m)
+    s = r.T @ m
     return r, s
 
 

@@ -42,8 +42,6 @@ class MPMSimulationMenu(VisualizerMenu):
         self._generate_imgui_input("grid_resolution", imgui.input_int)
 
 
-particles = []
-
 mass = 1.0
 volume = 1.0
 hardening = 10.0
@@ -56,23 +54,33 @@ parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolu
 
 
 def sim_2d():
-    for _ in range(50):
-        center = np.array((0.55, 0.45))
-        pos = (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
-        particles.append(Particle(pos, 0xED553B))
+    # for _ in range(50):
+    #     center = np.array((0.55, 0.45))
+    #     pos = (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
+    #     particles.append(Particle(pos, 0xED553B))
+
+    n_particles = 50
+    center = np.array((0.55, 0.45))
+    x = np.array(
+        [
+            (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
+            for _ in range(n_particles)
+        ],
+        dtype=np.float64,
+    )
+    v = np.zeros((n_particles, 2), dtype=np.float64)
+    F = np.array([np.eye(2, dtype=np.float64) for _ in range(n_particles)])
+    C = np.zeros((n_particles, 2, 2), dtype=np.float64)
+    Jp = np.ones((n_particles, 1), dtype=np.float64)
 
     gui = ti.GUI()
     while gui.running and not gui.get_event(gui.ESCAPE):
         for _ in tqdm(range(50)):
-            solve_mls_mpm_2d(parameters, particles)
+            solve_mls_mpm_2d(parameters, x, v, F, C, Jp)
 
         gui.clear(0x112F41)
         gui.rect(np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F)
-        all_particles = []
-        for particle in particles:
-            all_particles.append(particle.x)
-        all_particles = np.array(all_particles)
-        gui.circles(all_particles, radius=1.5, color=0xED553B)
+        gui.circles(x, radius=1.5, color=0xED553B)
         gui.show()
 
 
