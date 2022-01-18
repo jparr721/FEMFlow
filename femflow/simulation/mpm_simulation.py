@@ -54,16 +54,11 @@ parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolu
 
 
 def sim_2d():
-    # for _ in range(50):
-    #     center = np.array((0.55, 0.45))
-    #     pos = (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
-    #     particles.append(Particle(pos, 0xED553B))
-
-    n_particles = 50
+    n_particles = 100
     center = np.array((0.55, 0.45))
     x = np.array(
         [
-            (np.random.rand(2) * 2.0 - np.ones(2)) * 0.08 + center
+            (np.random.rand(2) * 1.2 - np.ones(2)) * 0.08 + center
             for _ in range(n_particles)
         ],
         dtype=np.float64,
