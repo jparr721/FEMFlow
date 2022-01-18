@@ -79,6 +79,9 @@ def sim_2d():
         gui.show()
 
 
+particles = []
+
+
 def sim_3d():
     def map_position_2d(a: np.ndarray):
         phi, theta = np.radians(28), np.radians(32)
@@ -91,7 +94,7 @@ def sim_3d():
         u, v = x, y * C + z * S
         return np.array([u, v]).swapaxes(0, 1) + 0.5
 
-    for _ in range(1):
+    for _ in range(10):
         center = np.array((0.55, 0.45, 0.55))
         pos = (np.random.rand(3) * 2.0 - np.ones(3)) * 0.08 + center
         particles.append(Particle(pos, 0xED553B))

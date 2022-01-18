@@ -81,7 +81,10 @@ def fast_diagonal_inverse(mat: csr_matrix):
 def polar_decomp_2d(m: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     x = m[0, 0] + m[1, 1]
     y = m[1, 0] - m[0, 1]
-    scale = 1.0 / np.sqrt(x * x + y * y)
+    denom = np.sqrt(x * x + y * y)
+    if denom == 0:
+        denom == 1e-6
+    scale = 1.0 / denom
     c = x * scale
     s = y * scale
     r = np.array([[c, -s], [s, c]], dtype=np.float64)
