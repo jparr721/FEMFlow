@@ -181,7 +181,7 @@ def _g2p_2d(
                 C[p] += 4 * inv_dx * np.outer(weight * grid_v, dpos)
 
         x[p] += dt * v[p]
-        F_ = (_mat(2, 1) + dt * C[p]) * F[p]
+        F_ = (_mat(2, 1) + dt * C[p]) @ F[p]
 
         U, sig, V = np.linalg.svd(F_)
         sig = np.clip(sig, 1.0 - 2.5e-2, 1.0 + 7.5e-3)
@@ -316,7 +316,7 @@ def solve_mls_mpm_3d(params: Parameters, particles: List[Particle]):
                     p.C += 4 * params.inv_dx * np.outer(weight * grid_v, dpos)
 
         p.x += params.dt * p.v
-        F = (mat(1) + params.dt * p.C) * p.F
+        F = (mat(1) + params.dt * p.C) @ p.F
 
         U, sig, V = np.linalg.svd(F)
         sig = np.clip(sig, 1.0 - 2.5e-2, 1.0 + 7.5e-3)
