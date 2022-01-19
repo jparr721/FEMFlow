@@ -28,16 +28,16 @@ def _mat(dim: int, v):
 
 @nb.njit
 def _gv_2d(grid_resolution: int, dt: float, gravity: float, grid: np.ndarray):
+    boundary = 0.05
     for i in range(grid_resolution + 1):
         for j in range(grid_resolution + 1):
             if grid[i, j][2] > 0:
-                grid[i, j] /= grid[i, j][2]
-                grid[i, j] += dt * np.array((0, gravity, 0))
-                boundary = 0.05
+                grid[i, j][:2] /= grid[i, j][2]
+                grid[i, j][1] += dt * gravity
                 x = i / grid_resolution
                 y = j / grid_resolution
                 if x < boundary or x > 1 - boundary or y > 1 - boundary:
-                    grid[i, j] = np.zeros(3)
+                    grid[i, j] = 0.0
                 if y < boundary:
                     grid[i, j][1] = max(0.0, grid[i, j][1])
 
@@ -55,7 +55,7 @@ def _gv_3d(
             for k in range(grid_resolution + 1):
                 if grid_mass[i, j, k] > 0:
                     grid_velocity[i, j, k] /= grid_mass[i, j, k]
-                    grid_velocity[i, j, k] += dt * np.array((0, gravity, 0))
+                    grid_velocity[i, j, k][1] += dt * gravity
                     boundary = 0.05
                     x = i / grid_resolution
                     y = j / grid_resolution
@@ -67,7 +67,7 @@ def _gv_3d(
                         or z < boundary
                         or z > 1 - boundary
                     ):
-                        grid_velocity[i, j, k] = np.zeros(3)
+                        grid_velocity[i, j, k] = 0
                     if y < boundary:
                         grid_velocity[i, j, k][1] = max(0.0, grid_velocity[i, j, k][1])
 
@@ -91,14 +91,14 @@ def _p2g_2d(
     model: str = "neo_hookean",
 ):
     for p in range(len(x)):
-        base_coord = (x[p] * inv_dx - _vec(2, 0.5)).astype(np.int64)
+        base_coord = (x[p] * inv_dx - 0.5).astype(np.int64)
         fx = (x[p] * inv_dx - base_coord).astype(np.float64)
 
         w = [0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1) ** 2, 0.5 * (fx - 0.5) ** 2]
 
         e = np.exp(hardening * (1 - Jp[p]))[0]
         if model == "neo_hookean":
-            e = 0.3
+            e = 0.7
         mu = mu_0 * e
         lambda_ = lambda_0 * e
 
@@ -122,7 +122,8 @@ def _p2g_2d(
 
                 adpos = affine @ dpos
                 adpos = np.array((adpos[0], adpos[1], 0))
-                grid[base_coord[0] + i, base_coord[1] + j] += weight * (mv + adpos)
+                grid[base_coord[0] + i, base_coord[1] + j][:2] += weight * (mv + adpos)
+                grid[base_coord[0] + i, base_coord[1] + j][2] += weight * mass
 
 
 @nb.jit
