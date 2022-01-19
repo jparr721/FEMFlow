@@ -88,16 +88,17 @@ def _p2g_2d(
     F: np.ndarray,
     C: np.ndarray,
     Jp: np.ndarray,
+    model: str = "neo_hookean",
 ):
     for p in range(len(x)):
         base_coord = (x[p] * inv_dx - _vec(2, 0.5)).astype(np.int64)
         fx = (x[p] * inv_dx - base_coord).astype(np.float64)
 
-        w_i = _vec(2, 0.5) * sqr(_vec(2, 1.5) - fx)
-        w_j = _vec(2, 0.75) - sqr(fx - _vec(2, 1.0))
-        w_k = _vec(2, 0.5) * sqr(fx - _vec(2, 0.5))
+        w = [0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1) ** 2, 0.5 * (fx - 0.5) ** 2]
 
-        e = np.exp(hardening * (1 - Jp[p]))
+        e = np.exp(hardening * (1 - Jp[p]))[0]
+        if model == "neo_hookean":
+            e = 0.3
         mu = mu_0 * e
         lambda_ = lambda_0 * e
 
@@ -117,20 +118,7 @@ def _p2g_2d(
                 mv = v[p] * mass
                 mv = np.array((mv[0], mv[1], mass))
 
-                weight = 0
-                if i == 0:
-                    weight = w_i[0]
-                elif i == 1:
-                    weight = w_j[0]
-                else:
-                    weight = w_k[0]
-
-                if j == 0:
-                    weight *= w_i[1]
-                elif j == 1:
-                    weight *= w_j[1]
-                else:
-                    weight *= w_k[1]
+                weight = w[i][0] * w[j][1]
 
                 adpos = affine @ dpos
                 adpos = np.array((adpos[0], adpos[1], 0))
@@ -147,14 +135,13 @@ def _g2p_2d(
     F: np.ndarray,
     C: np.ndarray,
     Jp: np.ndarray,
+    model: str = "neo_hookean",
 ):
     for p in range(len(x)):
         base_coord = (x[p] * inv_dx - _vec(2, 0.5)).astype(np.int64)
         fx = x[p] * inv_dx - base_coord.astype(np.float64)
 
-        w_i = _vec(2, 0.5) * sqr(_vec(2, 1.5) - fx)
-        w_j = _vec(2, 0.75) - sqr(fx - _vec(2, 1.0))
-        w_k = _vec(2, 0.5) * sqr(fx - _vec(2, 0.5))
+        w = [0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1) ** 2, 0.5 * (fx - 0.5) ** 2]
 
         C[p] = _mat(2, 0.0)
         v[p] = _vec(2, 0.0)
@@ -163,20 +150,7 @@ def _g2p_2d(
             for j in range(3):
                 dpos = np.array((i, j)) - fx
                 grid_v = grid[base_coord[0] + i, base_coord[1] + j][:2]
-                weight = 0
-                if i == 0:
-                    weight = w_i[0]
-                elif i == 1:
-                    weight = w_j[0]
-                else:
-                    weight = w_k[0]
-
-                if j == 0:
-                    weight *= w_i[1]
-                elif j == 1:
-                    weight *= w_j[1]
-                else:
-                    weight *= w_k[1]
+                weight = w[i][0] * w[j][1]
                 v[p] += weight * grid_v
                 C[p] += 4 * inv_dx * np.outer(weight * grid_v, dpos)
 
@@ -184,7 +158,8 @@ def _g2p_2d(
         F_ = (_mat(2, 1) + dt * C[p]) @ F[p]
 
         U, sig, V = np.linalg.svd(F_)
-        sig = np.clip(sig, 1.0 - 2.5e-2, 1.0 + 7.5e-3)
+        if model == "snow":
+            sig = np.clip(sig, 1.0 - 2.5e-2, 1.0 + 7.5e-3)
         sig = np.eye(2) * sig
 
         old_J = np.linalg.det(F_)
@@ -221,9 +196,10 @@ def solve_mls_mpm_2d(
         F,
         C,
         Jp,
+        params.model,
     )
     _gv_2d(params.grid_resolution, params.dt, params.gravity, grid)
-    _g2p_2d(params.inv_dx, params.dt, grid, x, v, F, C, Jp)
+    _g2p_2d(params.inv_dx, params.dt, grid, x, v, F, C, Jp, params.model)
 
 
 def solve_mls_mpm_3d(params: Parameters, particles: List[Particle]):

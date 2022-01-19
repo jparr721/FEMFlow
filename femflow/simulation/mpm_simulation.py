@@ -1,11 +1,9 @@
 import imgui
 import numpy as np
 import taichi as ti
-from loguru import logger
 from tqdm import tqdm
 
 from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_2d, solve_mls_mpm_3d
-from femflow.solvers.mpm.mls_mpm_neo_hookean import solve_mls_mpm_neo_hookean_2d
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.solvers.mpm.particle import Particle
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
@@ -44,47 +42,6 @@ class MPMSimulationMenu(VisualizerMenu):
         self._generate_imgui_input("grid_resolution", imgui.input_int)
 
 
-def sim_2d_neo_hookean():
-    mass = 1.0
-    volume = 10.0
-    hardening = 10.0
-    E = 1e2
-    nu = 0.3
-    gravity = -0.3
-    dt = 1e-3
-    grid_resolution = 80
-    parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolution)
-    parameters.lambda_0 = 10
-    parameters.mu_0 = 20
-    logger.info(parameters.lambda_0)
-    logger.info(parameters.mu_0)
-
-    n_particles = 100
-    tl = np.array((0.40, 0.50))
-    x = np.linspace(*tl, num=10)
-    y = np.linspace(*tl, num=10)
-
-    all_pts = []
-    for row in x:
-        for col in y:
-            all_pts.append([row, col])
-    x = np.array(all_pts, dtype=np.float64)
-
-    v = np.zeros((n_particles, 2), dtype=np.float64)
-    F = np.array([np.eye(2, dtype=np.float64) for _ in range(n_particles)])
-    C = np.zeros((n_particles, 2, 2), dtype=np.float64)
-
-    gui = ti.GUI()
-    while gui.running and not gui.get_event(gui.ESCAPE):
-        for _ in tqdm(range(50)):
-            solve_mls_mpm_neo_hookean_2d(parameters, x, v, F, C)
-
-        gui.clear(0x112F41)
-        gui.rect(np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F)
-        gui.circles(x, radius=1.5, color=0xED553B)
-        gui.show()
-
-
 mass = 1.0
 volume = 1.0
 hardening = 10.0
@@ -98,14 +55,15 @@ parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolu
 
 def sim_2d():
     n_particles = 100
-    center = np.array((0.55, 0.45))
-    x = np.array(
-        [
-            (np.random.rand(2) * 1.2 - np.ones(2)) * 0.08 + center
-            for _ in range(n_particles)
-        ],
-        dtype=np.float64,
-    )
+    tl = np.array((0.40, 0.50))
+    x = np.linspace(*tl, num=10)
+    y = np.linspace(*tl, num=10)
+
+    all_pts = []
+    for row in x:
+        for col in y:
+            all_pts.append([row, col])
+    x = np.array(all_pts, dtype=np.float64)
     v = np.zeros((n_particles, 2), dtype=np.float64)
     F = np.array([np.eye(2, dtype=np.float64) for _ in range(n_particles)])
     C = np.zeros((n_particles, 2, 2), dtype=np.float64)

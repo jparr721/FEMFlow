@@ -45,11 +45,10 @@ def visualize(type: str = typer.Argument("fem")):
         with Visualizer(LinearFemSimulation()) as visualizer:
             visualizer.launch()
     else:
-        from femflow.simulation.mpm_simulation import sim_2d, sim_2d_neo_hookean, sim_3d
+        from femflow.simulation.mpm_simulation import sim_2d, sim_3d
 
-        # sim_2d_neo_hookean()
-        # sim_2d()
-        sim_3d()
+        sim_2d()
+        # sim_3d()
 
 
 @app.command()

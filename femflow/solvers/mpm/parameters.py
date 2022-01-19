@@ -9,6 +9,7 @@ class Parameters(object):
         gravity: float,
         dt: float,
         grid_resolution: int,
+        model: str = "neo_hookean",
     ):
         self.mass = mass
         self.volume = volume
@@ -27,3 +28,4 @@ class Parameters(object):
         # dx is always 1 / grid_resolution
         self.dx = 1 / grid_resolution
         self.inv_dx = 1 / self.dx
+        self.model = model
