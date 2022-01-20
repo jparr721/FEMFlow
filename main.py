@@ -47,8 +47,8 @@ def visualize(type: str = typer.Argument("fem")):
     else:
         from femflow.simulation.mpm_simulation import sim_2d, sim_3d
 
-        sim_2d()
-        # sim_3d()
+        # sim_2d()
+        sim_3d()
 
 
 @app.command()

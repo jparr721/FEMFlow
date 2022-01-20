@@ -3,7 +3,7 @@ from typing import Any, List, Tuple, Union
 
 import numba as nb
 import numpy as np
-from scipy.linalg import expm
+from scipy.linalg import expm, polar
 from scipy.sparse.csr import csr_matrix
 from scipy.spatial.transform import Rotation as R
 
@@ -79,11 +79,19 @@ def fast_diagonal_inverse(mat: csr_matrix):
 
 @nb.jit
 def polar_decomp_2d(m: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Perform polar decomposition (A=UP) for 2x2 matrix.
+
+    Mathematical concept refers to https://en.wikipedia.org/wiki/Polar_decomposition.
+
+    Args:
+        m (np.ndarray): input 2x2 matrix `m`.
+
+    Returns:
+        Decomposed 2x2 matrices `U` and `P`.
+    """
     x = m[0, 0] + m[1, 1]
     y = m[1, 0] - m[0, 1]
-    denom = np.sqrt(x * x + y * y)
-    if denom == 0:
-        denom == 1e-6
+    denom = np.sqrt(x * x + y * y) + 1e-10
     scale = 1.0 / denom
     c = x * scale
     s = y * scale
@@ -91,11 +99,29 @@ def polar_decomp_2d(m: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     s = r.T @ m
     return r, s
 
+@nb.njit
+def polar_decomp_3d(m: np.ndarray):
+    """Perform polar decomposition (A=UP) for 3x3 matrix.
+
+    Mathematical concept refers to https://en.wikipedia.org/wiki/Polar_decomposition.
+
+    Args:
+        m (np.ndarray): input 3x3 matrix `m`.
+
+    Returns:
+        Decomposed 3x3 matrices `U` and `P`.
+    """
+    w, s, vh = np.linalg.svd(m, full_matrices=False)
+    u = w.dot(vh)
+    # a = up
+    p = (vh.T.conj() * s).dot(vh)
+    return u, p
+
 
 SVD = namedtuple("SVD", ["u", "sigma", "v"])
 
 
-def svd_3d(A: np.ndarray, iters=8) -> SVD:
+def _svd_3d(A: np.ndarray, iters=8) -> SVD:
     """Perform singular value decomposition (A=USV^T) for 3x3 matrix.
     Mathematical concept refers to
     https://en.wikipedia.org/wiki/Singular_value_decomposition.
@@ -1084,7 +1110,7 @@ def _svd_2d(m: np.ndarray) -> SVD:
     Returns:
         SVD: The svd result
     """
-    R, S = polar_decomp(m)
+    R, S = polar_decomp_2d(m)
     c = 0.0
     s = 0.0
     s1 = 0.0
@@ -1121,4 +1147,7 @@ def _svd_2d(m: np.ndarray) -> SVD:
 
 
 def svd(m: np.ndarray) -> SVD:
-    return _svd_2d(m)
+    if m.ndim == 2:
+        return _svd_2d(m)
+    else:
+        return _svd_3d(m)
