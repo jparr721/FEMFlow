@@ -35,19 +35,25 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 
 
 @app.command()
-def visualize(type: str = typer.Argument("fem")):
+def fem():
     """Launches the visualizer
+    """
+    with Visualizer(LinearFemSimulation()) as visualizer:
+        visualizer.launch()
+
+
+@app.command()
+def mpm(type: str = typer.Argument("2d")):
+    """Launches the MPM simulation
 
     Args:
-        type (str): The type of sim to run
+        type (str): 2D or 3D
     """
-    if type == "fem":
-        with Visualizer(LinearFemSimulation()) as visualizer:
-            visualizer.launch()
-    else:
-        from femflow.simulation.mpm_simulation import sim_2d, sim_3d
+    from femflow.simulation.mpm_simulation import sim_2d, sim_3d
 
-        # sim_2d()
+    if type.lower() == "2d":
+        sim_2d()
+    else:
         sim_3d()
 
 

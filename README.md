@@ -8,12 +8,13 @@ Active development. Many things are half baked and bug out.
 To run the _very_ rough visualizer, it's here.
 ```sh
 $ conda env create --file environment.yml
-$ ./scripts/v fem
+$ ./scripts/fem
 ```
 
 ## Run MPM
 The MPM Simulations are quite good and numerically stable, but not ready for ML pipelines yet.
 ```sh
 $ conda env create --file environment.yml
-$ ./scripts/v mpm [--2d, --3d] # Default is 2d
+$ ./scripts/mpm [2d, 3d] # Default is 2d
+# Use ./scripts/mpm --help to list the options
 ```
