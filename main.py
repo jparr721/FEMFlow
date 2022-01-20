@@ -4,14 +4,6 @@ import numpy as np
 import typer
 from loguru import logger
 
-from femflow.reconstruction.calibration import calibrate_bb, calibrate_hsv, calibrate_mask
-from femflow.simulation.linear_fem_simulation import (
-    LinearFemSimulation,
-    LinearFemSimulationHeadless,
-)
-from femflow.viz.mesh import Mesh
-from femflow.viz.visualizer.visualizer import Visualizer
-
 app = typer.Typer(help="FEMFlow simulation runner")
 
 logger.add("femflow.log", mode="w+")
@@ -19,11 +11,18 @@ logger.add("femflow.log", mode="w+")
 
 @app.command()
 def calibrate(type: str, opt=typer.Option(0, "--camera")):
+
     """Calibrate with type "mask" "hsv" or "bb"
 
     Args:
         type (str): The mask type "mask" "hsv" "bb"
     """
+    from femflow.reconstruction.calibration import (
+        calibrate_bb,
+        calibrate_hsv,
+        calibrate_mask,
+    )
+
     if type == "mask":
         calibrate_mask()
     elif type == "hsv":
@@ -38,6 +37,9 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 def fem():
     """Launches the visualizer
     """
+    from femflow.simulation.linear_fem_simulation import LinearFemSimulation
+    from femflow.viz.visualizer.visualizer import Visualizer
+
     with Visualizer(LinearFemSimulation()) as visualizer:
         visualizer.launch()
 
@@ -72,6 +74,9 @@ def headless(
 ):
     """Launches a headless version of the visualizer app
     """
+    from femflow.simulation.linear_fem_simulation import LinearFemSimulationHeadless
+    from femflow.viz.mesh import Mesh
+
     simulation = LinearFemSimulationHeadless(
         "linear_galerkin_headless",
         dt,
@@ -132,6 +137,8 @@ def make_gyroid(
         resolution (float): The resolution of the gyroid
         dimension (int): The dimension of the gyroid (mm)
     """
+    from femflow.viz.mesh import Mesh
+
     mesh = Mesh.from_type(
         "gyroid", amplitude=amplitude, resolution=resolution, dimension=dimension
     )
