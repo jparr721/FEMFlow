@@ -84,8 +84,13 @@ class Renderer(object):
 
         self.phi = 0.0001
         self.r = 10
-        self.light_x = np.cos(self.phi) * self.r
-        self.light_y = np.sin(self.phi) * self.r
+        self.light_pos = np.array(
+            [np.cos(self.phi) * self.r, 5.0, np.sin(self.phi) * self.r]
+        )
+
+    def set_mesh(self, mesh: Mesh):
+        self.mesh = mesh
+        self._wireframe_color = np.zeros(self.mesh.colors.shape)
 
     def destroy(self):
         logger.info("Destorying renderer")
@@ -102,13 +107,12 @@ class Renderer(object):
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
 
-        if self.mesh is not None:
-            if self.render_mode == RenderMode.MESH:
-                self._render_mesh()
-            elif self.render_mode == RenderMode.LINES:
-                self._render_lines()
-            else:
-                self._render_mesh_and_lines()
+        if self.render_mode == RenderMode.MESH:
+            self._render_mesh()
+        elif self.render_mode == RenderMode.LINES:
+            self._render_lines()
+        else:
+            self._render_mesh_and_lines()
 
         self.shader_program.release()
 
@@ -118,9 +122,7 @@ class Renderer(object):
         self.shader_program.set_matrix_uniform(self.projection, camera.projection_matrix)
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
 
-        self.shader_program.set_vector_uniform(
-            self.light, np.array([self.light_x, 5.0, self.light_y])
-        )
+        self.shader_program.set_vector_uniform(self.light, self.light_pos)
         self.shader_program.set_matrix_uniform(
             self.normal_matrix, np.linalg.inv(camera.view_matrix).T
         )

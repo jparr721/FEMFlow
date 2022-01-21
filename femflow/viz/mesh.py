@@ -9,6 +9,7 @@ from femflow.meshing.implicit import gyroid
 from femflow.meshing.loader import load_mesh_file, load_obj_file
 from femflow.numerics.bintensor3 import bintensor3
 from femflow.numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
+from femflow.numerics.linear_algebra import matrix_to_vector, vector_to_matrix
 
 _MESH_TYPES = {"gyroid", "cuboid"}
 
@@ -22,11 +23,11 @@ class Mesh(object):
         colors: np.ndarray = np.array([]),
         normals: np.ndarray = np.array([]),
     ):
-        self.vertices = self.as_vector(vertices).astype(np.float32)
-        self.faces = self.as_vector(faces).astype(np.int32)
-        self.tetrahedra = self.as_vector(tetrahedra)
-        self.normals = self.as_vector(normals)
-        self.colors = self.as_vector(colors)
+        self.vertices = matrix_to_vector(vertices).astype(np.float32)
+        self.faces = matrix_to_vector(faces).astype(np.int32)
+        self.tetrahedra = matrix_to_vector(tetrahedra)
+        self.normals = matrix_to_vector(normals)
+        self.colors = matrix_to_vector(colors)
 
         self.world_coordinates = copy.deepcopy(self.vertices)
 
@@ -43,7 +44,7 @@ class Mesh(object):
             bool: True if saved successfully, false otherwise
         """
         return igl.write_obj(
-            filename, self.as_matrix(self.vertices, 3), self.as_matrix(self.faces, 3)
+            filename, vector_to_matrix(self.vertices, 3), vector_to_matrix(self.faces, 3)
         )
 
     @property
@@ -127,7 +128,7 @@ class Mesh(object):
         self.vertices = mesh.vertices.copy()
         self.faces = mesh.faces.copy()
         self.tetrahedra = np.array([])
-        self.normals = self.as_vector(per_face_normals(v, f))
+        self.normals = matrix_to_vector(per_face_normals(v, f))
         self._set_default_color()
 
     def reload_from_file(self, filename: str) -> None:
@@ -147,27 +148,14 @@ class Mesh(object):
             logger.warning("Mesh is already tetrahedralized")
             return
         v, t, f = tetrahedralize_surface_mesh(
-            self.as_matrix(self.vertices, 3), self.as_matrix(self.faces, 3)
+            vector_to_matrix(self.vertices, 3), vector_to_matrix(self.faces, 3)
         )
-        self.vertices = self.as_vector(v)
-        self.faces = self.as_vector(f)
-        self.tetrahedra = self.as_vector(t)
-        self.normals = self.as_vector(per_face_normals(v, f))
+        self.vertices = matrix_to_vector(v)
+        self.faces = matrix_to_vector(f)
+        self.tetrahedra = matrix_to_vector(t)
+        self.normals = matrix_to_vector(per_face_normals(v, f))
         self._set_default_color()
         self.world_coordinates = copy.deepcopy(self.vertices)
-
-    def as_vector(self, array: np.ndarray) -> np.ndarray:
-        assert array.ndim < 3, "Must be at most 2D"
-        if array.ndim == 2:
-            return array.reshape(-1)
-        else:
-            return array
-
-    def as_matrix(self, array: np.ndarray, cols: int) -> np.ndarray:
-        if array.ndim == 2:
-            return array
-        else:
-            return array.reshape((array.shape[0] // cols, cols))
 
     def _set_default_color(self):
         color = np.array((51.0 / 255.0, 43.0 / 255.0, 33.3 / 255.0))

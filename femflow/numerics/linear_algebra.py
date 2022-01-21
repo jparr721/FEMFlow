@@ -3,10 +3,25 @@ from typing import Any, List, Tuple, Union
 
 import numba as nb
 import numpy as np
-from scipy.linalg import expm, polar
+from scipy.linalg import expm
 from scipy.sparse.csr import csr_matrix
 from scipy.spatial.transform import Rotation as R
 
+
+def matrix_to_vector(mat: np.ndarray) -> np.ndarray:
+    if mat.ndim >= 3:
+        raise ValueError("Must be at most 2D")
+
+    if mat.ndim == 2:
+        return mat.reshape(-1)
+    else:
+        return mat
+
+def vector_to_matrix(vec: np.ndarray, cols: int) -> np.ndarray:
+    if vec.ndim == 2:
+        return vec
+    else:
+        return vec.reshape((vec.shape[0] // cols, cols))
 
 def is_square_matrix(mat: np.ndarray):
     return len(mat.shape) == 2 and mat.shape[0] == mat.shape[1]
