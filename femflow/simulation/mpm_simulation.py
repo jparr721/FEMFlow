@@ -1,3 +1,4 @@
+import os
 import time
 
 import imgui
@@ -173,7 +174,7 @@ def sim_3d():
         return np.array([u, v]).swapaxes(0, 1) + 0.5
 
     tl = np.array((0.4, 0.5))
-    # x = draw_cube_3d(tl, 20)
+    # x = draw_cube_3d(tl, 10)
     x = draw_gyroid_3d(30)
     n_particles = len(x)
     v, F, C, Jp = _make_mpm_objects(n_particles, 3)
@@ -186,6 +187,12 @@ def sim_3d():
             outputs.append(x.copy())
     except Exception as e:
         logger.error(f"Sim crashed out: {e}")
+
+    if not os.path.exists("tmp"):
+        os.mkdir("tmp")
+
+    for i, output in enumerate(outputs):
+        np.save(f"tmp/{i}", output)
 
     ti.init(arch=ti.gpu)
     gui = ti.GUI(res=1024)
