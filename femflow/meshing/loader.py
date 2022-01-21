@@ -2,6 +2,7 @@ from typing import Tuple, Union
 
 import igl
 import numpy as np
+
 from femflow.numerics.geometry import per_face_normals
 
 
@@ -20,8 +21,8 @@ def load_mesh_file(
     if t is None:
         raise ValueError("Mesh file contains no tetrahedra")
 
-    t = t.astype(np.uint32)
-    f = f.astype(np.uint32)
+    t = t.astype(np.int32)
+    f = f.astype(np.int32)
     n = per_face_normals(v, f)
 
     return v, t, n, f
@@ -40,6 +41,6 @@ def load_obj_file(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np
     if n is None:
         n = per_face_normals(v, f)
 
-    f = f.astype(np.uint32)
+    f = f.astype(np.int32)
 
     return v, tc, n, f

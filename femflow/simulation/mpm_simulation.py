@@ -87,7 +87,7 @@ parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolu
 
 def sim_2d():
     tl = np.array((0.40, 0.50))
-    x = draw_cube_2d(tl, 20)
+    x = draw_cube_2d(tl, 15)
     n_particles = len(x)
     v, F, C, Jp = make_mpm_objects(n_particles, 2)
 
