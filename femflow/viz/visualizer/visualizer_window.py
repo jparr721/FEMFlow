@@ -70,5 +70,17 @@ class VisualizerWindow(VisualizerCore):
             raise TypeError(f"Menus must be iterable or menu type, got {type(menus)}")
 
     @abc.abstractmethod
+    def resize(self, parent_width: int, parent_height: int, **kwargs):
+        """Resize a window from the parent width and height optionally including
+        other information via kwargs
+
+        Args:
+            parent_width (int): The parent width
+            parent_height (int): The parent height
+            kwargs: Optional params
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def render(self, **kwargs) -> None:
         raise NotImplementedError()

@@ -1,4 +1,5 @@
 import numpy as np
+from loguru import logger
 
 from femflow.solvers.mpm import three_d
 from femflow.solvers.mpm.two_d import g2p, grid_op, p2g
@@ -83,7 +84,9 @@ def solve_mls_mpm_3d(
         Jp,
         params.model,
     )
+
     three_d.grid_op(
         params.grid_resolution, params.dt, params.gravity, grid_velocity, grid_mass
     )
+
     three_d.g2p(params.inv_dx, params.dt, grid_velocity, x, v, F, C, Jp, params.model)

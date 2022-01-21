@@ -1,3 +1,5 @@
+from typing import List
+
 import glfw
 import imgui
 from imgui.integrations.glfw import GlfwRenderer
@@ -7,7 +9,8 @@ from OpenGL.GL import *
 from ..camera import Camera
 from ..input import Input
 from ..mesh import Mesh
-from ..renderer import Renderer, RenderMode
+from ..renderer import Renderer
+from .visualizer_window import VisualizerWindow
 
 
 class Window(object):
@@ -51,6 +54,8 @@ class Window(object):
 
         self.renderer = Renderer()
         glClearColor(*self.background_color)
+
+        self.windows: List[VisualizerWindow] = []
 
     def __enter__(self):
         return self
@@ -98,6 +103,8 @@ class Window(object):
 
             imgui.new_frame()
 
+            # Render all widows before anything else
+            [window() for window in self.windows]
             self.renderer.render(self.camera)
             imgui.render()
             self.imgui_impl.render(imgui.get_draw_data())
@@ -109,3 +116,7 @@ class Window(object):
         if not obj_file.lower().endswith(".obj"):
             raise ValueError("Only OBJ files are supported")
         self.renderer.mesh = Mesh.from_file(obj_file)
+        self.renderer.mesh.tetrahedralize()
+
+    def add_window(self, window: VisualizerWindow):
+        pass

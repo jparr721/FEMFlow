@@ -108,6 +108,9 @@ def grid(res: np.ndarray) -> np.ndarray:
                 sub[c] = 0
                 sub[c + 1] += 1
         for c in range(len(res)):
-            vertices[i, c] = sub[c] / (res[c] - 1)
+            if res[c] == 1:
+                vertices[i, c] = sub[c] / res[c]
+            else:
+                vertices[i, c] = sub[c] / (res[c] - 1)
         sub[0] += 1
     return vertices
