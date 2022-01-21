@@ -2,7 +2,7 @@ import abc
 from collections.abc import Iterable
 from typing import Dict
 from typing import Iterable as _Iterable
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import imgui
 
@@ -54,6 +54,13 @@ class VisualizerWindow(VisualizerCore):
         imgui.end()
 
     def add_menu(self, menus: Union[VisualizerMenu, _Iterable[VisualizerMenu]]):
+        """Add a new menu to the visualizer window, automatically adds the headings
+        and such.
+
+        Args:
+            menus (Union[VisualizerMenu, _Iterable[VisualizerMenu]]): Single menu
+                or list of menus.
+        """
         if isinstance(menus, Iterable):
             for menu in menus:
                 self.add_menu(menu)

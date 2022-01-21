@@ -24,7 +24,6 @@ class ShaderProgram(object):
         assert shader.build(), "Shader failed to build!"
         self.shaders[shader_type] = shader
         glAttachShader(self.id, shader.id)
-        self.__report_errors()
 
     def link(self):
         glLinkProgram(self.id)
@@ -55,8 +54,3 @@ class ShaderProgram(object):
 
     def uniform_location(self, name: str) -> int:
         return glGetUniformLocation(self.id, name)
-
-    def __report_errors(self):
-        value = glGetProgramInfoLog(self.id)
-        if value:
-            logger.error(value)

@@ -38,7 +38,7 @@ def fem():
     """Launches the visualizer
     """
     from femflow.simulation.linear_fem_simulation import LinearFemSimulation
-    from femflow.viz.visualizer.visualizer import Visualizer
+    from femflow.viz.visualizer.old_visualizer import Visualizer
 
     with Visualizer(LinearFemSimulation()) as visualizer:
         visualizer.launch()

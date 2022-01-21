@@ -1,2 +1,0 @@
-class Scene(object):
-    pass
