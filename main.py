@@ -34,14 +34,20 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 
 
 @app.command()
-def fem():
+def fem(debug: bool = typer.Option(False)):
     """Launches the visualizer
     """
-    from femflow.simulation.linear_fem_simulation import LinearFemSimulation
-    from femflow.viz.visualizer.visualizer import Visualizer
+    if debug:
+        import OpenGL
 
-    with Visualizer(LinearFemSimulation()) as visualizer:
-        visualizer.launch()
+        OpenGL.ERROR_LOGGING = True
+        OpenGL.FULL_LOGGING = True
+    from femflow.viz.models import model_paths
+    from femflow.viz.visualizer.window import Window
+
+    with Window() as window:
+        window.add_mesh(os.path.join(model_paths(), "cube.obj"))
+        window.launch()
 
 
 @app.command()

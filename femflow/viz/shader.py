@@ -9,7 +9,14 @@ class Shader(object):
         self.shader_path = path
 
     def __repr__(self):
-        return "Id: " + repr(self.id) + " Type: " + repr(self.type) + " Path: " + repr(self.shader_path)
+        return (
+            "Id: "
+            + repr(self.id)
+            + " Type: "
+            + repr(self.type)
+            + " Path: "
+            + repr(self.shader_path)
+        )
 
     def build(self) -> bool:
         shader_source = ""

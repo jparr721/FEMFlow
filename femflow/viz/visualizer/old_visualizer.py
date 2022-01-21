@@ -5,7 +5,6 @@ from typing import Dict, Iterable, Union
 
 import glfw
 import imgui
-import numpy as np
 from imgui.integrations.glfw import GlfwRenderer
 from loguru import logger
 from OpenGL.GL import *
@@ -317,17 +316,8 @@ class Visualizer(object):
         if self.sim_parameter_state["capturing"]:
             self.behavior_matching.start_matching()
             shape_capture(
-                radius_converged=self.behavior_matching.radius_convergence_reached,
-                thickness_converged=self.behavior_matching.thickness_convergence_reached,
-                radius=self.behavior_matching.void_radius,
-                thickness=self.behavior_matching.beam_thickness,
                 generate_geometry_cb=generate_geometry_cb,
-                set_initial_height_cb=self.behavior_matching.set_starting_calibrated_rectangle_height,
-                set_ending_height_cb=self.behavior_matching.set_ending_calibrated_rectangle_height,
-                strain_pct=self.behavior_matching.strain_pct,
                 compute_coefficients_cb=compute_coefficients_cb,
-                initial_height=self.behavior_matching.starting_calibrated_rectangle_height,
-                ending_height=self.behavior_matching.ending_calibrated_rectangle_height,
             )
         else:
             self.behavior_matching.stop_matching()

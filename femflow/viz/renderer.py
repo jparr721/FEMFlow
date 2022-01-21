@@ -6,8 +6,6 @@ from loguru import logger
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from femflow.utils.graphics.textures import build_texture
-
 from .camera import Camera
 from .mesh import Mesh
 from .shader_program import ShaderProgram
@@ -21,7 +19,7 @@ VERTEX_SHADER_PATH = os.path.join(
 
 
 def build_vertex_buffer(
-    location: GLint,
+    location: int,
     buffer: GLint,
     stride: int,
     data: np.ndarray,
@@ -57,7 +55,7 @@ class RenderMode(IntEnum):
 
 
 class Renderer(object):
-    def __init__(self, mesh: Mesh, render_mode: RenderMode = RenderMode.MESH):
+    def __init__(self, render_mode: RenderMode = RenderMode.MESH_AND_LINES):
         self.shader_program = make_shader_program(VERTEX_SHADER_PATH, FRAG_SHADER_PATH)
         self.shader_program.bind()
         self.view = self.shader_program.uniform_location("view")
@@ -75,12 +73,10 @@ class Renderer(object):
         self.normal_vbo = glGenBuffers(1)
         self.faces_ibo = glGenBuffers(1)
 
-        self.texture_vbo = glGenTextures(1)
-
         self.shader_program.release()
         self.render_mode = render_mode
 
-        self.mesh: Mesh = mesh
+        self.mesh: Mesh = Mesh()
         self._wireframe_color = np.zeros(self.mesh.colors.shape)
 
         self.rebuild_buffers()
@@ -88,21 +84,19 @@ class Renderer(object):
 
         self.phi = 0.0001
         self.r = 10
-        self.light_x = np.cos(self.phi) * self.r
-        self.light_y = np.sin(self.phi) * self.r
+        self.light_pos = np.array(
+            [np.cos(self.phi) * self.r, 5.0, np.sin(self.phi) * self.r]
+        )
+
+    def set_mesh(self, mesh: Mesh):
+        self.mesh = mesh
+        self._wireframe_color = np.zeros(self.mesh.colors.shape)
 
     def destroy(self):
         logger.info("Destorying renderer")
         self.shader_program.destroy()
         glDeleteBuffers(
-            1,
-            [
-                self.position_vbo,
-                self.color_vbo,
-                self.texture_vbo,
-                self.normal_vbo,
-                self.faces_ibo,
-            ],
+            1, [self.position_vbo, self.color_vbo, self.normal_vbo, self.faces_ibo,],
         )
         glDeleteVertexArrays(1, [self.vao])
 
@@ -113,44 +107,39 @@ class Renderer(object):
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
 
-        if self.mesh is not None:
-            if self.render_mode == RenderMode.MESH:
-                self._render_mesh()
-            elif self.render_mode == RenderMode.LINES:
-                self._render_lines()
-            else:
-                self._render_mesh_and_lines()
+        if self.render_mode == RenderMode.MESH:
+            self._render_mesh()
+        elif self.render_mode == RenderMode.LINES:
+            self._render_lines()
+        else:
+            self._render_mesh_and_lines()
 
         self.shader_program.release()
 
     def resize(self, width: int, height: int, camera: Camera):
-        logger.debug(f"Resizing to width: {width}, height: {height}")
         glViewport(0, 0, width, height)
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.projection, camera.projection_matrix)
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
 
-        self.shader_program.set_vector_uniform(
-            self.light, np.array([self.light_x, 5.0, self.light_y])
-        )
+        self.shader_program.set_vector_uniform(self.light, self.light_pos)
         self.shader_program.set_matrix_uniform(
             self.normal_matrix, np.linalg.inv(camera.view_matrix).T
         )
+
         self.shader_program.release()
 
     def rebuild_buffers(self):
-        # If we have no meshes, we have no data to add
-        if self.mesh:
-            build_vertex_buffer(0, self.position_vbo, 3, self.mesh.vertices)
-            build_vertex_buffer(2, self.color_vbo, 3, self.mesh.colors)
+        build_vertex_buffer(0, self.position_vbo, 3, self.mesh.vertices)
+        build_vertex_buffer(2, self.color_vbo, 3, self.mesh.colors)
 
-            if self.mesh.colors.shape != self._wireframe_color.shape:
-                self._wireframe_color = np.zeros(self.mesh.colors.shape)
+        if self.mesh.colors.shape != self._wireframe_color.shape:
+            self._wireframe_color = np.zeros(self.mesh.colors.shape)
 
-            if self.mesh.normals.size > 0:
-                build_vertex_buffer(1, self.normal_vbo, 3, self.mesh.normals)
+        if self.mesh.normals.size > 0:
+            build_vertex_buffer(1, self.normal_vbo, 3, self.mesh.normals)
 
-            build_index_buffer(self.faces_ibo, self.mesh.faces)
+        build_index_buffer(self.faces_ibo, self.mesh.faces)
 
     def _render_mesh(self):
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)

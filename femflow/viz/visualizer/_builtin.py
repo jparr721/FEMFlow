@@ -30,42 +30,6 @@ class ShapeCaptureExperimentMenu(VisualizerMenu):
         imgui.text("Size (mm)")
         self._generate_imgui_input("size_mm", imgui.input_int, step=1)
 
-        if imgui.button(label="Set Initial Height"):
-            set_initial_height_cb = self._unpack_kwarg(
-                "set_initial_height_cb", callable, **kwargs
-            )
-            set_initial_height_cb()
-            self.initial_height_set = True
-
-        if self.initial_height_set:
-            initial_height = self._unpack_kwarg("initial_height", int, **kwargs)
-            imgui.text(f"Initial Height {initial_height}px")
-            strain_pct = self._unpack_kwarg("strain_pct", float, **kwargs)
-            imgui.text(f"Strain: {strain_pct:.2f}%")
-
-            if imgui.button(label="Set Ending Height"):
-                set_ending_height_cb = self._unpack_kwarg(
-                    "set_ending_height_cb", callable, **kwargs
-                )
-                set_ending_height_cb()
-                self.ending_height_set = True
-
-        if self.ending_height_set:
-            ending_height = self._unpack_kwarg("ending_height", int, **kwargs)
-            imgui.text(f"Ending Height {ending_height}px")
-
-            imgui.text("Prescribed Load (g)")
-            self._generate_imgui_input("prescribed_load_g", imgui.input_float, step=1)
-
-            if imgui.button(label="Compute Coefficients"):
-                compute_coefficients_cb = self._unpack_kwarg(
-                    "compute_coefficients_cb", callable, **kwargs
-                )
-                strain_pct = self._unpack_kwarg("strain_pct", float, **kwargs)
-                compute_coefficients_cb(self.prescribed_load_g, strain_pct, self.size_mm)
-
-        # Maybe add a save function here.
-
 
 class ShapeCaptureConfigMenu(VisualizerMenu):
     def __init__(

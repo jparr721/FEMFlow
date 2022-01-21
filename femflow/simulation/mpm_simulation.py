@@ -1,13 +1,16 @@
+import time
+
 import imgui
 import numpy as np
 import taichi as ti
+from loguru import logger
 from tqdm import tqdm
 
+from femflow.meshing.implicit import gyroid_2d
+from femflow.numerics.geometry import grid
 from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_2d, solve_mls_mpm_3d
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
-
-ti.init(arch=ti.gpu)
 
 
 class MPMSimulationMenu(VisualizerMenu):
@@ -52,6 +55,56 @@ def draw_cube_2d(tl: np.ndarray, n: int = 10) -> np.ndarray:
     return np.array(all_pts, dtype=np.float64)
 
 
+def draw_gyroid_2d(tl: np.ndarray, n: int = 10) -> np.ndarray:
+    g = grid(np.array((40, 40, 40)))
+
+    def _fn(amplitude: float, pos: np.ndarray) -> float:
+        two_pi = (2.0 * np.pi) / amplitude
+        x, y, z = pos
+        return (
+            np.sin(two_pi * x) * np.cos(two_pi * y)
+            + np.sin(two_pi * y) * np.cos(two_pi * z)
+            + np.sin(two_pi * z) * np.cos(two_pi * x)
+            - 0.3
+        )
+
+    inside = np.array([_fn(0.3, row) for row in g])
+    cube = g[inside > 0.3]
+    print(cube)
+    print(cube.shape)
+    return cube
+
+
+def unique(a):
+    order = np.lexsort(a.T)
+    a = a[order]
+    diff = np.diff(a, axis=0)
+    ui = np.ones(len(a), "bool")
+    ui[1:] = (diff != 0).any(axis=1)
+    return a[ui]
+
+
+def draw_gyroid_3d(n: int = 10) -> np.ndarray:
+    g = grid(np.array((n, n, n)))
+
+    def _fn(amplitude: float, pos: np.ndarray) -> float:
+        two_pi = (2.0 * np.pi) / amplitude
+        x, y, z = pos
+        return (
+            np.sin(two_pi * x) * np.cos(two_pi * y)
+            + np.sin(two_pi * y) * np.cos(two_pi * z)
+            + np.sin(two_pi * z) * np.cos(two_pi * x)
+            - 0.3
+        )
+
+    inside = np.array([_fn(0.3, row) for row in g])
+    cube = g[inside > 0.03] * 0.15
+    for row in cube:
+        row[0] += 0.4
+        row[1] += 0.4
+    return cube
+
+
 def draw_cube_3d(tl: np.ndarray, n: int = 10) -> np.ndarray:
     x = np.linspace(*tl, num=n)
     y = np.linspace(*tl, num=n)
@@ -65,7 +118,7 @@ def draw_cube_3d(tl: np.ndarray, n: int = 10) -> np.ndarray:
     return np.array(all_pts, dtype=np.float64)
 
 
-def make_mpm_objects(lenx: int, dim: int):
+def _make_mpm_objects(lenx: int, dim: int):
     v = np.zeros((lenx, dim), dtype=np.float64)
     F = np.array([np.eye(dim, dtype=np.float64) for _ in range(lenx)])
     C = np.zeros((lenx, dim, dim), dtype=np.float64)
@@ -86,20 +139,22 @@ parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolu
 
 
 def sim_2d():
-    tl = np.array((0.40, 0.50))
-    x = draw_cube_2d(tl, 15)
+    tl = np.array((0.4, 0.5))
+    # x = draw_cube_2d(tl, 15)
+    x = draw_gyroid_2d(tl, 20)
+    print(x.shape)
     n_particles = len(x)
-    v, F, C, Jp = make_mpm_objects(n_particles, 2)
+    v, F, C, Jp = _make_mpm_objects(n_particles, 2)
 
-    gui = ti.GUI()
-    while gui.running and not gui.get_event(gui.ESCAPE):
-        for _ in tqdm(range(50)):
-            solve_mls_mpm_2d(parameters, x, v, F, C, Jp)
+    # gui = ti.GUI(res=1024)
+    # while gui.running and not gui.get_event(gui.ESCAPE):
+    #     # for _ in tqdm(range(50)):
+    #     #     solve_mls_mpm_2d(parameters, x, v, F, C, Jp)
 
-        gui.clear(0x112F41)
-        gui.rect(np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F)
-        gui.circles(x, radius=1.5, color=0xED553B)
-        gui.show()
+    #     gui.clear(0x112F41)
+    #     gui.rect(np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F)
+    #     gui.circles(x, radius=1.5, color=0xED553B)
+    #     gui.show()
 
 
 particles = []
@@ -117,18 +172,31 @@ def sim_3d():
         u, v = x, y * C + z * S
         return np.array([u, v]).swapaxes(0, 1) + 0.5
 
-    tl = np.array((0.40, 0.50))
-    x = draw_cube_3d(tl, 5)
+    tl = np.array((0.4, 0.5))
+    # x = draw_cube_3d(tl, 20)
+    x = draw_gyroid_3d(30)
     n_particles = len(x)
-    v, F, C, Jp = make_mpm_objects(n_particles, 3)
+    v, F, C, Jp = _make_mpm_objects(n_particles, 3)
 
-    gui = ti.GUI()
-    while gui.running and not gui.get_event(gui.ESCAPE):
-        for _ in tqdm(range(50)):
+    outputs = [x.copy()]
+    try:
+        pass
+        for _ in tqdm(range(5000)):
             solve_mls_mpm_3d(parameters, x, v, F, C, Jp)
+            outputs.append(x.copy())
+    except Exception as e:
+        logger.error(f"Sim crashed out: {e}")
+
+    ti.init(arch=ti.gpu)
+    gui = ti.GUI(res=1024)
+    i = 0
+    while gui.running and not gui.get_event(gui.ESCAPE):
+        if i >= len(outputs):
+            i = 0
 
         gui.clear(0x112F41)
         gui.rect(np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F)
-        gui.circles(map_position_2d(x), radius=1.5, color=0xED553B)
+        gui.circles(map_position_2d(outputs[i]), radius=1.5, color=0xED553B)
         gui.show()
+        i += 1
 

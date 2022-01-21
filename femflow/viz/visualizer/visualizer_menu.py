@@ -37,6 +37,12 @@ class VisualizerMenu(VisualizerCore):
                 submenu(**kwargs)
 
     def add_submenu(self, menus: Union["VisualizerMenu", Iterable["VisualizerMenu"]]):
+        """Adds a submenu to this menu system
+
+        Args:
+            menus (Union["VisualizerMenu", Iterable["VisualizerMenu"]]): Menu or list of
+                menus.
+        """
         if isinstance(menus, Iterable):
             for menu in menus:
                 self.add_submenu(menu)

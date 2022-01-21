@@ -3,45 +3,15 @@ import copy
 import igl
 import numpy as np
 from loguru import logger
-from PIL import Image
 from scipy.sparse import csr_matrix
 
 from femflow.meshing.implicit import gyroid
 from femflow.meshing.loader import load_mesh_file, load_obj_file
 from femflow.numerics.bintensor3 import bintensor3
 from femflow.numerics.geometry import per_face_normals, tetrahedralize_surface_mesh
+from femflow.numerics.linear_algebra import matrix_to_vector, vector_to_matrix
 
 _MESH_TYPES = {"gyroid", "cuboid"}
-
-
-class Texture(object):
-    """Texture.
-    """
-
-    def __init__(self, data: np.ndarray, tc: np.ndarray, u: int, v: int):
-        """A texture represents a texture for a mesh
-
-        Args:
-            data (np.ndarray): Numpy array containing the data of the texture
-            tc (np.ndarray): The texture cordinates
-            u (int): # U
-            v (int): # V
-        """
-        self.data = data
-        self.tc = tc
-        self.u = u
-        self.v = v
-
-    @property
-    def size(self):
-        return self.data.size
-
-    @staticmethod
-    def from_file(image_file: str):
-        image = Image.open(image_file)
-        data = np.array(image.transpose(Image.FLIP_TOP_BOTTOM).getdata(), dtype=np.uint8)
-        u, v = image.width, image.height
-        return Texture(data, np.array([]), u, v)
 
 
 class Mesh(object):
@@ -52,18 +22,16 @@ class Mesh(object):
         tetrahedra: np.ndarray = np.array([]),
         colors: np.ndarray = np.array([]),
         normals: np.ndarray = np.array([]),
-        textures: Texture = Texture(np.array([]), np.array([]), 0, 0),
     ):
-        self.vertices = self.as_vector(vertices).astype(np.float32)
-        self.faces = self.as_vector(faces).astype(np.int32)
-        self.tetrahedra = self.as_vector(tetrahedra)
-        self.normals = self.as_vector(normals)
-        self.colors = self.as_vector(colors)
-        self.textures = textures
+        self.vertices = matrix_to_vector(vertices).astype(np.float32)
+        self.faces = matrix_to_vector(faces).astype(np.int32)
+        self.tetrahedra = matrix_to_vector(tetrahedra)
+        self.normals = matrix_to_vector(normals)
+        self.colors = matrix_to_vector(colors)
 
         self.world_coordinates = copy.deepcopy(self.vertices)
 
-        if self.textures.size == 0 and self.colors.size == 0:
+        if self.colors.size == 0:
             self._set_default_color()
 
     def save(self, filename: str) -> bool:
@@ -76,7 +44,7 @@ class Mesh(object):
             bool: True if saved successfully, false otherwise
         """
         return igl.write_obj(
-            filename, self.as_matrix(self.vertices, 3), self.as_matrix(self.faces, 3)
+            filename, vector_to_matrix(self.vertices, 3), vector_to_matrix(self.faces, 3)
         )
 
     @property
@@ -91,9 +59,8 @@ class Mesh(object):
     @staticmethod
     def from_file(filename: str) -> "Mesh":
         if filename.lower().endswith(".obj"):
-            v, tc, n, f = load_obj_file(filename)
+            v, _, n, f = load_obj_file(filename)
             mesh = Mesh(vertices=v, normals=n, faces=f)
-            mesh.textures.tc = tc
             return mesh
         elif filename.lower().endswith(".mesh"):
             v, t, n, f = load_mesh_file(filename)
@@ -155,14 +122,13 @@ class Mesh(object):
         self.tetrahedra = mesh.tetrahedra
         self.normals = mesh.normals
         self.colors = mesh.colors
-        self.textures = mesh.textures
 
     def reload_from_surface(self, v: np.ndarray, f: np.ndarray) -> None:
         mesh = Mesh(v, f)
         self.vertices = mesh.vertices.copy()
         self.faces = mesh.faces.copy()
         self.tetrahedra = np.array([])
-        self.normals = self.as_vector(per_face_normals(v, f))
+        self.normals = matrix_to_vector(per_face_normals(v, f))
         self._set_default_color()
 
     def reload_from_file(self, filename: str) -> None:
@@ -172,7 +138,6 @@ class Mesh(object):
         self.tetrahedra = mesh.tetrahedra
         self.normals = mesh.normals
         self.colors = mesh.colors
-        self.textures = mesh.textures
 
     def transform(self, delta: csr_matrix):
         # yay broadcasting!
@@ -183,27 +148,14 @@ class Mesh(object):
             logger.warning("Mesh is already tetrahedralized")
             return
         v, t, f = tetrahedralize_surface_mesh(
-            self.as_matrix(self.vertices, 3), self.as_matrix(self.faces, 3)
+            vector_to_matrix(self.vertices, 3), vector_to_matrix(self.faces, 3)
         )
-        self.vertices = self.as_vector(v)
-        self.faces = self.as_vector(f)
-        self.tetrahedra = self.as_vector(t)
-        self.normals = self.as_vector(per_face_normals(v, f))
+        self.vertices = matrix_to_vector(v)
+        self.faces = matrix_to_vector(f)
+        self.tetrahedra = matrix_to_vector(t)
+        self.normals = matrix_to_vector(per_face_normals(v, f))
         self._set_default_color()
         self.world_coordinates = copy.deepcopy(self.vertices)
-
-    def as_vector(self, array: np.ndarray) -> np.ndarray:
-        assert array.ndim < 3, "Must be at most 2D"
-        if array.ndim == 2:
-            return array.reshape(-1)
-        else:
-            return array
-
-    def as_matrix(self, array: np.ndarray, cols: int) -> np.ndarray:
-        if array.ndim == 2:
-            return array
-        else:
-            return array.reshape((array.shape[0] // cols, cols))
 
     def _set_default_color(self):
         color = np.array((51.0 / 255.0, 43.0 / 255.0, 33.3 / 255.0))
