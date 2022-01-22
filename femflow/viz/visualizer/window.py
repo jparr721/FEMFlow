@@ -9,7 +9,7 @@ from OpenGL.GL import *
 from ..camera import Camera
 from ..input import Input
 from ..mesh import Mesh
-from ..renderer import Renderer
+from ..rendering.fem_renderer import FEMRenderer
 from .visualizer_window import VisualizerWindow
 
 
@@ -52,7 +52,7 @@ class Window(object):
         glfw.set_cursor_pos_callback(self._window, self.mouse_move_callback)
         glfw.set_window_size_callback(self._window, self.window_size_callback)
 
-        self.renderer = Renderer()
+        self.renderer = FEMRenderer()
         glClearColor(*self.background_color)
 
         self.windows: List[VisualizerWindow] = []

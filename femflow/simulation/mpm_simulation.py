@@ -1,5 +1,4 @@
 import os
-import time
 
 import imgui
 import numpy as np
@@ -7,9 +6,8 @@ import taichi as ti
 from loguru import logger
 from tqdm import tqdm
 
-from femflow.meshing.implicit import gyroid_2d
 from femflow.numerics.geometry import grid
-from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_2d, solve_mls_mpm_3d
+from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_3d
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 
@@ -139,23 +137,23 @@ grid_resolution = 80
 parameters = Parameters(mass, volume, hardening, E, nu, gravity, dt, grid_resolution)
 
 
-def sim_2d():
-    tl = np.array((0.4, 0.5))
-    # x = draw_cube_2d(tl, 15)
-    x = draw_gyroid_2d(tl, 20)
-    print(x.shape)
-    n_particles = len(x)
-    v, F, C, Jp = _make_mpm_objects(n_particles, 2)
+# def sim_2d():
+#     tl = np.array((0.4, 0.5))
+#     # x = draw_cube_2d(tl, 15)
+#     x = draw_gyroid_2d(tl, 20)
+#     print(x.shape)
+#     n_particles = len(x)
+#     v, F, C, Jp = _make_mpm_objects(n_particles, 2)
 
-    # gui = ti.GUI(res=1024)
-    # while gui.running and not gui.get_event(gui.ESCAPE):
-    #     # for _ in tqdm(range(50)):
-    #     #     solve_mls_mpm_2d(parameters, x, v, F, C, Jp)
+# gui = ti.GUI(res=1024)
+# while gui.running and not gui.get_event(gui.ESCAPE):
+#     # for _ in tqdm(range(50)):
+#     #     solve_mls_mpm_2d(parameters, x, v, F, C, Jp)
 
-    #     gui.clear(0x112F41)
-    #     gui.rect(np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F)
-    #     gui.circles(x, radius=1.5, color=0xED553B)
-    #     gui.show()
+#     gui.clear(0x112F41)
+#     gui.rect(np.array((0.04, 0.04)), np.array((0.96, 0.96)), radius=2, color=0x4FB99F)
+#     gui.circles(x, radius=1.5, color=0xED553B)
+#     gui.show()
 
 
 particles = []
