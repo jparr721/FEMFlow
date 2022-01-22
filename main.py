@@ -35,7 +35,7 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 
 @app.command()
 def fem(debug: bool = typer.Option(False)):
-    """Launches the visualizer
+    """Launches the FEM simulation
     """
     if debug:
         import OpenGL
@@ -45,24 +45,33 @@ def fem(debug: bool = typer.Option(False)):
     from femflow.viz.models import model_paths
     from femflow.viz.visualizer.window import Window
 
-    with Window() as window:
-        window.add_mesh(os.path.join(model_paths(), "cube.obj"))
+    with Window("fem") as window:
+        window.add_mesh_from_file(os.path.join(model_paths(), "cube.obj"))
         window.launch()
 
 
 @app.command()
-def mpm(type: str = typer.Argument("2d")):
+def mpm(debug: bool = typer.Option(False)):
     """Launches the MPM simulation
-
-    Args:
-        type (str): 2D or 3D
     """
-    from femflow.simulation.mpm_simulation import sim_2d, sim_3d
+    if debug:
+        import OpenGL
 
-    if type.lower() == "2d":
-        sim_2d()
-    else:
-        sim_3d()
+        OpenGL.ERROR_LOGGING = True
+        OpenGL.FULL_LOGGING = True
+    from femflow.simulation.mpm_simulation import MPMSimulationWindow
+    from femflow.viz.visualizer.window import Window
+
+    with Window("mpm") as window:
+        window.add_window(MPMSimulationWindow())
+        window.launch()
+
+    # from femflow.simulation.mpm_simulation import sim_2d, sim_3d
+
+    # if type.lower() == "2d":
+    #     sim_2d()
+    # else:
+    #     sim_3d()
 
 
 @app.command()

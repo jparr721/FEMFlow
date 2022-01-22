@@ -1,10 +1,18 @@
 import numpy as np
-from loguru import logger
 
 from femflow.solvers.mpm import three_d
 from femflow.solvers.mpm.two_d import g2p, grid_op, p2g
 
 from .parameters import Parameters
+
+
+def make_mls_mpm_coefficients(lenx: int, dim: int):
+    v = np.zeros((lenx, dim), dtype=np.float64)
+    F = np.array([np.eye(dim, dtype=np.float64) for _ in range(lenx)])
+    C = np.zeros((lenx, dim, dim), dtype=np.float64)
+    Jp = np.ones((lenx, 1), dtype=np.float64)
+
+    return v, F, C, Jp
 
 
 def solve_mls_mpm_2d(

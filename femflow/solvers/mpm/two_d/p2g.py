@@ -53,7 +53,7 @@ def p2g(
         w = [0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1) ** 2, 0.5 * (fx - 0.5) ** 2]
 
         mu, lambda_ = (
-            constant_hardening(mu_0, lambda_0, 0.7)
+            constant_hardening(mu_0, lambda_0, hardening)
             if model == "neo_hookean"
             else snow_hardening(mu_0, lambda_0, hardening, Jp[p])
         )

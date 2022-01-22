@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 import glfw
 import imgui
@@ -10,11 +10,12 @@ from ..camera import Camera
 from ..input import Input
 from ..mesh import Mesh
 from ..rendering.fem_renderer import FEMRenderer
+from ..rendering.mpm_renderer import MPMRenderer
 from .visualizer_window import VisualizerWindow
 
 
 class Window(object):
-    def __init__(self, title: str = "FEMFlow GUI"):
+    def __init__(self, renderer: str, title: str = "FEMFlow GUI"):
         self.title = title
 
         self.background_color = [1.0, 1.0, 1.0, 0.0]
@@ -52,7 +53,13 @@ class Window(object):
         glfw.set_cursor_pos_callback(self._window, self.mouse_move_callback)
         glfw.set_window_size_callback(self._window, self.window_size_callback)
 
-        self.renderer = FEMRenderer()
+        if renderer.lower() == "fem":
+            self.renderer = FEMRenderer()
+        elif renderer.lower() == "mpm":
+            self.renderer = MPMRenderer()
+        else:
+            raise ValueError(f"Renderer {renderer} is not supported.")
+
         glClearColor(*self.background_color)
 
         self.windows: List[VisualizerWindow] = []
@@ -93,6 +100,7 @@ class Window(object):
         self.window_width = width
         self.window_height = height
         self.renderer.resize(self.window_width, self.window_height, self.camera)
+        [window.resize(self.window_width, self.window_height) for window in self.windows]
 
     def launch(self):
         self.camera.resize(self.window_width, self.window_height)
@@ -112,11 +120,14 @@ class Window(object):
             glfw.swap_buffers(self._window)
         self.renderer.destroy()
 
-    def add_mesh(self, obj_file: str):
+    def add_mesh_from_file(self, obj_file: str):
         if not obj_file.lower().endswith(".obj"):
             raise ValueError("Only OBJ files are supported")
         self.renderer.mesh = Mesh.from_file(obj_file)
         self.renderer.mesh.tetrahedralize()
 
+    def add_mesh(self, mesh: Mesh):
+        self.renderer.mesh = mesh
+
     def add_window(self, window: VisualizerWindow):
-        pass
+        self.windows.append(window)
