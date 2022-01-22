@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import imgui
 import numpy as np
@@ -10,7 +11,34 @@ from femflow.numerics.geometry import grid
 from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_3d
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.mesh import Mesh
+from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 from femflow.viz.visualizer.visualizer_window import VisualizerWindow
+
+
+class MPMSimulationConfigWindow(VisualizerMenu):
+    def __init__(
+        self, name="Sim Config", flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN]
+    ):
+        super().__init__(name, flags)
+        self._register_input("n_timesteps", 500)
+
+    def render(self, **kwargs) -> None:
+        imgui.text("Timestamps")
+        self._generate_imgui_input("n_timesteps", imgui.input_int, step=100)
+
+        if imgui.button(label="Start Sim"):
+            start_sim_button_cb: Callable = self._unpack_kwarg(
+                "start_sim_button_cb", callable, **kwargs
+            )
+            start_sim_button_cb()
+
+        imgui.same_line()
+
+        if imgui.button(label="Reset Sim"):
+            reset_sim_button_cb: Callable = self._unpack_kwarg(
+                "reset_sim_button_cb", callable, **kwargs
+            )
+            reset_sim_button_cb()
 
 
 class MPMSimulationWindow(VisualizerWindow):
@@ -29,6 +57,7 @@ class MPMSimulationWindow(VisualizerWindow):
         self._register_input("grid_resolution", 80)
         self._register_input("model", 0)
         self.model_options = ["neo_hookean", "elastoplastic"]
+        self.add_menu(MPMSimulationConfigWindow())
 
     @property
     def parameters(self):
@@ -46,7 +75,7 @@ class MPMSimulationWindow(VisualizerWindow):
 
     def render(self, **kwargs) -> None:
         imgui.text("dt")
-        self._generate_imgui_input("dt", imgui.input_float)
+        self._generate_imgui_input("dt", imgui.input_float, format="%.6f")
         imgui.text("Mass")
         self._generate_imgui_input("mass", imgui.input_float)
         imgui.text("Volume")
@@ -64,6 +93,9 @@ class MPMSimulationWindow(VisualizerWindow):
         imgui.text("Material Model")
         self._generate_imgui_input("model", imgui.listbox, items=self.model_options)
 
+        if imgui.button("Generate Simulation Model"):
+            self._load_model()
+
     def resize(self, parent_width: int, parent_height: int, **kwargs):
         self.dimensions = (
             int(parent_width * 0.10) if parent_width >= 800 else 140,
@@ -72,7 +104,7 @@ class MPMSimulationWindow(VisualizerWindow):
         self.position = (0, 0)
 
     def _load_model(self):
-        pass
+        print("here")
 
 
 def draw_cube_2d(tl: np.ndarray, n: int = 10) -> np.ndarray:
@@ -100,10 +132,11 @@ def draw_gyroid_3d(n: int = 10) -> Mesh:
         )
 
     inside = np.array([_fn(0.3, row) for row in g])
-    cube = g[inside > 0.03] * 0.15
-    for row in cube:
-        row[0] += 0.4
-        row[1] += 0.4
+    # cube = g[inside > 0.03] * 0.15
+    cube = g[inside > 0.03]
+    # for row in cube:
+    #     row[0] += 0.4
+    #     row[1] += 0.4
     return Mesh(cube)
 
 

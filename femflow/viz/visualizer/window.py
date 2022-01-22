@@ -18,7 +18,7 @@ class Window(object):
     def __init__(self, renderer: str, title: str = "FEMFlow GUI"):
         self.title = title
 
-        self.background_color = [1.0, 1.0, 1.0, 0.0]
+        self.background_color = [0.16, 0.16, 0.16, 0.0]
 
         self.camera = Camera()
         self.input = Input()
