@@ -152,6 +152,9 @@ class Mesh(object):
         # yay broadcasting!
         self.vertices[:] = np.add(self.world_coordinates, delta.toarray().reshape(-1))
 
+    def replace(self, new_positions: np.ndarray):
+        self.vertices[:] = new_positions
+
     def tetrahedralize(self):
         if self.tetrahedra.size > 0:
             logger.warning("Mesh is already tetrahedralized")

@@ -66,14 +66,27 @@ def mpm(debug: bool = typer.Option(False)):
 
         OpenGL.ERROR_LOGGING = True
         OpenGL.FULL_LOGGING = True
-    from femflow.simulation.mpm.gui import MPMSimulationWindow
+    # from femflow.simulation.mpm_simulation import sim_3d
+
+    # sim_3d()
+
+    from femflow.simulation.mpm.gui import MPMDisplacementsWindow, MPMSimulationWindow
     from femflow.simulation.mpm.primitives import generate_implicit_points, gyroid
+    from femflow.simulation.mpm.simulation import MPMSimulation
     from femflow.viz.mesh import Mesh
     from femflow.viz.visualizer.window import Window
 
     with Window("mpm") as window:
-        window.add_window(MPMSimulationWindow())
+        sim = MPMSimulation()
         window.add_mesh(Mesh(generate_implicit_points(gyroid, 0.3, 0.3, 30)))
+        window.add_window(
+            MPMSimulationWindow(),
+            sim_status=sim.loaded,
+            load_sim_cb=sim.load,
+            start_sim_button_cb=sim.start,
+            mesh=window.renderer.mesh,
+        )
+        window.add_window(MPMDisplacementsWindow(), sim=sim)
         window.launch()
 
 

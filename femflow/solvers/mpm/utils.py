@@ -133,3 +133,8 @@ def fixed_corotated_stress_3d(
     # See http://taichi.graphics/wp-content/uploads/2019/03/mls-mpm-cpic.pdf
     # Eqn 29
     return stress + mass * C
+
+
+@nb.njit
+def out_of_bounds_3d(base: np.ndarray, res: int, ijk: np.ndarray = np.zeros(3)):
+    return ((base + ijk) >= res).any() or ((base + ijk) < 0).any()

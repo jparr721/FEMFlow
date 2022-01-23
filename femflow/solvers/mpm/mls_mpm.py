@@ -94,7 +94,12 @@ def solve_mls_mpm_3d(
     )
 
     three_d.grid_op(
-        params.grid_resolution, params.dt, params.gravity, grid_velocity, grid_mass
+        params.grid_resolution,
+        params.dx,
+        params.dt,
+        params.gravity,
+        grid_velocity,
+        grid_mass,
     )
 
     three_d.g2p(params.inv_dx, params.dt, grid_velocity, x, v, F, C, Jp, params.model)

@@ -10,6 +10,7 @@ class Parameters(object):
         dt: float,
         grid_resolution: int,
         model: str = "neo_hookean",
+        tightening_coeff: float = 0.5,
     ):
         self.mass = mass
         self.volume = volume
@@ -29,3 +30,5 @@ class Parameters(object):
         self.dx = 1 / grid_resolution
         self.inv_dx = 1 / self.dx
         self.model = model
+
+        self.tightening_coeff = tightening_coeff

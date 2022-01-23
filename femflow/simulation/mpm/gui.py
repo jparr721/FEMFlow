@@ -2,7 +2,10 @@ from typing import Callable, List
 
 import imgui
 
+from femflow.numerics.linear_algebra import matrix_to_vector
+from femflow.simulation.mpm.simulation import MPMSimulation
 from femflow.solvers.mpm.parameters import Parameters
+from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 from femflow.viz.visualizer.visualizer_window import VisualizerWindow
 
@@ -22,7 +25,7 @@ class MPMSimulationConfigWindow(VisualizerMenu):
             start_sim_button_cb: Callable = self._unpack_kwarg(
                 "start_sim_button_cb", callable, **kwargs
             )
-            start_sim_button_cb()
+            start_sim_button_cb(n_timesteps=self.n_timesteps)
 
         imgui.same_line()
 
@@ -46,8 +49,9 @@ class MPMSimulationWindow(VisualizerWindow):
         self._register_input("youngs_modulus", 1e4)
         self._register_input("poissons_ratio", 0.2)
         self._register_input("hardening", 0.7)
-        self._register_input("grid_resolution", 80)
+        self._register_input("grid_resolution", 64)
         self._register_input("model", 0)
+        self._register_input("tightening_coeff", 0.5)
         self.model_options = ["neo_hookean", "elastoplastic"]
         self.add_menu(MPMSimulationConfigWindow())
 
@@ -59,10 +63,11 @@ class MPMSimulationWindow(VisualizerWindow):
             self.hardening,
             self.youngs_modulus,
             self.poissons_ratio,
-            self.gravity,
+            self.force,
             self.dt,
             self.grid_resolution,
             self.model,
+            self.tightening_coeff,
         )
 
     def render(self, **kwargs) -> None:
@@ -84,9 +89,13 @@ class MPMSimulationWindow(VisualizerWindow):
         self._generate_imgui_input("grid_resolution", imgui.input_int)
         imgui.text("Material Model")
         self._generate_imgui_input("model", imgui.listbox, items=self.model_options)
+        imgui.text("Tightening Coefficient")
+        self._generate_imgui_input("tightening_coeff", imgui.input_float)
 
-        if imgui.button("Generate Simulation Model"):
-            self._load_model()
+        if imgui.button("Load Simulation"):
+            load_sim_cb: Callable = self._unpack_kwarg("load_sim_cb", callable, **kwargs)
+            mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
+            load_sim_cb(parameters=self.parameters, mesh=mesh)
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):
         self.dimensions = (
@@ -95,5 +104,33 @@ class MPMSimulationWindow(VisualizerWindow):
         )
         self.position = (0, 0)
 
-    def _load_model(self):
-        print("here")
+
+class MPMDisplacementsWindow(VisualizerWindow):
+    def __init__(self):
+        name = "Displacements"
+        flags = [imgui.TREE_NODE_DEFAULT_OPEN]
+        super().__init__(name, flags)
+
+        self._register_input("current_timestep", 0)
+
+    def render(self, **kwargs) -> None:
+        sim: MPMSimulation = self._unpack_kwarg("sim", MPMSimulation, **kwargs)
+        imgui.push_item_width(-1)
+        self._generate_imgui_input(
+            "current_timestep",
+            imgui.slider_int,
+            min_value=0,
+            max_value=len(sim.displacements),
+        )
+        imgui.pop_item_width()
+
+        if sim.loaded:
+            sim.mesh.replace(matrix_to_vector(sim.displacements[self.current_timestep]))
+
+    def resize(self, parent_width: int, parent_height: int, **kwargs):
+        w = int(parent_width * 0.10) if parent_width >= 800 else 140
+        self.dimensions = (
+            parent_width - w,
+            50,
+        )
+        self.position = (w, 0)

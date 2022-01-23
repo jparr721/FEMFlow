@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Any, Dict, List
 
 import glfw
 import imgui
@@ -63,6 +63,7 @@ class Window(object):
         glClearColor(*self.background_color)
 
         self.windows: List[VisualizerWindow] = []
+        self.window_args: List[Dict[str, Any]] = []
 
     def __enter__(self):
         return self
@@ -76,7 +77,7 @@ class Window(object):
 
     @property
     def any_window_focused(self):
-        return False
+        return any([window.focused for window in self.windows])
 
     def scroll_callback(self, window, xoffset, yoffset):
         if not self.any_window_focused:
@@ -112,7 +113,7 @@ class Window(object):
             imgui.new_frame()
 
             # Render all widows before anything else
-            [window() for window in self.windows]
+            [window(**args) for window, args in zip(self.windows, self.window_args)]
             self.renderer.render(self.camera)
             imgui.render()
             self.imgui_impl.render(imgui.get_draw_data())
@@ -126,8 +127,12 @@ class Window(object):
         self.renderer.mesh = Mesh.from_file(obj_file)
         self.renderer.mesh.tetrahedralize()
 
+    def add_simulation(self, simulation):
+        pass
+
     def add_mesh(self, mesh: Mesh):
         self.renderer.mesh = mesh
 
-    def add_window(self, window: VisualizerWindow):
+    def add_window(self, window: VisualizerWindow, **kwargs):
         self.windows.append(window)
+        self.window_args.append(kwargs)
