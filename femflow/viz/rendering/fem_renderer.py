@@ -42,7 +42,6 @@ class FEMRenderer(Renderer):
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
 
-        # self._render_bounding_box()
         self._render_grid()
 
         self._reload_buffers()
