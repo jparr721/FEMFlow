@@ -39,10 +39,13 @@ class FEMRenderer(Renderer):
     def render(self, camera: Camera):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        self._reload_buffers()
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
 
+        # self._render_bounding_box()
+        self._render_grid()
+
+        self._reload_buffers()
         if self.render_mode == RenderMode.MESH:
             self._render_mesh()
         elif self.render_mode == RenderMode.LINES:

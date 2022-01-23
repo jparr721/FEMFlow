@@ -158,7 +158,5 @@ class Mesh(object):
         self.world_coordinates = copy.deepcopy(self.vertices)
 
     def _set_default_color(self):
-        color = np.array((51.0 / 255.0, 43.0 / 255.0, 33.3 / 255.0))
-        color = np.array((255.0 / 255.0, 228.0 / 255.0, 58.0 / 255.0))
         color = np.array((255.0 / 255.0, 235.0 / 255.0, 80.0 / 255.0))
-        self.colors = np.tile(color, len(self.vertices.data) // 3).astype(np.float32)
+        self.colors = np.tile(color, len(self.vertices) // 3).astype(np.float32)

@@ -3,7 +3,7 @@ from functools import cache
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from femflow.numerics.linear_algebra import matrix_to_vector
+from femflow.numerics.linear_algebra import vector_to_matrix
 
 from ..camera import Camera
 from .renderer import Renderer
@@ -17,6 +17,7 @@ class MPMRenderer(Renderer):
     def _bind_buffers(self):
         self.buffers["position"] = glGenBuffers(1)
         self.buffers["color"] = glGenBuffers(1)
+        self.buffers["faces"] = glGenBuffers(1)
 
     def _reload_buffers(self):
         build_vertex_buffer(0, self.buffers["position"], 3, self.mesh.vertices)
@@ -25,40 +26,107 @@ class MPMRenderer(Renderer):
     def render(self, camera: Camera):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        vertices, colors = self._render_grid()
-
-        build_vertex_buffer(0, self.buffers["position"], 3, vertices)
-        build_vertex_buffer(2, self.buffers["color"], 3, colors)
-        glDrawArrays(GL_POINTS, 0, vertices.size)
-
-        self._reload_buffers()
         self.shader_program.bind()
         self.shader_program.set_matrix_uniform(self.view, camera.view_matrix)
-        glPointSize(5.0)
-        glDrawArrays(GL_POINTS, 0, self.mesh.vertices.size)
+
+        self._render_grid()
+
+        self._render_bounding_box()
+
+        self._reload_buffers()
+        self._render_points()
+
         self.shader_program.release()
 
-    @cache
-    def _render_grid(self):
-        grid_size = 100
-        grid_color = [1.0, 1.0, 1.0]
+    def _render_points(self):
+        glPointSize(5.0)
+        glDrawArrays(GL_POINTS, 0, self.mesh.vertices.size)
 
-        v_low = -int(grid_size * 0.5)
-        v_high = int(grid_size * 0.5)
-        u_low = -int(grid_size * 0.5)
-        u_high = int(grid_size * 0.5)
-        spacing_scale = 1.0
+    def _render_bounding_box(self):
+        @cache
+        def _make_data():
+            v = vector_to_matrix(self.mesh.vertices, 3)
+            minx, miny, minz = np.amin(v, axis=0)
+            maxx, maxy, maxz = np.amax(v, axis=0) * 10
 
-        colors = []
-        vertices = []
-        for i in range(u_low, u_high):
-            vertices.append([i * spacing_scale, 0.0, v_low * spacing_scale])
-            vertices.append([i * spacing_scale, 0.0, v_high * spacing_scale])
+            vertices = np.array(
+                [
+                    minx,
+                    miny,
+                    minz,  # Back Bottom Left
+                    maxx,
+                    miny,
+                    minz,  # Back Bottom Right
+                    minx,
+                    maxy,
+                    minz,  # Back Top Left
+                    maxx,
+                    maxy,
+                    minz,  # Back Top Right
+                    minx,
+                    miny,
+                    maxz,  # Front Bottom Left
+                    maxx,
+                    miny,
+                    maxz,  # Front Bottom Right
+                    minx,
+                    maxy,
+                    maxz,  # Front Top Left
+                    maxx,
+                    maxy,
+                    maxz,  # Front Top Right
+                ],
+                dtype=np.float32,
+            )
 
-        for i in range(v_low, v_high):
-            vertices.append([u_low * spacing_scale, 0.0, i * spacing_scale])
-            vertices.append([u_high * spacing_scale, 0.0, i * spacing_scale])
+            faces = np.array(
+                [
+                    0,
+                    1,
+                    3,
+                    1,
+                    3,
+                    2,
+                    1,
+                    7,
+                    3,
+                    1,
+                    5,
+                    7,
+                    4,
+                    7,
+                    5,
+                    4,
+                    6,
+                    7,
+                    6,
+                    2,
+                    7,
+                    7,
+                    2,
+                    3,
+                    0,
+                    2,
+                    6,
+                    4,
+                    0,
+                    6,
+                ],
+                dtype=np.uint32,
+            )
 
-        colors = [grid_color] * len(vertices)
+            color = [1.0, 0.0, 0.0]
+            colors = np.tile(color, len(vertices) // 3).astype(np.float32)
 
-        return matrix_to_vector(np.array(vertices)), matrix_to_vector(np.array(colors))
+            return vertices, faces, colors
+
+        vertices, faces, colors = _make_data()
+        build_vertex_buffer(0, self.buffers["position"], 3, vertices)
+        build_vertex_buffer(2, self.buffers["color"], 3, colors)
+        build_index_buffer(self.buffers["faces"], faces)
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glDrawElements(GL_TRIANGLES, faces.size, GL_UNSIGNED_INT, None)
+
+        # Leaving this as lines breaks imgui.
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)

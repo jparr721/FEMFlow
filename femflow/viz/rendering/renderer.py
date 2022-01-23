@@ -1,6 +1,9 @@
 import abc
 from collections import defaultdict
+from functools import cache
 from typing import Dict
+
+from femflow.numerics.linear_algebra import matrix_to_vector
 
 from ..camera import Camera
 from ..mesh import Mesh
@@ -70,4 +73,32 @@ class Renderer(object):
         self.shader_program.destroy()
         glDeleteBuffers(1, list(self.buffers.values()))
         glDeleteVertexArrays(1, [self.vao])
+
+    def _render_grid(self, grid_size: int = 100):
+        @cache
+        def _make_data():
+            grid_color = [0.5, 0.5, 0.5]
+
+            spacing_scale = 1.0
+
+            colors = []
+            vertices = []
+            for i in range(-grid_size, grid_size):
+                vertices.append([i * spacing_scale, 0.0, -grid_size * spacing_scale])
+                vertices.append([i * spacing_scale, 0.0, grid_size * spacing_scale])
+                vertices.append([-grid_size * spacing_scale, 0.0, i * spacing_scale])
+                vertices.append([grid_size * spacing_scale, 0.0, i * spacing_scale])
+
+            colors = [grid_color] * len(vertices)
+
+            return (
+                matrix_to_vector(np.array(vertices)).astype(np.float32),
+                matrix_to_vector(np.array(colors)).astype(np.float32),
+            )
+
+        vertices, colors = _make_data()
+
+        build_vertex_buffer(0, self.buffers["position"], 3, vertices)
+        build_vertex_buffer(2, self.buffers["color"], 3, colors)
+        glDrawArrays(GL_LINES, 0, vertices.size // 3)
 
