@@ -120,7 +120,7 @@ class MPMDisplacementsWindow(VisualizerWindow):
             "current_timestep",
             imgui.slider_int,
             min_value=0,
-            max_value=len(sim.displacements),
+            max_value=len(sim.displacements) - 1,
         )
         imgui.pop_item_width()
 
