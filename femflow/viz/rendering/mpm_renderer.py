@@ -43,84 +43,7 @@ class MPMRenderer(Renderer):
         glDrawArrays(GL_POINTS, 0, self.mesh.vertices.size)
 
     def _render_bounding_box(self):
-        @cache
-        def _make_data():
-            v = vector_to_matrix(self.mesh.vertices, 3)
-            minx, miny, minz = np.amin(v, axis=0)
-            maxx, maxy, maxz = np.amax(v, axis=0) * 10
-
-            vertices = np.array(
-                [
-                    minx,
-                    miny,
-                    minz,  # Back Bottom Left
-                    maxx,
-                    miny,
-                    minz,  # Back Bottom Right
-                    minx,
-                    maxy,
-                    minz,  # Back Top Left
-                    maxx,
-                    maxy,
-                    minz,  # Back Top Right
-                    minx,
-                    miny,
-                    maxz,  # Front Bottom Left
-                    maxx,
-                    miny,
-                    maxz,  # Front Bottom Right
-                    minx,
-                    maxy,
-                    maxz,  # Front Top Left
-                    maxx,
-                    maxy,
-                    maxz,  # Front Top Right
-                ],
-                dtype=np.float32,
-            )
-
-            faces = np.array(
-                [
-                    0,
-                    1,
-                    3,
-                    1,
-                    3,
-                    2,
-                    1,
-                    7,
-                    3,
-                    1,
-                    5,
-                    7,
-                    4,
-                    7,
-                    5,
-                    4,
-                    6,
-                    7,
-                    6,
-                    2,
-                    7,
-                    7,
-                    2,
-                    3,
-                    0,
-                    2,
-                    6,
-                    4,
-                    0,
-                    6,
-                ],
-                dtype=np.uint32,
-            )
-
-            color = [1.0, 0.0, 0.0]
-            colors = np.tile(color, len(vertices) // 3).astype(np.float32)
-
-            return vertices, faces, colors
-
-        vertices, faces, colors = _make_data()
+        vertices, faces, colors = self._make_bb_data()
         build_vertex_buffer(0, self.buffers["position"], 3, vertices)
         build_vertex_buffer(2, self.buffers["color"], 3, colors)
         build_index_buffer(self.buffers["faces"], faces)
@@ -130,3 +53,85 @@ class MPMRenderer(Renderer):
 
         # Leaving this as lines breaks imgui.
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+
+    @cache
+    def _make_bb_data(self):
+        v = vector_to_matrix(self.mesh.vertices, 3)
+        minx, miny, minz = np.amin(v, axis=0)
+        maxx, maxy, maxz = np.amax(v, axis=0) * 10
+
+        # Scoot the mesh to the center, cache guarantees this doesn't keep snapping.
+        self.mesh.translate_x(maxx / 2)
+        self.mesh.translate_z(maxz / 2)
+
+        vertices = np.array(
+            [
+                minx,
+                miny,
+                minz,  # Back Bottom Left
+                maxx,
+                miny,
+                minz,  # Back Bottom Right
+                minx,
+                maxy,
+                minz,  # Back Top Left
+                maxx,
+                maxy,
+                minz,  # Back Top Right
+                minx,
+                miny,
+                maxz,  # Front Bottom Left
+                maxx,
+                miny,
+                maxz,  # Front Bottom Right
+                minx,
+                maxy,
+                maxz,  # Front Top Left
+                maxx,
+                maxy,
+                maxz,  # Front Top Right
+            ],
+            dtype=np.float32,
+        )
+
+        faces = np.array(
+            [
+                0,
+                1,
+                3,
+                1,
+                3,
+                2,
+                1,
+                7,
+                3,
+                1,
+                5,
+                7,
+                4,
+                7,
+                5,
+                4,
+                6,
+                7,
+                6,
+                2,
+                7,
+                7,
+                2,
+                3,
+                0,
+                2,
+                6,
+                4,
+                0,
+                6,
+            ],
+            dtype=np.uint32,
+        )
+
+        color = [1.0, 0.0, 0.0]
+        colors = np.tile(color, len(vertices) // 3).astype(np.float32)
+
+        return vertices, faces, colors
+

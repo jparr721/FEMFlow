@@ -113,6 +113,15 @@ class Mesh(object):
 
         return Mesh()
 
+    def translate_x(self, amount: float):
+        self.vertices[np.arange(0, len(self.vertices), 3)] += amount
+
+    def translate_y(self, amount: float):
+        self.vertices[np.arange(1, len(self.vertices), 3)] += amount
+
+    def translate_z(self, amount: float):
+        self.vertices[np.arange(2, len(self.vertices), 3)] += amount
+
     def reset_positions(self) -> None:
         self.vertices[:] = self.world_coordinates
 

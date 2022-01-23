@@ -34,6 +34,13 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 
 
 @app.command()
+def paper():
+    from .paper_1 import run_experiment
+
+    run_experiment()
+
+
+@app.command()
 def fem(debug: bool = typer.Option(False)):
     """Launches the FEM simulation
     """
@@ -59,12 +66,14 @@ def mpm(debug: bool = typer.Option(False)):
 
         OpenGL.ERROR_LOGGING = True
         OpenGL.FULL_LOGGING = True
-    from femflow.simulation.mpm_simulation import MPMSimulationWindow, draw_gyroid_3d
+    from femflow.simulation.mpm.gui import MPMSimulationWindow
+    from femflow.simulation.mpm.primitives import generate_implicit_points, gyroid
+    from femflow.viz.mesh import Mesh
     from femflow.viz.visualizer.window import Window
 
     with Window("mpm") as window:
         window.add_window(MPMSimulationWindow())
-        window.add_mesh(draw_gyroid_3d(30))
+        window.add_mesh(Mesh(generate_implicit_points(gyroid, 0.3, 0.3, 30)))
         window.launch()
 
 
