@@ -1,3 +1,4 @@
+import os
 import threading
 
 import numpy as np
@@ -80,7 +81,6 @@ class MPMSimulation(SimulationBase):
             return
         if self.run_type == SimulationRunType.OFFLINE:
             n_timesteps: int = kwargs["n_timesteps"]
-            # self._simulate_offline(n_timesteps)
             threading.Thread(
                 target=self._simulate_offline, args=((n_timesteps,)), daemon=True,
             ).start()
@@ -110,9 +110,17 @@ class MPMSimulation(SimulationBase):
             solve_mls_mpm_3d(self.parameters, self.x, self.v, self.F, self.C, self.Jp)
 
     def _simulate_offline(self, n_timesteps: int):
+        self.running = True
         for _ in tqdm(range(n_timesteps)):
             solve_mls_mpm_3d(self.parameters, self.x, self.v, self.F, self.C, self.Jp)
             if self.save_displacements:
                 self.displacements.append(
                     self.x.copy() / self.parameters.tightening_coeff
                 )
+        logger.info("Saving displacements")
+        if not os.path.exists("tmp"):
+            os.mkdir("tmp")
+        for i, displacement in enumerate(self.displacements):
+            np.save(f"tmp/{i}", displacement)
+        logger.success("Simulation done")
+        self.running = False
