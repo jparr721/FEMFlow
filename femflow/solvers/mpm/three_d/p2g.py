@@ -9,7 +9,7 @@ from femflow.solvers.mpm.utils import (
 )
 
 
-# @nb.njit
+@nb.njit
 def p2g(
     inv_dx: float,
     hardening: float,

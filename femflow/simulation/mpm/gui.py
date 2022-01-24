@@ -74,7 +74,7 @@ class MPMSimulationWindow(VisualizerWindow):
         imgui.text("dt")
         self._generate_imgui_input("dt", imgui.input_float, format="%.6f")
         imgui.text("Mass")
-        self._generate_imgui_input("mass", imgui.input_float)
+        self._generate_imgui_input("mass", imgui.input_float, format="%.6f")
         imgui.text("Volume")
         self._generate_imgui_input("volume", imgui.input_float)
         imgui.text("Force")

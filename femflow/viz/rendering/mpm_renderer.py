@@ -62,7 +62,8 @@ class MPMRenderer(Renderer):
 
         # Scoot the mesh to the center, cache guarantees this doesn't keep snapping.
         self.mesh.translate_x(maxx / 2)
-        self.mesh.translate_y(maxy / 2)  # For drop testing
+        self.mesh.translate_y(maxy / 8)
+        # self.mesh.translate_y(maxy / 2)  # For drop testing
         self.mesh.translate_z(maxz / 2)
 
         vertices = np.array(
