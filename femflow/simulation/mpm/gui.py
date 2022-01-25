@@ -10,7 +10,23 @@ from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 from femflow.viz.visualizer.visualizer_window import VisualizerWindow
 
 
-class MPMSimulationConfigWindow(VisualizerMenu):
+class MPMSimulationMeshMenu(VisualizerMenu):
+    def __init__(
+        self, name="MPM Mesh", flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN]
+    ):
+        super().__init__(name, flags)
+        self.mesh_options = ["gyroid", "diamond", "primitive"]
+        self._register_input("mesh_type", 0)
+
+    def render(self, **kwargs) -> None:
+        imgui.text("Mesh Type")
+        self._generate_imgui_input("mesh_type", imgui.listbox, items=self.mesh_options)
+
+        points = self._unpack_kwarg("points", int, **kwargs)
+        imgui.text(f"Points {points}")
+
+
+class MPMSimulationConfigMenu(VisualizerMenu):
     def __init__(
         self, name="Sim Config", flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN]
     ):
@@ -53,7 +69,7 @@ class MPMSimulationWindow(VisualizerWindow):
         self._register_input("model", 0)
         self._register_input("tightening_coeff", 0.5)
         self.model_options = ["neo_hookean", "elastoplastic"]
-        self.add_menu(MPMSimulationConfigWindow())
+        self.add_menu(MPMSimulationConfigMenu())
 
     @property
     def parameters(self):
