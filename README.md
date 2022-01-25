@@ -2,7 +2,7 @@
 FEM and MPM Solvers for physics based differentiable programming.
 
 ## What Is This?
-FEMFlow is a set of solver primitives and UI elements that enable to quick creation of physics-based simulations for the purposes of doing machine learning. The idea here is to limit the requirements on the scientist of having to build an entire rendering pipeline and wrangle all their datatypes and simply focus on just writing their research code. The provided modules allow for the creation quick UIs for MPM and FEM simulations. The interfaces for adding windows and menus without the overhead of having to write your own imgui handlers.
+FEMFlow is a set of solver primitives and UI elements that enable to quick creation of physics-based simulations for the purposes of doing machine learning. The idea here is to limit the requirements on the scientist of having to build an entire rendering pipeline and wrangle all their datatypes and simply focus on just writing their research code. The provided modules allow for the creation quick UIs for MPM and FEM simulations. Additionally, there are interfaces for adding windows and menus without the overhead of having to write your own imgui handlers.
 
 There are some built-in solvers that may or may not work, but should serve as an example for now (they're _very_ incomplete).
 
