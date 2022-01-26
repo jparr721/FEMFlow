@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numba as nb
 import numpy as np
 
@@ -15,6 +17,7 @@ def g2p(
     C: np.ndarray,
     Jp: np.ndarray,
     model: str = "neo_hookean",
+    # boundary_forces: Tuple[np.ndarray, set[int]] = (np.zeros(3), {0}),
 ):
     for p in range(len(x)):
         base_coord = (x[p] * inv_dx - 0.5).astype(np.int64)
@@ -41,6 +44,10 @@ def g2p(
                     weight = w[i][0] * w[j][1] * w[k][2]
                     v[p] += weight * grid_v
                     C[p] += 4 * inv_dx * np.outer(weight * grid_v, dpos)
+
+        # if len(boundary_forces[1]) > 0:
+        #     if p in boundary_forces[1]:
+        #         v[p] += boundary_forces[0]
 
         x[p] += dt * v[p]
         F_ = (np.eye(3) + dt * C[p]) @ F[p]

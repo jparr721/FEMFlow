@@ -11,13 +11,6 @@ from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.mesh import Mesh
 
 from ..simulation_base import SimulationBase, SimulationRunType
-from .primitives import (
-    diamond,
-    generate_cube_points,
-    generate_implicit_points,
-    gyroid,
-    primitive,
-)
 
 
 class MPMSimulation(SimulationBase):
@@ -33,11 +26,6 @@ class MPMSimulation(SimulationBase):
         self.displacements = []
 
     def load(self, **kwargs):
-        if "model" not in kwargs:
-            self.model = "gyroid"
-        else:
-            self.model = kwargs["model"]
-
         if "mesh" not in kwargs:
             raise ValueError("'mesh' is a required parameter for the MPM Sim")
 
@@ -48,7 +36,6 @@ class MPMSimulation(SimulationBase):
         self.parameters: Parameters = kwargs["parameters"]
 
         # Positions
-        # self.x = self._load_physical_model()
         self.x = (
             vector_to_matrix(self.mesh.vertices.copy(), 3)
             * self.parameters.tightening_coeff
@@ -56,9 +43,6 @@ class MPMSimulation(SimulationBase):
 
         if self.save_displacements:
             self.displacements = [self.x.copy() / self.parameters.tightening_coeff]
-
-        # Add the vertices to the mesh for rendering
-        # np.concatenate((mesh.vertices, self.x))
 
         # Momentum/Velocity
         self.v = np.zeros((len(self.x), dim), dtype=np.float64)
@@ -91,19 +75,8 @@ class MPMSimulation(SimulationBase):
             threading.Thread(target=self._simulate_online, daemon=True).start()
 
     def reset(self, **kwargs):
-        pass
-
-    def _load_physical_model(self) -> np.ndarray:
-        if self.model == "gyroid":
-            return generate_implicit_points(gyroid, 0.3, 0.3, 30)
-        elif self.model == "diamond":
-            return generate_implicit_points(diamond, 0.3, 0.3, 30)
-        elif self.model == "primitive":
-            return generate_implicit_points(primitive, 0.3, 0.3, 30)
-        elif self.model == "cube":
-            return generate_cube_points(np.zeros(3), 30)
-        else:
-            raise ValueError(f"Model {self.model} is not supported.")
+        self.mesh.reset_positions()
+        self.load(**kwargs)
 
     def _simulate_online(self):
         while self.running:

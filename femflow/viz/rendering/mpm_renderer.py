@@ -31,10 +31,11 @@ class MPMRenderer(Renderer):
 
         self._render_grid()
 
-        self._render_bounding_box()
+        if self.mesh.vertices.size >= 3:
+            self._render_bounding_box()
 
-        self._reload_buffers()
-        self._render_points()
+            self._reload_buffers()
+            self._render_points()
 
         self.shader_program.release()
 

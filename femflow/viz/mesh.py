@@ -34,6 +34,19 @@ class Mesh(object):
         if self.colors.size == 0:
             self._set_default_color()
 
+    def __setitem__(self, name: str, value: np.ndarray):
+        if not isinstance(value, np.ndarray):
+            raise ValueError("Input type must be an ndarray")
+        if value.ndim > 2:
+            raise ValueError("Three-Dimensional arrays are not supported")
+        if value.ndim == 2:
+            value = matrix_to_vector(value)
+        # Don't blast current referencs to this object
+        self.__dict__[name] = value
+
+        if name == "vertices":
+            self._set_default_color()
+
     def save(self, filename: str) -> bool:
         """Saves this mesh to an obj file
 

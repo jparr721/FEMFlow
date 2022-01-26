@@ -17,13 +17,32 @@ class MPMSimulationMeshMenu(VisualizerMenu):
         super().__init__(name, flags)
         self.mesh_options = ["gyroid", "diamond", "primitive"]
         self._register_input("mesh_type", 0)
+        self._register_input("resolution", 30)
+        self._register_input("k", 0.3)
+        self._register_input("t", 0.3)
 
     def render(self, **kwargs) -> None:
+        self.visible = False  # Turn off until I fix the rendering bugs
         imgui.text("Mesh Type")
         self._generate_imgui_input("mesh_type", imgui.listbox, items=self.mesh_options)
 
-        points = self._unpack_kwarg("points", int, **kwargs)
-        imgui.text(f"Points {points}")
+        imgui.text("Resolution")
+        self._generate_imgui_input("resolution", imgui.input_int)
+
+        imgui.text("K")
+        self._generate_imgui_input("k", imgui.input_float)
+
+        imgui.text("T")
+        self._generate_imgui_input("t", imgui.input_float)
+
+        if imgui.button("Generate Mesh"):
+            generate_mesh_cb = self._unpack_kwarg("generate_mesh_cb", callable, **kwargs)
+            generate_mesh_cb(
+                self.mesh_options[self.mesh_type], self.k, self.t, self.resolution
+            )
+
+        mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
+        imgui.text(f"Points {mesh.vertices.size}")
 
 
 class MPMSimulationConfigMenu(VisualizerMenu):
@@ -46,10 +65,17 @@ class MPMSimulationConfigMenu(VisualizerMenu):
         imgui.same_line()
 
         if imgui.button(label="Reset Sim"):
+            mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
             reset_sim_button_cb: Callable = self._unpack_kwarg(
                 "reset_sim_button_cb", callable, **kwargs
             )
-            reset_sim_button_cb()
+            reset_sim_button_cb(mesh)
+
+        status = self._unpack_kwarg("sim_status", bool, **kwargs)
+        if status:
+            imgui.text("Sim Running")
+        else:
+            imgui.text("Sim Not Running")
 
 
 class MPMSimulationWindow(VisualizerWindow):
@@ -70,6 +96,7 @@ class MPMSimulationWindow(VisualizerWindow):
         self._register_input("tightening_coeff", 0.5)
         self.model_options = ["neo_hookean", "elastoplastic"]
         self.add_menu(MPMSimulationConfigMenu())
+        self.add_menu(MPMSimulationMeshMenu())
 
     @property
     def parameters(self):

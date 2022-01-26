@@ -34,10 +34,10 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 
 
 @app.command()
-def paper():
-    from .paper_1 import run_experiment
+def paper(debug: bool = typer.Option(False)):
+    from paper_1 import run_experiment
 
-    run_experiment()
+    run_experiment(debug)
 
 
 @app.command()

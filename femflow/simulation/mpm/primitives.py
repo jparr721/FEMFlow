@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 from typing_extensions import Protocol
 
@@ -42,17 +44,27 @@ class ImplicitFn(Protocol):
 
 
 def generate_implicit_points(
-    implicit_fn: ImplicitFn, k: float, t: float, res: int
+    implicit_fn: Union[ImplicitFn, str], k: float, t: float, res: int
 ) -> np.ndarray:
+    if isinstance(implicit_fn, str):
+        if implicit_fn == "gyroid":
+            implicit_fn = gyroid
+        elif implicit_fn == "diamond":
+            implicit_fn = diamond
+        elif implicit_fn == "primitive":
+            implicit_fn = primitive
+        else:
+            raise ValueError("Invalid implicit function specified")
+
     g = grid(np.array((res, res, res)))
     inside = np.array([implicit_fn(k, t, row) for row in g])
     return g[inside > t]
 
 
-def generate_cube_points(start: np.ndarray, res: int = 10) -> np.ndarray:
-    x = np.linspace(*start, num=res)
-    y = np.linspace(*start, num=res)
-    z = np.linspace(*start, num=res)
+def generate_cube_points(bounds: np.ndarray, res: int = 10) -> np.ndarray:
+    x = np.linspace(*bounds, num=res)
+    y = np.linspace(*bounds, num=res)
+    z = np.linspace(*bounds, num=res)
 
     all_pts = []
     for layer in z:
