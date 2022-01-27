@@ -21,7 +21,7 @@ def load_view():
             points = generate_implicit_points(fn, k, t, resolution)
             window.renderer.mesh["vertices"] = points
 
-        mesh = Mesh(generate_implicit_points("gyroid", 0.15, 0.4, 50))
+        mesh = Mesh(generate_implicit_points("gyroid", 0.3, 0.3, 30))
         # mid: float = np.median(mesh.vertices[np.arange(0, len(mesh.vertices), 3)])
         # collider_mesh = Mesh(generate_cube_points((np.array((mid - 1, mid + 1))), 20))
         sim = MPMSimulation()

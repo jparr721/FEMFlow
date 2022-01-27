@@ -22,24 +22,23 @@ class MPMSimulationMeshMenu(VisualizerMenu):
         self._register_input("t", 0.3)
 
     def render(self, **kwargs) -> None:
-        self.visible = False  # Turn off until I fix the rendering bugs
-        imgui.text("Mesh Type")
-        self._generate_imgui_input("mesh_type", imgui.listbox, items=self.mesh_options)
+        # imgui.text("Mesh Type")
+        # self._generate_imgui_input("mesh_type", imgui.listbox, items=self.mesh_options)
 
-        imgui.text("Resolution")
-        self._generate_imgui_input("resolution", imgui.input_int)
+        # imgui.text("Resolution")
+        # self._generate_imgui_input("resolution", imgui.input_int)
 
-        imgui.text("K")
-        self._generate_imgui_input("k", imgui.input_float)
+        # imgui.text("K")
+        # self._generate_imgui_input("k", imgui.input_float)
 
-        imgui.text("T")
-        self._generate_imgui_input("t", imgui.input_float)
+        # imgui.text("T")
+        # self._generate_imgui_input("t", imgui.input_float)
 
-        if imgui.button("Generate Mesh"):
-            generate_mesh_cb = self._unpack_kwarg("generate_mesh_cb", callable, **kwargs)
-            generate_mesh_cb(
-                self.mesh_options[self.mesh_type], self.k, self.t, self.resolution
-            )
+        # if imgui.button("Generate Mesh"):
+        #     generate_mesh_cb = self._unpack_kwarg("generate_mesh_cb", callable, **kwargs)
+        #     generate_mesh_cb(
+        #         self.mesh_options[self.mesh_type], self.k, self.t, self.resolution
+        #     )
 
         mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
         imgui.text(f"Points {mesh.vertices.size}")

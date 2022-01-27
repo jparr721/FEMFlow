@@ -1,5 +1,4 @@
 import numpy as np
-from nuclear_mpm import nclr_grid_op
 
 from femflow.solvers.mpm import three_d
 from femflow.solvers.mpm.two_d import g2p, grid_op, p2g
@@ -94,24 +93,43 @@ def solve_mls_mpm_3d(
         params.model,
     )
 
-    grid_velocity, grid_mass = nclr_grid_op(
-        params.grid_resolution,
-        3,
-        params.dx,
-        params.dt,
-        params.gravity,
-        grid_velocity,
-        grid_mass,
-    )
-    # print(grid_velocity.shape)
+    # grid_velocity, grid_mass = nclr_p2g(
+    #     params.inv_dx,
+    #     params.hardening,
+    #     params.mu_0,
+    #     params.lambda_0,
+    #     params.mass,
+    #     params.dx,
+    #     params.dt,
+    #     params.volume,
+    #     grid_velocity,
+    #     grid_mass,
+    #     x,
+    #     v,
+    #     F,
+    #     C,
+    #     Jp,
+    #     1,
+    # )
 
-    # three_d.grid_op(
+    # grid_velocity, grid_mass = nclr_grid_op(
     #     params.grid_resolution,
+    #     3,
     #     params.dx,
     #     params.dt,
     #     params.gravity,
     #     grid_velocity,
     #     grid_mass,
     # )
+    # print(grid_velocity.shape)
+
+    three_d.grid_op(
+        params.grid_resolution,
+        params.dx,
+        params.dt,
+        params.gravity,
+        grid_velocity,
+        grid_mass,
+    )
 
     three_d.g2p(params.inv_dx, params.dt, grid_velocity, x, v, F, C, Jp, params.model)
