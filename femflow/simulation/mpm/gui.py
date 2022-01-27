@@ -92,7 +92,7 @@ class MPMSimulationWindow(VisualizerWindow):
         self._register_input("hardening", 0.7)
         self._register_input("grid_resolution", 64)
         self._register_input("model", 0)
-        self._register_input("tightening_coeff", 0.5)
+        self._register_input("tightening_coeff", 0.1)
         self.model_options = ["neo_hookean", "elastoplastic"]
         self.add_menu(MPMSimulationConfigMenu())
         self.add_menu(MPMSimulationMeshMenu())
