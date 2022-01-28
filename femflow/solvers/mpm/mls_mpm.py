@@ -1,7 +1,6 @@
 import numpy as np
 
 from femflow.solvers.mpm import three_d
-from femflow.solvers.mpm.two_d import g2p, grid_op, p2g
 
 from .parameters import Parameters
 
@@ -15,39 +14,6 @@ def make_mls_mpm_coefficients(lenx: int, dim: int):
     return v, F, C, Jp
 
 
-def solve_mls_mpm_2d(
-    params: Parameters,
-    x: np.ndarray,
-    v: np.ndarray,
-    F: np.ndarray,
-    C: np.ndarray,
-    Jp: np.ndarray,
-):
-    grid_velocity = np.zeros((params.grid_resolution + 1, params.grid_resolution + 1, 2))
-    grid_mass = np.zeros((params.grid_resolution + 1, params.grid_resolution + 1, 1))
-
-    p2g(
-        params.inv_dx,
-        params.hardening,
-        params.mu_0,
-        params.lambda_0,
-        params.mass,
-        params.dx,
-        params.dt,
-        params.volume,
-        grid_velocity,
-        grid_mass,
-        x,
-        v,
-        F,
-        C,
-        Jp,
-        params.model,
-    )
-    grid_op(params.grid_resolution, params.dt, params.gravity, grid_velocity, grid_mass)
-    g2p(params.inv_dx, params.dt, grid_velocity, x, v, F, C, Jp, params.model)
-
-
 def solve_mls_mpm_3d(
     params: Parameters,
     x: np.ndarray,
@@ -56,23 +22,9 @@ def solve_mls_mpm_3d(
     C: np.ndarray,
     Jp: np.ndarray,
 ):
-    grid_velocity = np.zeros(
-        (
-            params.grid_resolution + 1,
-            params.grid_resolution + 1,
-            params.grid_resolution + 1,
-            3,
-        )
-    )
-
-    grid_mass = np.zeros(
-        (
-            params.grid_resolution + 1,
-            params.grid_resolution + 1,
-            params.grid_resolution + 1,
-            1,
-        )
-    )
+    dres = params.grid_resolution + 1
+    grid_velocity = np.zeros((dres, dres, dres, 3,))
+    grid_mass = np.zeros((dres, dres, dres, 1,))
 
     three_d.p2g(
         params.inv_dx,
@@ -92,36 +44,6 @@ def solve_mls_mpm_3d(
         Jp,
         params.model,
     )
-
-    # grid_velocity, grid_mass = nclr_p2g(
-    #     params.inv_dx,
-    #     params.hardening,
-    #     params.mu_0,
-    #     params.lambda_0,
-    #     params.mass,
-    #     params.dx,
-    #     params.dt,
-    #     params.volume,
-    #     grid_velocity,
-    #     grid_mass,
-    #     x,
-    #     v,
-    #     F,
-    #     C,
-    #     Jp,
-    #     1,
-    # )
-
-    # grid_velocity, grid_mass = nclr_grid_op(
-    #     params.grid_resolution,
-    #     3,
-    #     params.dx,
-    #     params.dt,
-    #     params.gravity,
-    #     grid_velocity,
-    #     grid_mass,
-    # )
-    # print(grid_velocity.shape)
 
     three_d.grid_op(
         params.grid_resolution,

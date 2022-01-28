@@ -4,6 +4,7 @@ import imgui
 
 from femflow.numerics.linear_algebra import matrix_to_vector
 from femflow.simulation.mpm.simulation import MPMSimulation
+from femflow.simulation.simulation_base import SimulationRunType
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
@@ -22,24 +23,6 @@ class MPMSimulationMeshMenu(VisualizerMenu):
         self._register_input("t", 0.3)
 
     def render(self, **kwargs) -> None:
-        # imgui.text("Mesh Type")
-        # self._generate_imgui_input("mesh_type", imgui.listbox, items=self.mesh_options)
-
-        # imgui.text("Resolution")
-        # self._generate_imgui_input("resolution", imgui.input_int)
-
-        # imgui.text("K")
-        # self._generate_imgui_input("k", imgui.input_float)
-
-        # imgui.text("T")
-        # self._generate_imgui_input("t", imgui.input_float)
-
-        # if imgui.button("Generate Mesh"):
-        #     generate_mesh_cb = self._unpack_kwarg("generate_mesh_cb", callable, **kwargs)
-        #     generate_mesh_cb(
-        #         self.mesh_options[self.mesh_type], self.k, self.t, self.resolution
-        #     )
-
         mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
         imgui.text(f"Points {mesh.vertices.size}")
 
@@ -54,6 +37,8 @@ class MPMSimulationConfigMenu(VisualizerMenu):
     def render(self, **kwargs) -> None:
         imgui.text("Timestamps")
         self._generate_imgui_input("n_timesteps", imgui.input_int, step=100)
+
+        sim = self._unpack_kwarg("sim", MPMSimulation, **kwargs)
 
         if imgui.button(label="Start Sim"):
             start_sim_button_cb: Callable = self._unpack_kwarg(
@@ -71,6 +56,7 @@ class MPMSimulationConfigMenu(VisualizerMenu):
             reset_sim_button_cb(mesh)
 
         status = self._unpack_kwarg("sim_status", bool, **kwargs)
+
         if status:
             imgui.text("Sim Running")
         else:

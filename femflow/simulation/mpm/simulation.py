@@ -3,7 +3,6 @@ import threading
 
 import numpy as np
 from loguru import logger
-from nuclear_mpm import nclr_mpm
 from tqdm import tqdm
 
 from femflow.numerics.linear_algebra import vector_to_matrix
@@ -85,37 +84,16 @@ class MPMSimulation(SimulationBase):
 
     def _simulate_offline(self, n_timesteps: int):
         self.running = True
-        displacements = nclr_mpm(
-            self.parameters.inv_dx,
-            self.parameters.hardening,
-            self.parameters.mu_0,
-            self.parameters.lambda_0,
-            self.parameters.mass,
-            self.parameters.dx,
-            self.parameters.dt,
-            self.parameters.volume,
-            self.parameters.grid_resolution,
-            self.parameters.gravity,
-            n_timesteps,
-            self.x,
-        )
-        self.displacements.extend(
-            [
-                displacement / self.parameters.tightening_coeff
-                for displacement in displacements
-            ]
-        )
-
-        # for _ in tqdm(range(n_timesteps)):
-        #     solve_mls_mpm_3d(self.parameters, self.x, self.v, self.F, self.C, self.Jp)
-        #     if self.save_displacements:
-        #         self.displacements.append(
-        #             self.x.copy() / self.parameters.tightening_coeff
-        #         )
-        # logger.info("Saving displacements")
-        # if not os.path.exists("tmp"):
-        #     os.mkdir("tmp")
-        # for i, displacement in enumerate(self.displacements):
-        #     np.save(f"tmp/{i}", displacement)
+        for _ in tqdm(range(n_timesteps)):
+            solve_mls_mpm_3d(self.parameters, self.x, self.v, self.F, self.C, self.Jp)
+            if self.save_displacements:
+                self.displacements.append(
+                    self.x.copy() / self.parameters.tightening_coeff
+                )
+        logger.info("Saving displacements")
+        if not os.path.exists("tmp"):
+            os.mkdir("tmp")
+        for i, displacement in enumerate(self.displacements):
+            np.save(f"tmp/{i}", displacement)
         logger.success("Simulation done")
         self.running = False

@@ -1,4 +1,7 @@
 # An Invertible Method For Material Characterization via the Inverse Material Point Method
+from typing import List
+
+import imgui
 import numpy as np
 from loguru import logger
 
@@ -10,11 +13,28 @@ from femflow.simulation.mpm.primitives import (
 )
 from femflow.simulation.mpm.simulation import MPMSimulation
 from femflow.viz.mesh import Mesh
+from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 from femflow.viz.visualizer.window import Window
 
 
-def load_view():
+class BehaviorMatchingMenu(VisualizerMenu):
+    def __init__(
+        self,
+        name: str = "Behavior Capture",
+        flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN],
+    ):
+        super().__init__(name, flags)
+        self._register_input("capturing", False)
+        self.bhm = BehaviorMatching()
 
+    def render(self, **kwargs) -> None:
+        self._generate_imgui_input("capturing", imgui.checkbox, use_key_as_label=True)
+
+        if self.capturing:
+            self.bhm.start_matching()
+
+
+def load_view():
     with Window("mpm", "Paper 1") as window:
 
         def generate_mesh_cb(fn: str, k: float, t: float, resolution: int):
@@ -25,9 +45,12 @@ def load_view():
         # mid: float = np.median(mesh.vertices[np.arange(0, len(mesh.vertices), 3)])
         # collider_mesh = Mesh(generate_cube_points((np.array((mid - 1, mid + 1))), 20))
         sim = MPMSimulation()
+        sim_menu_window = MPMSimulationWindow()
+        sim_menu_window.add_menu(BehaviorMatchingMenu())
         window.add_mesh(mesh)
         window.add_window(
-            MPMSimulationWindow(),
+            sim_menu_window,
+            sim=sim,
             sim_status=sim.running,
             load_sim_cb=sim.load,
             start_sim_button_cb=sim.start,
