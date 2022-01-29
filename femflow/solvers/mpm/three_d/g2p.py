@@ -39,15 +39,15 @@ def g2p(
         x[p] += dt * v[p]
         F_ = (np.eye(3) + dt * C[p]) @ F[p]
 
-        # if model == "snow":
-        #     U, sig, V = np.linalg.svd(F_)
-        #     sig = np.clip(sig, 1.0 - 2.5e-2, 1.0 + 7.5e-3)
-        #     sig = np.eye(3) * sig
+        if model == "snow":
+            U, sig, V = np.linalg.svd(F_)
+            sig = np.clip(sig, 1.0 - 2.5e-2, 1.0 + 7.5e-3)
+            sig = np.eye(3) * sig
 
-        #     old_J = np.linalg.det(F_)
+            old_J = np.linalg.det(F_)
 
-        #     F_ = U @ sig @ V.T
+            F_ = U @ sig @ V.T
 
-        #     det = np.linalg.det(F_) + 1e-10
-        #     Jp[p] = np.clip(Jp[p] * old_J / det, 0.6, 20.0)
+            det = np.linalg.det(F_) + 1e-10
+            Jp[p] = np.clip(Jp[p] * old_J / det, 0.6, 20.0)
         F[p] = F_

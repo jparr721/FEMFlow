@@ -2,15 +2,11 @@
 from typing import List
 
 import imgui
-import numpy as np
 from loguru import logger
 
 from femflow.reconstruction.behavior_matching import BehaviorMatching
 from femflow.simulation.mpm.gui import MPMDisplacementsWindow, MPMSimulationWindow
-from femflow.simulation.mpm.primitives import (
-    generate_cube_points,
-    generate_implicit_points,
-)
+from femflow.simulation.mpm.primitives import generate_implicit_points
 from femflow.simulation.mpm.simulation import MPMSimulation
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
@@ -24,7 +20,7 @@ class BehaviorMatchingMenu(VisualizerMenu):
         flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN],
     ):
         super().__init__(name, flags)
-        self._register_input("capturing", False)
+        self.capturing = False
         self.bhm = BehaviorMatching()
 
     def render(self, **kwargs) -> None:
