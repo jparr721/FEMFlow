@@ -23,8 +23,8 @@ def solve_mls_mpm_3d(
     Jp: np.ndarray,
 ):
     dres = params.grid_resolution + 1
-    grid_velocity = np.zeros((dres, dres, dres, 3,))
-    grid_mass = np.zeros((dres, dres, dres, 1,))
+    grid_velocity = np.zeros((dres, dres, dres, 3))
+    grid_mass = np.zeros((dres, dres, dres, 1))
 
     three_d.p2g(
         params.inv_dx,
