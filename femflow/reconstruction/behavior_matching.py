@@ -24,18 +24,16 @@ class BehaviorMatching(object):
             except Exception as e:
                 logger.error(f"Failed to parse config: {e}")
 
-        # self.stream = VideoStream("enxf2379f07f0e2", resolution=(640, 480))
-        self.stream = VideoStream(2)
+        self.stream = VideoStream(0)
         self.mask = np.array([])
         self.frame = np.array([])
+        self.top_contours = np.array([])
 
-        # Convergence helpers
-        self._last_radius = 0
-        self._last_thickness = 0
+        self.h = 0.0
+        self.w = 0.0
 
-        self.current_rectangle_height: int = 0
-
-        self.first_frame = True
+        self.starting_height = 0.0
+        self.starting_width = 0.0
 
     @property
     def lower_bound_color(self) -> Tuple[int, int, int]:
@@ -50,6 +48,24 @@ class BehaviorMatching(object):
     @property
     def streaming(self):
         return self.stream.streaming
+
+    @property
+    def height_diff(self):
+        if self.starting_height > 0.0:
+            return 100 - ((self.h / self.starting_height) * 100)
+        else:
+            return 0.0
+
+    @property
+    def width_diff(self):
+        if self.starting_width > 0.0:
+            return 100 - ((self.w / self.starting_width) * 100)
+        else:
+            return 0.0
+
+    def set_starting_dimensions(self):
+        self.starting_height = self.h
+        self.starting_width = self.w
 
     def destroy(self):
         self.stream.destroy()
@@ -74,9 +90,8 @@ class BehaviorMatching(object):
         if len(contours) > 0:
             contour = max(contours, key=cv2.contourArea)
 
-            x, y, w, h = cv2.boundingRect(contour)
-            self.current_rectangle_height = h
-            cv2.rectangle(frame, (x, y), (x + w, y + h), [255, 0, 0], 2)
+            x, y, self.w, self.h = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x + self.w, y + self.h), [255, 0, 0], 2)
 
             min_y = np.amin(contour, axis=0)[0][1] * 1.1
 
@@ -88,8 +103,8 @@ class BehaviorMatching(object):
 
         return np.hstack((frame, mask_three_channel))
 
-    def start_matching(self):
+    def start_streaming(self):
         self.stream.start(self.transform_frame)
 
-    def stop_matching(self):
+    def stop_streaming(self):
         self.stream.stop()

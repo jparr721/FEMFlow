@@ -17,10 +17,10 @@ class MPMSimulationMeshMenu(VisualizerMenu):
     ):
         super().__init__(name, flags)
         self.mesh_options = ["gyroid", "diamond", "primitive"]
-        self._register_input("mesh_type", 0)
-        self._register_input("resolution", 30)
-        self._register_input("k", 0.3)
-        self._register_input("t", 0.3)
+        self.mesh_type = 0
+        self.resolution = 30
+        self.k = 0.3
+        self.t = 0.3
 
     def render(self, **kwargs) -> None:
         mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
@@ -32,7 +32,7 @@ class MPMSimulationConfigMenu(VisualizerMenu):
         self, name="Sim Config", flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN]
     ):
         super().__init__(name, flags)
-        self._register_input("n_timesteps", 500)
+        self.n_timesteps = 500
 
     def render(self, **kwargs) -> None:
         imgui.text("Timestamps")
@@ -69,17 +69,17 @@ class MPMSimulationWindow(VisualizerWindow):
         flags = [imgui.TREE_NODE_DEFAULT_OPEN]
         super().__init__(name, flags)
 
-        self._register_input("dt", 1e-4)
-        self._register_input("mass", 1.0)
-        self._register_input("volume", 1.0)
-        self._register_input("force", -200)
-        self._register_input("youngs_modulus", 1e4)
-        self._register_input("poissons_ratio", 0.2)
-        self._register_input("hardening", 0.7)
-        self._register_input("grid_resolution", 64)
-        self._register_input("model", 0)
-        self._register_input("tightening_coeff", 0.1)
-        self.model_options = ["neo_hookean", "elastoplastic"]
+        self.dt = 1e-4
+        self.mass = 1.0
+        self.volume = 1.0
+        self.force = -200
+        self.youngs_modulus = 1e4
+        self.poissons_ratio = 0.2
+        self.hardening = 0.7
+        self.grid_resolution = 64
+        self.model = 0
+        self.tightening_coeff = 0.1
+        self.model_options = ["neo_hookean", "snow"]
         self.add_menu(MPMSimulationConfigMenu())
         self.add_menu(MPMSimulationMeshMenu())
 
@@ -94,7 +94,7 @@ class MPMSimulationWindow(VisualizerWindow):
             self.force,
             self.dt,
             self.grid_resolution,
-            self.model,
+            self.model_options[self.model],
             self.tightening_coeff,
         )
 

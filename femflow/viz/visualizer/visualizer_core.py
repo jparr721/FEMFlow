@@ -55,14 +55,15 @@ class VisualizerCore(abc.ABC):
             use_key_as_label (bool): Whether or not to use the attr name as the label.
             kwargs: Kwargs for the imgui type.
         """
-        if key not in self.attr_keys:
-            raise ValueError("Register an input before mapping to a class member")
 
         def beautify_label(label: str):
             return " ".join(w for w in re.split(r"\W", label) if w).capitalize()
 
         label = beautify_label(key) if use_key_as_label else f"##{key}"
-        _, self.__dict__[key] = fn(label, self.__dict__[key], **kwargs)
+        try:
+            _, self.__dict__[key] = fn(label, self.__dict__[key], **kwargs)
+        except KeyError as ke:
+            raise ValueError(f"Key {key} is not an attribute.") from ke
 
     def _register_input(self, name: str, default: Any):
         """Register a new input handler

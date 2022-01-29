@@ -314,13 +314,13 @@ class Visualizer(object):
             max_timesteps=menu.menus["Sim Params"].submenus["Sim Config"].n_timesteps,
         )
         if self.sim_parameter_state["capturing"]:
-            self.behavior_matching.start_matching()
+            self.behavior_matching.start_streaming()
             shape_capture(
                 generate_geometry_cb=generate_geometry_cb,
                 compute_coefficients_cb=compute_coefficients_cb,
             )
         else:
-            self.behavior_matching.stop_matching()
+            self.behavior_matching.stop_streaming()
 
     def _extract_input_vars(self):
         for window in self.windows.values():

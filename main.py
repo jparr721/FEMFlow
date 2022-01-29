@@ -34,10 +34,15 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 
 
 @app.command()
-def paper(debug: bool = typer.Option(False)):
+def paper(
+    mesh_type: str = typer.Option("gyroid"),
+    k: float = typer.Option(0.1),
+    t: float = typer.Option(0.3),
+    res: int = typer.Option(60),
+):
     from paper_1 import run_experiment
 
-    run_experiment(debug)
+    run_experiment(mesh_type, k, t, res)
 
 
 @app.command()

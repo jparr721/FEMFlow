@@ -21,23 +21,41 @@ class BehaviorMatchingMenu(VisualizerMenu):
     ):
         super().__init__(name, flags)
         self.capturing = False
+        self.applied_load = 0.0
         self.bhm = BehaviorMatching()
 
     def render(self, **kwargs) -> None:
         self._generate_imgui_input("capturing", imgui.checkbox, use_key_as_label=True)
 
         if self.capturing:
-            self.bhm.start_matching()
+            self.bhm.start_streaming()
+        else:
+            if self.bhm.streaming:
+                self.bhm.stop_streaming()
+
+        if self.capturing:
+            if imgui.button("Set Start"):
+                self.bhm.set_starting_dimensions()
+
+            imgui.text(f"Height Difference: {self.bhm.height_diff}")
+            imgui.text(f"Width Difference: {self.bhm.width_diff}")
+
+            imgui.text("Applied Load")
+            self._generate_imgui_input("applied_load", imgui.input_float)
+
+            if self.applied_load > 0.0:
+                if imgui.button("Optimize"):
+                    print("Add optimizer here")
 
 
-def load_view():
+def load_view(mesh_type: str, k, t, res):
     with Window("mpm", "Paper 1") as window:
 
         def generate_mesh_cb(fn: str, k: float, t: float, resolution: int):
             points = generate_implicit_points(fn, k, t, resolution)
             window.renderer.mesh["vertices"] = points
 
-        mesh = Mesh(generate_implicit_points("gyroid", 0.1, 0.3, 60))
+        mesh = Mesh(generate_implicit_points(mesh_type, k, t, res))
         # mid: float = np.median(mesh.vertices[np.arange(0, len(mesh.vertices), 3)])
         # collider_mesh = Mesh(generate_cube_points((np.array((mid - 1, mid + 1))), 20))
         sim = MPMSimulation()
@@ -58,10 +76,8 @@ def load_view():
         window.launch()
 
 
-def run_experiment(debug: bool):
+def run_experiment(mesh_type: str, k: float, t: float, res: int):
     try:
-        load_view()
+        load_view(mesh_type, k, t, res)
     except Exception as e:
         logger.error(f"Simulation encountered an error: {e}")
-        if debug:
-            raise e
