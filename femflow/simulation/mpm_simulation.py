@@ -58,9 +58,6 @@ def sim_3d():
     )
 
     x = generate_implicit_points(gyroid, 0.3, 0.3, 60) * 0.5
-    # x[:, 1] += 0.5
-    # x[:, 0] += 0.5
-    # x = generate_cube_points(np.array((0.4, 0.5)), 10)
     dim = 3
     v = np.zeros((len(x), dim), dtype=np.float64)
 

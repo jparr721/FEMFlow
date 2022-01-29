@@ -8,7 +8,7 @@ from femflow.solvers.mpm.utils import (
 )
 
 
-@nb.njit(parallel=True)
+@nb.njit
 def p2g(
     inv_dx: float,
     hardening: float,
@@ -46,7 +46,7 @@ def p2g(
         Jp (np.ndarray): Jp
         model (str): model
     """
-    for p in nb.prange(len(x)):
+    for p in range(len(x)):
         base_coord = (x[p] * inv_dx - 0.5).astype(np.int64)
         fx = (x[p] * inv_dx - base_coord).astype(np.float64)
 

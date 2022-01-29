@@ -1,10 +1,8 @@
-from typing import Tuple
-
 import numba as nb
 import numpy as np
 
 
-@nb.njit(parallel=True)
+@nb.njit
 def g2p(
     inv_dx: float,
     dt: float,
@@ -16,7 +14,7 @@ def g2p(
     Jp: np.ndarray,
     model: str = "neo_hookean",
 ):
-    for p in nb.prange(len(x)):
+    for p in range(len(x)):
         base_coord = (x[p] * inv_dx - 0.5).astype(np.int64)
         fx = (x[p] * inv_dx - base_coord).astype(np.float64)
 

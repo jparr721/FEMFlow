@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 import imgui
 
@@ -71,21 +71,26 @@ class MPMSimulationWindow(VisualizerWindow):
 
         self.dt = 1e-4
         self.mass = 1.0
+        self.collider_mass = 200.0
         self.volume = 1.0
-        self.force = -200
-        self.youngs_modulus = 1e4
+        self.force = -9.8
+
+        self.youngs_modulus = 14  # NinjaTek plastic filament
         self.poissons_ratio = 0.2
+        self.collider_youngs_modulus = 210000  # Iron
+        self.collider_poissons_ratio = 0.2
+
         self.hardening = 0.7
         self.grid_resolution = 64
         self.model = 0
-        self.tightening_coeff = 0.1
+        self.tightening_coeff = 0.05
         self.model_options = ["neo_hookean", "snow"]
         self.add_menu(MPMSimulationConfigMenu())
         self.add_menu(MPMSimulationMeshMenu())
 
     @property
-    def parameters(self):
-        return Parameters(
+    def parameters(self) -> Tuple[Parameters, Parameters]:
+        plastic_params = Parameters(
             self.mass,
             self.volume,
             self.hardening,
@@ -98,19 +103,45 @@ class MPMSimulationWindow(VisualizerWindow):
             self.tightening_coeff,
         )
 
+        iron_params = Parameters(
+            self.collider_mass,
+            self.volume,
+            self.hardening,
+            self.collider_youngs_modulus,
+            self.collider_poissons_ratio,
+            self.force,
+            self.dt,
+            self.grid_resolution,
+            self.model_options[self.model],
+            self.tightening_coeff,
+        )
+
+        return plastic_params, iron_params
+
     def render(self, **kwargs) -> None:
         imgui.text("dt")
         self._generate_imgui_input("dt", imgui.input_float, format="%.6f")
+
         imgui.text("Mass")
         self._generate_imgui_input("mass", imgui.input_float, format="%.6f")
+        imgui.text("Collider Mass")
+        self._generate_imgui_input("collider_mass", imgui.input_float, format="%.6f")
+
         imgui.text("Volume")
         self._generate_imgui_input("volume", imgui.input_float)
         imgui.text("Force")
         self._generate_imgui_input("force", imgui.input_float)
+
         imgui.text("Youngs Modulus")
-        self._generate_imgui_input("youngs_modulus", imgui.input_int)
+        self._generate_imgui_input("youngs_modulus", imgui.input_float)
         imgui.text("Poissons Ratio")
         self._generate_imgui_input("poissons_ratio", imgui.input_float)
+
+        imgui.text("Collider Youngs Modulus")
+        self._generate_imgui_input("collider_youngs_modulus", imgui.input_float)
+        imgui.text("Collider Poissons Ratio")
+        self._generate_imgui_input("collider_poissons_ratio", imgui.input_float)
+
         imgui.text("Hardening")
         self._generate_imgui_input("hardening", imgui.input_float)
         imgui.text("Grid Resolution")
@@ -123,7 +154,10 @@ class MPMSimulationWindow(VisualizerWindow):
         if imgui.button("Load Simulation"):
             load_sim_cb: Callable = self._unpack_kwarg("load_sim_cb", callable, **kwargs)
             mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
-            load_sim_cb(parameters=self.parameters, mesh=mesh)
+            collider_mesh = self._unpack_kwarg("collider_mesh", Mesh, **kwargs)
+            load_sim_cb(
+                parameters=self.parameters, mesh=mesh, collider_mesh=collider_mesh
+            )
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):
         self.dimensions = (
