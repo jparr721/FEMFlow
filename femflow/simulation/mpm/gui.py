@@ -4,7 +4,6 @@ import imgui
 
 from femflow.numerics.linear_algebra import matrix_to_vector
 from femflow.simulation.mpm.simulation import MPMSimulation
-from femflow.simulation.simulation_base import SimulationRunType
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
@@ -89,7 +88,7 @@ class MPMSimulationWindow(VisualizerWindow):
         self.add_menu(MPMSimulationMeshMenu())
 
     @property
-    def parameters(self) -> Tuple[Parameters, Parameters]:
+    def parameters(self) -> List[Parameters]:
         plastic_params = Parameters(
             self.mass,
             self.volume,
@@ -116,7 +115,7 @@ class MPMSimulationWindow(VisualizerWindow):
             self.tightening_coeff,
         )
 
-        return plastic_params, iron_params
+        return [plastic_params, iron_params]
 
     def render(self, **kwargs) -> None:
         imgui.text("dt")
@@ -153,11 +152,7 @@ class MPMSimulationWindow(VisualizerWindow):
 
         if imgui.button("Load Simulation"):
             load_sim_cb: Callable = self._unpack_kwarg("load_sim_cb", callable, **kwargs)
-            mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
-            collider_mesh = self._unpack_kwarg("collider_mesh", Mesh, **kwargs)
-            load_sim_cb(
-                parameters=self.parameters, mesh=mesh, collider_mesh=collider_mesh
-            )
+            load_sim_cb(mesh_params=self.parameters)
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):
         self.dimensions = (
@@ -173,7 +168,7 @@ class MPMDisplacementsWindow(VisualizerWindow):
         flags = [imgui.TREE_NODE_DEFAULT_OPEN]
         super().__init__(name, flags)
 
-        self._register_input("current_timestep", 0)
+        self.current_timestep = 0
 
     def render(self, **kwargs) -> None:
         sim: MPMSimulation = self._unpack_kwarg("sim", MPMSimulation, **kwargs)
@@ -182,12 +177,12 @@ class MPMDisplacementsWindow(VisualizerWindow):
             "current_timestep",
             imgui.slider_int,
             min_value=0,
-            max_value=len(sim.displacements) - 1,
+            max_value=len(sim.prev_positions) - 1,
         )
         imgui.pop_item_width()
 
         if sim.loaded:
-            sim.mesh.replace(matrix_to_vector(sim.displacements[self.current_timestep]))
+            sim.load_previous_position(self.current_timestep)
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):
         w = int(parent_width * 0.10) if parent_width >= 800 else 140

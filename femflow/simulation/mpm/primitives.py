@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 from typing_extensions import Protocol
@@ -61,10 +61,12 @@ def generate_implicit_points(
     return g[inside > t]
 
 
-def generate_cube_points(bounds: np.ndarray, res: int = 10) -> np.ndarray:
-    x = np.linspace(*bounds, num=res)
-    y = np.linspace(*bounds, num=res)
-    z = np.linspace(*bounds, num=res)
+def generate_cube_points(
+    xb: Tuple[int, int], yb: Tuple[int, int], zb: Tuple[int, int], res: int = 10
+) -> np.ndarray:
+    x = np.linspace(*xb, num=res)
+    y = np.linspace(*yb, num=res)
+    z = np.linspace(*zb, num=res)
 
     all_pts = []
     for layer in z:

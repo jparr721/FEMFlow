@@ -1,15 +1,12 @@
 import abc
-from enum import Enum
+from typing import List
 
-
-class SimulationRunType(Enum):
-    OFFLINE = 0
-    ONLINE = 1
+from femflow.viz.mesh import Mesh
 
 
 class SimulationBase(object):
-    def __init__(self, run_type: SimulationRunType):
-        self.run_type = run_type
+    def __init__(self, meshes: List[Mesh]):
+        self.meshes = meshes
 
     @abc.abstractmethod
     def load(self, **kwargs):

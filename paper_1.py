@@ -60,19 +60,20 @@ def load_view(mesh_type: str, k, t, res):
             points = generate_implicit_points(fn, k, t, resolution)
             window.renderer.mesh["vertices"] = points
 
-        mesh = Mesh(generate_implicit_points(mesh_type, k, t, res))
-        v = vector_to_matrix(mesh.vertices, 3)
-        minx, _, _ = np.amin(v, axis=0)
-        maxx, maxy, _ = np.amax(v, axis=0)
-        collider_mesh = Mesh(generate_cube_points(np.array((minx, maxx)), res))
-        collider_mesh.translate_y(maxy + maxy)  # (maxy * 0.05))
+        gyroid_mesh = Mesh(generate_implicit_points(mesh_type, k, t, res))
+        v = vector_to_matrix(gyroid_mesh.vertices, 3)
+        minx, miny, minz = np.amin(v, axis=0)
+        maxx, maxy, maxz = np.amax(v, axis=0)
+        collider_mesh = Mesh(
+            generate_cube_points((minx, maxx), (miny, maxy / 2), (minz, maxz), res)
+        )
+        collider_mesh.translate_y(maxy + (maxy * 0.5))
         collider_mesh.set_color(np.array((237.0 / 255.0, 85.0 / 255.0, 59.0 / 255.0)))
-        mesh = mesh + collider_mesh
 
-        sim = MPMSimulation()
+        sim = MPMSimulation([gyroid_mesh, collider_mesh])
         sim_menu_window = MPMSimulationWindow()
         sim_menu_window.add_menu(BehaviorMatchingMenu())
-        window.add_mesh(mesh)
+        window.add_mesh(sim.full_mesh)
         window.add_window(
             sim_menu_window,
             sim=sim,
@@ -80,7 +81,7 @@ def load_view(mesh_type: str, k, t, res):
             load_sim_cb=sim.load,
             start_sim_button_cb=sim.start,
             reset_sim_button_cb=sim.reset,
-            mesh=mesh,
+            mesh=sim.full_mesh,
             collider_mesh=collider_mesh,
             generate_mesh_cb=generate_mesh_cb,
         )
@@ -89,7 +90,4 @@ def load_view(mesh_type: str, k, t, res):
 
 
 def run_experiment(mesh_type: str, k: float, t: float, res: int):
-    try:
-        load_view(mesh_type, k, t, res)
-    except Exception as e:
-        logger.error(f"Simulation encountered an error: {e}")
+    load_view(mesh_type, k, t, res)
