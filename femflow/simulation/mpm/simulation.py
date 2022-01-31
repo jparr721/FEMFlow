@@ -1,14 +1,16 @@
 import os
 import threading
+from typing import List
 
 import numpy as np
 from loguru import logger
 from numba.typed import List as nb_list
 from tqdm import tqdm
 
+from femflow.numerics.fem import Ev_to_lambda, Ev_to_mu
 from femflow.numerics.linear_algebra import vector_to_matrix
 from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_3d
-from femflow.solvers.mpm.particle import Particle
+from femflow.solvers.mpm.particle import Particle, map_particles_to_pos
 from femflow.viz.mesh import Mesh
 
 from ..simulation_base import SimulationBase
@@ -17,6 +19,7 @@ from ..simulation_base import SimulationBase
 class MPMSimulation(SimulationBase):
     def __init__(
         self,
+        outdir: str,
         steps: int,
         dt: float,
         gyroid_mass: float,
@@ -34,6 +37,7 @@ class MPMSimulation(SimulationBase):
         save_displacements=True,
     ):
         super().__init__()
+        self.outdir = outdir
         self.save_displacements = save_displacements
         self.loaded = False
         self.running = False
@@ -64,33 +68,45 @@ class MPMSimulation(SimulationBase):
         self.inv_dx = 1 / self.dx
 
     def load(self, **kwargs):
-        if "mesh" not in kwargs:
-            raise ValueError("'mesh' is a required parameter for the MPM Sim")
-
         # Always 3D for now.
         dim = 3
 
-        self.mesh: Mesh = kwargs["mesh"]
+        mesh: Mesh = kwargs["mesh"]
 
-        # Positions
-        self.x = (
-            vector_to_matrix(self.mesh.vertices.copy(), 3) * self.tightening_coeff
-        ).astype(np.float64)
+        self.particles = nb_list()
+        [
+            self.particles.append(
+                Particle(
+                    pos,
+                    self.gyroid_mass,
+                    self.gyroid_force,
+                    Ev_to_lambda(self.gyroid_E, self.gyroid_v),
+                    Ev_to_mu(self.gyroid_E, self.gyroid_v),
+                )
+            )
+            for pos in (
+                vector_to_matrix(mesh.vertices.copy(), 3) * self.tightening_coeff
+            ).astype(np.float64)
+        ]
+
+        n = len(self.particles)
 
         if self.save_displacements:
-            self.displacements = [self.x.copy() / self.tightening_coeff]
+            self.displacements = [
+                map_particles_to_pos(self.particles, self.tightening_coeff)
+            ]
 
         # Momentum/Velocity
-        self.v = np.zeros((len(self.x), dim), dtype=np.float64)
+        self.v = np.zeros((n, dim), dtype=np.float64)
 
         # Deformation Gradient
-        self.F = np.array([np.eye(dim, dtype=np.float64) for _ in range(len(self.x))])
+        self.F = np.array([np.eye(dim, dtype=np.float64) for _ in range(n)])
 
         # Affine Momentum (MLS MPM)
-        self.C = np.zeros((len(self.x), dim, dim), dtype=np.float64)
+        self.C = np.zeros((n, dim, dim), dtype=np.float64)
 
         # Volume (jacobian)
-        self.Jp = np.ones((len(self.x), 1), dtype=np.float64)
+        self.Jp = np.ones((n, 1), dtype=np.float64)
 
         self.loaded = True
         logger.success("Simulation loaded")
@@ -102,13 +118,10 @@ class MPMSimulation(SimulationBase):
         threading.Thread(target=self._simulate_offline, daemon=True,).start()
 
     def reset(self, **kwargs):
-        self.mesh.reset_positions()
         self.load(**kwargs)
 
     def _simulate_offline(self):
         self.running = True
-        particles = nb_list()
-        [particles.append(Particle(pos, 1.0, 1.0, 1.0, 1.0)) for pos in self.x]
 
         for _ in tqdm(range(self.steps)):
             solve_mls_mpm_3d(
@@ -122,21 +135,19 @@ class MPMSimulation(SimulationBase):
                 self.dt,
                 self.volume,
                 self.gyroid_force,
-                particles,
+                self.particles,
                 self.v,
                 self.F,
                 self.C,
                 self.Jp,
             )
             if self.save_displacements:
-                positions = np.array(
-                    list(map(lambda p: p.pos.copy() / self.tightening_coeff, particles))
-                )
+                positions = map_particles_to_pos(self.particles, self.tightening_coeff)
                 self.displacements.append(positions)
         logger.info("Saving displacements")
-        if not os.path.exists("tmp"):
-            os.mkdir("tmp")
+        if not os.path.exists(self.outdir):
+            os.mkdir(self.outdir)
         for i, displacement in enumerate(self.displacements):
-            np.save(f"tmp/{i}", displacement)
+            np.save(f"{self.outdir}/{i}", displacement)
         logger.success("Simulation done")
         self.running = False

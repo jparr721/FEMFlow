@@ -82,7 +82,7 @@ class MPMDisplacementsWindow(VisualizerWindow):
         imgui.pop_item_width()
 
         if sim.loaded:
-            sim.mesh.replace(matrix_to_vector(sim.displacements[self.current_timestep]))
+            mesh.replace(matrix_to_vector(sim.displacements[self.current_timestep]))
 
         if imgui.button("Run"):
             sim.load(mesh=mesh)

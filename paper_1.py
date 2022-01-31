@@ -1,12 +1,16 @@
 # An Invertible Method For Material Characterization via the Inverse Material Point Method
+import numpy as np
 from loguru import logger
+from numba.typed import List
 
+from femflow.numerics.fem import Ev_to_lambda, Ev_to_mu
+from femflow.numerics.linear_algebra import vector_to_matrix
 from femflow.reconstruction.behavior_matching import BehaviorMatching
 from femflow.simulation.mpm.gui import BehaviorMatchingMenu, MPMDisplacementsWindow
 from femflow.simulation.mpm.primitives import generate_implicit_points
 from femflow.simulation.mpm.simulation import MPMSimulation
+from femflow.solvers.mpm.particle import Particle
 from femflow.viz.mesh import Mesh
-from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 from femflow.viz.visualizer.window import Window
 
 
@@ -34,7 +38,10 @@ def run_experiment(
     try:
         with Window("mpm", "Paper 1") as window:
             mesh = Mesh(generate_implicit_points(mesh_type, k, t, mesh_res))
+            # sim_menu_window.add_menu(BehaviorMatchingMenu())
+            window.add_mesh(mesh)
             sim = MPMSimulation(
+                outdir,
                 steps,
                 dt,
                 gyroid_mass,
@@ -50,8 +57,6 @@ def run_experiment(
                 grid_res,
                 tightening_coeff,
             )
-            # sim_menu_window.add_menu(BehaviorMatchingMenu())
-            window.add_mesh(mesh)
             window.add_window(MPMDisplacementsWindow(), sim=sim, mesh=mesh)
             window.launch()
     except Exception as e:
