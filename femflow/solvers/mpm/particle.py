@@ -8,7 +8,7 @@ from femflow.numerics.linear_algebra import matrix_to_vector
 
 
 @nb.experimental.jitclass(
-    [("pos", float64[::1]), ("mass", float64), ("lambda_", float64), ("mu", float64),]
+    [("pos", float64[::1]), ("mass", float64), ("lambda_0", float64), ("mu_0", float64)]
 )
 class Particle(object):
     def __init__(
@@ -16,8 +16,8 @@ class Particle(object):
     ):
         self.pos = pos
         self.mass = mass
-        self.lambda_ = lambda_
-        self.mu = mu
+        self.lambda_0 = lambda_
+        self.mu_0 = mu
 
 
 def map_particles_to_pos(particles: List[Particle], coeff: float):
