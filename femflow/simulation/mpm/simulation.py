@@ -3,10 +3,12 @@ import threading
 
 import numpy as np
 from loguru import logger
+from numba.typed import List as nb_list
 from tqdm import tqdm
 
 from femflow.numerics.linear_algebra import vector_to_matrix
 from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_3d
+from femflow.solvers.mpm.particle import Particle
 from femflow.viz.mesh import Mesh
 
 from ..simulation_base import SimulationBase
@@ -71,7 +73,9 @@ class MPMSimulation(SimulationBase):
         self.mesh: Mesh = kwargs["mesh"]
 
         # Positions
-        self.x = vector_to_matrix(self.mesh.vertices.copy(), 3) * self.tightening_coeff
+        self.x = (
+            vector_to_matrix(self.mesh.vertices.copy(), 3) * self.tightening_coeff
+        ).astype(np.float64)
 
         if self.save_displacements:
             self.displacements = [self.x.copy() / self.tightening_coeff]
@@ -103,6 +107,9 @@ class MPMSimulation(SimulationBase):
 
     def _simulate_offline(self):
         self.running = True
+        particles = nb_list()
+        [particles.append(Particle(pos, 1.0, 1.0, 1.0, 1.0)) for pos in self.x]
+
         for _ in tqdm(range(self.steps)):
             solve_mls_mpm_3d(
                 self.grid_res,
@@ -115,14 +122,17 @@ class MPMSimulation(SimulationBase):
                 self.dt,
                 self.volume,
                 self.gyroid_force,
-                self.x,
+                particles,
                 self.v,
                 self.F,
                 self.C,
                 self.Jp,
             )
             if self.save_displacements:
-                self.displacements.append(self.x.copy() / self.tightening_coeff)
+                positions = np.array(
+                    list(map(lambda p: p.pos.copy() / self.tightening_coeff, particles))
+                )
+                self.displacements.append(positions)
         logger.info("Saving displacements")
         if not os.path.exists("tmp"):
             os.mkdir("tmp")

@@ -1,6 +1,9 @@
+from typing import List
+
 import numpy as np
 
 from femflow.solvers.mpm import three_d
+from femflow.solvers.mpm.particle import Particle
 
 
 def make_mls_mpm_coefficients(lenx: int, dim: int):
@@ -45,7 +48,7 @@ def solve_mls_mpm_3d(
     dt: float,
     volume: float,
     gravity: float,
-    x: np.ndarray,
+    particles: List[Particle],
     v: np.ndarray,
     F: np.ndarray,
     C: np.ndarray,
@@ -67,7 +70,7 @@ def solve_mls_mpm_3d(
         volume,
         grid_velocity,
         grid_mass,
-        x,
+        particles,
         v,
         F,
         C,
@@ -79,4 +82,4 @@ def solve_mls_mpm_3d(
         res, dx, dt, gravity, grid_velocity, grid_mass,
     )
 
-    three_d.g2p(inv_dx, dt, grid_velocity, x, v, F, C, Jp, model)
+    three_d.g2p(inv_dx, dt, grid_velocity, particles, v, F, C, Jp, model)

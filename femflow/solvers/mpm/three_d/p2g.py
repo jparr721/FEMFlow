@@ -1,6 +1,10 @@
+from typing import List
+
 import numba as nb
 import numpy as np
+from numba import typed
 
+from femflow.solvers.mpm.particle import Particle
 from femflow.solvers.mpm.utils import (
     constant_hardening,
     fixed_corotated_stress_3d,
@@ -21,7 +25,7 @@ def p2g(
     volume: float,
     grid_velocity: np.ndarray,
     grid_mass: np.ndarray,
-    x: np.ndarray,
+    particles: typed.List[Particle],
     v: np.ndarray,
     F: np.ndarray,
     C: np.ndarray,
@@ -47,11 +51,11 @@ def p2g(
         Jp (np.ndarray): Jp
         model (str): model
     """
-    for p in range(len(x)):
-        base_coord = (x[p] * inv_dx - 0.5).astype(np.int64)
+    for p, particle in enumerate(particles):
+        base_coord = (particle.pos * inv_dx - 0.5).astype(np.int64)
         if oob(base_coord, grid_velocity.shape[0]):
             raise RuntimeError
-        fx = (x[p] * inv_dx - base_coord).astype(np.float64)
+        fx = (particle.pos * inv_dx - base_coord).astype(np.float64)
 
         w = [0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1) ** 2, 0.5 * (fx - 0.5) ** 2]
 
