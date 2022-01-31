@@ -4,11 +4,12 @@ import numpy as np
 from femflow.solvers.mpm.utils import (
     constant_hardening,
     fixed_corotated_stress_3d,
+    oob,
     snow_hardening,
 )
 
 
-@nb.njit(parallel=True)
+@nb.njit
 def p2g(
     inv_dx: float,
     hardening: float,
@@ -46,8 +47,10 @@ def p2g(
         Jp (np.ndarray): Jp
         model (str): model
     """
-    for p in nb.prange(len(x)):
+    for p in range(len(x)):
         base_coord = (x[p] * inv_dx - 0.5).astype(np.int64)
+        if oob(base_coord, grid_velocity.shape[0]):
+            raise RuntimeError
         fx = (x[p] * inv_dx - base_coord).astype(np.float64)
 
         w = [0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1) ** 2, 0.5 * (fx - 0.5) ** 2]
@@ -65,6 +68,8 @@ def p2g(
         for i in range(3):
             for j in range(3):
                 for k in range(3):
+                    if oob(base_coord, grid_velocity.shape[0], np.array((i, j, k))):
+                        raise RuntimeError
                     dpos = (np.array((i, j, k)) - fx) * dx
                     weight = w[i][0] * w[j][1] * w[k][2]
 
