@@ -1,9 +1,7 @@
 # An Invertible Method For Material Characterization via the Inverse Material Point Method
 import numpy as np
 from loguru import logger
-from numba.typed import List
 
-from femflow.numerics.fem import Ev_to_lambda, Ev_to_mu
 from femflow.numerics.linear_algebra import vector_to_matrix
 from femflow.reconstruction.behavior_matching import BehaviorMatching
 from femflow.simulation.mpm.gui import BehaviorMatchingMenu, MPMDisplacementsWindow
@@ -25,8 +23,7 @@ def run_experiment(
     gyroid_mass: float,
     collider_mass: float,
     volume: float,
-    gyroid_force: float,
-    collider_force: float,
+    force: float,
     gyroid_E: float,
     collider_E: float,
     gyroid_v: float,
@@ -47,8 +44,7 @@ def run_experiment(
                 gyroid_mass,
                 collider_mass,
                 volume,
-                gyroid_force,
-                collider_force,
+                force,
                 gyroid_E,
                 collider_E,
                 gyroid_v,

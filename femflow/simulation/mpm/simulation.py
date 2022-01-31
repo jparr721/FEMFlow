@@ -25,8 +25,7 @@ class MPMSimulation(SimulationBase):
         gyroid_mass: float,
         collider_mass: float,
         volume: float,
-        gyroid_force: float,
-        collider_force: float,
+        force: float,
         gyroid_E: float,
         collider_E: float,
         gyroid_v: float,
@@ -47,8 +46,7 @@ class MPMSimulation(SimulationBase):
         self.gyroid_mass = gyroid_mass
         self.collider_mass = collider_mass
         self.volume = volume
-        self.gyroid_force = gyroid_force
-        self.collider_force = collider_force
+        self.force = force
         self.gyroid_E = gyroid_E
         self.collider_E = collider_E
         self.gyroid_v = gyroid_v
@@ -79,7 +77,6 @@ class MPMSimulation(SimulationBase):
                 Particle(
                     pos,
                     self.gyroid_mass,
-                    self.gyroid_force,
                     Ev_to_lambda(self.gyroid_E, self.gyroid_v),
                     Ev_to_mu(self.gyroid_E, self.gyroid_v),
                 )
@@ -134,7 +131,7 @@ class MPMSimulation(SimulationBase):
                 self.dx,
                 self.dt,
                 self.volume,
-                self.gyroid_force,
+                self.force,
                 self.particles,
                 self.v,
                 self.F,
