@@ -56,13 +56,15 @@ class MPMRenderer(Renderer):
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
     @cache
-    def _make_bb_data(self, scale: int = 10):
+    def _make_bb_data(self):
         v = vector_to_matrix(self.mesh.vertices, 3)
         minx, miny, minz = np.amin(v, axis=0)
-        maxx, maxy, maxz = np.amax(v, axis=0) * scale
+        maxx, maxy, maxz = np.amax(v, axis=0) * 10
 
         # Scoot the mesh to the center, cache guarantees this doesn't keep snapping.
         self.mesh.translate_x(maxx / 2)
+        self.mesh.translate_y(maxy / 8)
+        # self.mesh.translate_y(maxy / 2)  # For drop testing
         self.mesh.translate_z(maxz / 2)
 
         vertices = np.array(
@@ -131,7 +133,8 @@ class MPMRenderer(Renderer):
             dtype=np.uint32,
         )
 
-        colors = np.tile([1.0, 0.0, 0.0], len(vertices) // 3).astype(np.float32)
+        color = [1.0, 0.0, 0.0]
+        colors = np.tile(color, len(vertices) // 3).astype(np.float32)
 
         return vertices, faces, colors
 

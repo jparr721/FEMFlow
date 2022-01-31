@@ -1,9 +1,10 @@
-from typing import Callable, List, Tuple
+from typing import Callable, List
 
 import imgui
 
 from femflow.numerics.linear_algebra import matrix_to_vector
 from femflow.simulation.mpm.simulation import MPMSimulation
+from femflow.simulation.simulation_base import SimulationRunType
 from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
@@ -70,26 +71,21 @@ class MPMSimulationWindow(VisualizerWindow):
 
         self.dt = 1e-4
         self.mass = 1.0
-        self.collider_mass = 200.0
         self.volume = 1.0
-        self.force = -9.8
-
-        self.youngs_modulus = 14  # NinjaTek plastic filament
+        self.force = -200
+        self.youngs_modulus = 1e4
         self.poissons_ratio = 0.2
-        self.collider_youngs_modulus = 210000  # Iron
-        self.collider_poissons_ratio = 0.2
-
         self.hardening = 0.7
         self.grid_resolution = 64
         self.model = 0
-        self.tightening_coeff = 0.05
+        self.tightening_coeff = 0.1
         self.model_options = ["neo_hookean", "snow"]
         self.add_menu(MPMSimulationConfigMenu())
         self.add_menu(MPMSimulationMeshMenu())
 
     @property
-    def parameters(self) -> List[Parameters]:
-        plastic_params = Parameters(
+    def parameters(self):
+        return Parameters(
             self.mass,
             self.volume,
             self.hardening,
@@ -102,45 +98,19 @@ class MPMSimulationWindow(VisualizerWindow):
             self.tightening_coeff,
         )
 
-        iron_params = Parameters(
-            self.collider_mass,
-            self.volume,
-            self.hardening,
-            self.collider_youngs_modulus,
-            self.collider_poissons_ratio,
-            self.force,
-            self.dt,
-            self.grid_resolution,
-            self.model_options[self.model],
-            self.tightening_coeff,
-        )
-
-        return [plastic_params, iron_params]
-
     def render(self, **kwargs) -> None:
         imgui.text("dt")
         self._generate_imgui_input("dt", imgui.input_float, format="%.6f")
-
         imgui.text("Mass")
         self._generate_imgui_input("mass", imgui.input_float, format="%.6f")
-        imgui.text("Collider Mass")
-        self._generate_imgui_input("collider_mass", imgui.input_float, format="%.6f")
-
         imgui.text("Volume")
         self._generate_imgui_input("volume", imgui.input_float)
         imgui.text("Force")
         self._generate_imgui_input("force", imgui.input_float)
-
         imgui.text("Youngs Modulus")
-        self._generate_imgui_input("youngs_modulus", imgui.input_float)
+        self._generate_imgui_input("youngs_modulus", imgui.input_int)
         imgui.text("Poissons Ratio")
         self._generate_imgui_input("poissons_ratio", imgui.input_float)
-
-        imgui.text("Collider Youngs Modulus")
-        self._generate_imgui_input("collider_youngs_modulus", imgui.input_float)
-        imgui.text("Collider Poissons Ratio")
-        self._generate_imgui_input("collider_poissons_ratio", imgui.input_float)
-
         imgui.text("Hardening")
         self._generate_imgui_input("hardening", imgui.input_float)
         imgui.text("Grid Resolution")
@@ -152,7 +122,8 @@ class MPMSimulationWindow(VisualizerWindow):
 
         if imgui.button("Load Simulation"):
             load_sim_cb: Callable = self._unpack_kwarg("load_sim_cb", callable, **kwargs)
-            load_sim_cb(mesh_params=self.parameters)
+            mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
+            load_sim_cb(parameters=self.parameters, mesh=mesh)
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):
         self.dimensions = (
@@ -168,7 +139,7 @@ class MPMDisplacementsWindow(VisualizerWindow):
         flags = [imgui.TREE_NODE_DEFAULT_OPEN]
         super().__init__(name, flags)
 
-        self.current_timestep = 0
+        self._register_input("current_timestep", 0)
 
     def render(self, **kwargs) -> None:
         sim: MPMSimulation = self._unpack_kwarg("sim", MPMSimulation, **kwargs)
@@ -177,12 +148,12 @@ class MPMDisplacementsWindow(VisualizerWindow):
             "current_timestep",
             imgui.slider_int,
             min_value=0,
-            max_value=len(sim.prev_positions) - 1,
+            max_value=len(sim.displacements) - 1,
         )
         imgui.pop_item_width()
 
         if sim.loaded:
-            sim.load_previous_position(self.current_timestep)
+            sim.mesh.replace(matrix_to_vector(sim.displacements[self.current_timestep]))
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):
         w = int(parent_width * 0.10) if parent_width >= 800 else 140

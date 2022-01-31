@@ -136,15 +136,5 @@ def fixed_corotated_stress_3d(
 
 
 @nb.njit
-def oob(base: np.ndarray, res: int, ijk: np.ndarray = np.zeros(3)):
-    tot = base + ijk
-
-    # This is faster than numpy's ".any()" when dealing with high-throughput
-    return (
-        tot[0] >= res
-        or tot[1] >= res
-        or tot[2] >= res
-        or tot[0] < 0
-        or tot[1] < 0
-        or tot[2] < 0
-    )
+def out_of_bounds_3d(base: np.ndarray, res: int, ijk: np.ndarray = np.zeros(3)):
+    return ((base + ijk) >= res).any() or ((base + ijk) < 0).any()
