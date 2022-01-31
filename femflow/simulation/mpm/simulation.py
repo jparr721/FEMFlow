@@ -7,23 +7,59 @@ from tqdm import tqdm
 
 from femflow.numerics.linear_algebra import vector_to_matrix
 from femflow.solvers.mpm.mls_mpm import solve_mls_mpm_3d
-from femflow.solvers.mpm.parameters import Parameters
 from femflow.viz.mesh import Mesh
 
-from ..simulation_base import SimulationBase, SimulationRunType
+from ..simulation_base import SimulationBase
 
 
 class MPMSimulation(SimulationBase):
     def __init__(
         self,
-        run_type: SimulationRunType = SimulationRunType.OFFLINE,
+        steps: int,
+        dt: float,
+        gyroid_mass: float,
+        collider_mass: float,
+        volume: float,
+        gyroid_force: float,
+        collider_force: float,
+        gyroid_E: float,
+        collider_E: float,
+        gyroid_v: float,
+        collider_v: float,
+        hardening: float,
+        grid_res: int,
+        tightening_coeff: float,
         save_displacements=True,
     ):
-        super().__init__(run_type)
+        super().__init__()
         self.save_displacements = save_displacements
         self.loaded = False
         self.running = False
         self.displacements = []
+        self.steps = steps
+        self.dt = dt
+        self.gyroid_mass = gyroid_mass
+        self.collider_mass = collider_mass
+        self.volume = volume
+        self.gyroid_force = gyroid_force
+        self.collider_force = collider_force
+        self.gyroid_E = gyroid_E
+        self.collider_E = collider_E
+        self.gyroid_v = gyroid_v
+        self.collider_v = collider_v
+        self.hardening = hardening
+        self.grid_res = grid_res
+        self.tightening_coeff = tightening_coeff
+
+        self.gyroid_mu_0 = self.gyroid_E / (2 * (1 + self.gyroid_v))
+        self.gyroid_lambda_0 = (
+            self.gyroid_E
+            * self.gyroid_v
+            / ((1 + self.gyroid_v) * (1 - 2 * self.gyroid_v))
+        )
+
+        self.dx = 1 / self.grid_res
+        self.inv_dx = 1 / self.dx
 
     def load(self, **kwargs):
         if "mesh" not in kwargs:
@@ -33,16 +69,12 @@ class MPMSimulation(SimulationBase):
         dim = 3
 
         self.mesh: Mesh = kwargs["mesh"]
-        self.parameters: Parameters = kwargs["parameters"]
 
         # Positions
-        self.x = (
-            vector_to_matrix(self.mesh.vertices.copy(), 3)
-            * self.parameters.tightening_coeff
-        )
+        self.x = vector_to_matrix(self.mesh.vertices.copy(), 3) * self.tightening_coeff
 
         if self.save_displacements:
-            self.displacements = [self.x.copy() / self.parameters.tightening_coeff]
+            self.displacements = [self.x.copy() / self.tightening_coeff]
 
         # Momentum/Velocity
         self.v = np.zeros((len(self.x), dim), dtype=np.float64)
@@ -63,33 +95,34 @@ class MPMSimulation(SimulationBase):
         if not self.loaded:
             logger.error("Please load the simulation first")
             return
-        if self.run_type == SimulationRunType.OFFLINE:
-            n_timesteps: int = kwargs["n_timesteps"]
-            threading.Thread(
-                target=self._simulate_offline, args=((n_timesteps,)), daemon=True,
-            ).start()
-        elif self.run_type == SimulationRunType.ONLINE:
-            if self.save_displacements:
-                logger.warning("Saving displacements not supported for online sims.")
-
-            threading.Thread(target=self._simulate_online, daemon=True).start()
+        threading.Thread(target=self._simulate_offline, daemon=True,).start()
 
     def reset(self, **kwargs):
         self.mesh.reset_positions()
         self.load(**kwargs)
 
-    def _simulate_online(self):
-        while self.running:
-            solve_mls_mpm_3d(self.parameters, self.x, self.v, self.F, self.C, self.Jp)
-
-    def _simulate_offline(self, n_timesteps: int):
+    def _simulate_offline(self):
         self.running = True
-        for _ in tqdm(range(n_timesteps)):
-            solve_mls_mpm_3d(self.parameters, self.x, self.v, self.F, self.C, self.Jp)
+        for _ in tqdm(range(self.steps)):
+            solve_mls_mpm_3d(
+                self.grid_res,
+                self.inv_dx,
+                self.hardening,
+                self.gyroid_mu_0,
+                self.gyroid_lambda_0,
+                self.gyroid_mass,
+                self.dx,
+                self.dt,
+                self.volume,
+                self.gyroid_force,
+                self.x,
+                self.v,
+                self.F,
+                self.C,
+                self.Jp,
+            )
             if self.save_displacements:
-                self.displacements.append(
-                    self.x.copy() / self.parameters.tightening_coeff
-                )
+                self.displacements.append(self.x.copy() / self.tightening_coeff)
         logger.info("Saving displacements")
         if not os.path.exists("tmp"):
             os.mkdir("tmp")
