@@ -5,9 +5,11 @@ from loguru import logger
 from femflow.numerics.linear_algebra import vector_to_matrix
 from femflow.reconstruction.behavior_matching import BehaviorMatching
 from femflow.simulation.mpm.gui import BehaviorMatchingMenu, MPMDisplacementsWindow
-from femflow.simulation.mpm.primitives import generate_implicit_points
+from femflow.simulation.mpm.primitives import (
+    generate_cube_points,
+    generate_implicit_points,
+)
 from femflow.simulation.mpm.simulation import MPMSimulation
-from femflow.solvers.mpm.particle import Particle
 from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.window import Window
 
@@ -34,8 +36,21 @@ def run_experiment(
 ) -> None:
     try:
         with Window("mpm", "Paper 1") as window:
-            mesh = Mesh(generate_implicit_points(mesh_type, k, t, mesh_res))
-            # sim_menu_window.add_menu(BehaviorMatchingMenu())
+            gyroid_mesh = Mesh(generate_implicit_points(mesh_type, k, t, mesh_res))
+
+            v = vector_to_matrix(gyroid_mesh.vertices, 3)
+            minx, miny, minz = np.amin(v, axis=0)
+            maxx, maxy, maxz = np.amax(v, axis=0)
+            collider_mesh = Mesh(
+                generate_cube_points(
+                    (minx, maxx), (miny, maxy / 4), (minz, maxz), mesh_res
+                )
+            )
+            collider_mesh.translate_y(maxy + (maxy / 4))
+            collider_mesh.set_color(np.array((237.0 / 255.0, 85.0 / 255.0, 59.0 / 255.0)))
+            # mesh = gyroid_mesh + collider_mesh
+            mesh = collider_mesh
+
             window.add_mesh(mesh)
             sim = MPMSimulation(
                 outdir,
@@ -53,7 +68,13 @@ def run_experiment(
                 grid_res,
                 tightening_coeff,
             )
-            window.add_window(MPMDisplacementsWindow(), sim=sim, mesh=mesh)
+            window.add_window(
+                MPMDisplacementsWindow(),
+                sim=sim,
+                mesh=mesh,
+                gyroid_mesh=gyroid_mesh,
+                collider_mesh=collider_mesh,
+            )
             window.launch()
     except Exception as e:
         logger.error(f"Simulation encountered an error: {e}")

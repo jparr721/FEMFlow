@@ -69,20 +69,37 @@ class MPMSimulation(SimulationBase):
         # Always 3D for now.
         dim = 3
 
-        mesh: Mesh = kwargs["mesh"]
+        # gyroid_mesh: Mesh = kwargs["gyroid_mesh"]
 
         self.particles = nb_list()
+        # [
+        #     self.particles.append(
+        #         Particle(
+        #             pos,
+        #             self.force,
+        #             self.gyroid_mass,
+        #             Ev_to_lambda(self.gyroid_E, self.gyroid_v),
+        #             Ev_to_mu(self.gyroid_E, self.gyroid_v),
+        #         )
+        #     )
+        #     for pos in (
+        #         vector_to_matrix(gyroid_mesh.vertices.copy(), 3) * self.tightening_coeff
+        #     ).astype(np.float64)
+        # ]
+
+        collider_mesh: Mesh = kwargs["collider_mesh"]
         [
             self.particles.append(
                 Particle(
                     pos,
-                    self.gyroid_mass,
-                    Ev_to_lambda(self.gyroid_E, self.gyroid_v),
-                    Ev_to_mu(self.gyroid_E, self.gyroid_v),
+                    self.force,
+                    self.collider_mass,
+                    Ev_to_lambda(self.collider_E, self.collider_v),
+                    Ev_to_mu(self.collider_E, self.collider_v),
                 )
             )
             for pos in (
-                vector_to_matrix(mesh.vertices.copy(), 3) * self.tightening_coeff
+                vector_to_matrix(collider_mesh.vertices.copy(), 3) * self.tightening_coeff
             ).astype(np.float64)
         ]
 

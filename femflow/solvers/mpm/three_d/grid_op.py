@@ -11,7 +11,9 @@ def grid_op(
     grid_velocity: np.ndarray,
     grid_mass: np.ndarray,
 ):
-    """Grid normalization and gravity application
+    """Grid normalization and gravity application, this also handles the collision
+    scenario which, right now, is "STICKY", meaning the velocity is set to zero during
+    collision scenarios.
 
     Args:
         grid_resolution (int): grid_resolution

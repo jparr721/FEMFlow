@@ -43,7 +43,7 @@ def paper(
     steps: int = typer.Option(1000),
     dt: float = typer.Option(1e-4),
     gyroid_mass: float = typer.Option(1.0),
-    collider_mass: float = typer.Option(200.0),
+    collider_mass: float = typer.Option(1.0),
     volume: float = typer.Option(1.0),
     force: float = typer.Option(-9.8),
     gyroid_E: float = typer.Option(14.0),
@@ -93,39 +93,6 @@ def fem(debug: bool = typer.Option(False)):
 
     with Window("fem") as window:
         window.add_mesh_from_file(os.path.join(model_paths(), "cube.obj"))
-        window.launch()
-
-
-@app.command()
-def mpm(debug: bool = typer.Option(False)):
-    """Launches the MPM simulation
-    """
-    if debug:
-        import OpenGL
-
-        OpenGL.ERROR_LOGGING = True
-        OpenGL.FULL_LOGGING = True
-    # from femflow.simulation.mpm_simulation import sim_3d
-
-    # sim_3d()
-
-    from femflow.simulation.mpm.gui import MPMDisplacementsWindow, MPMSimulationWindow
-    from femflow.simulation.mpm.primitives import generate_implicit_points, gyroid
-    from femflow.simulation.mpm.simulation import MPMSimulation
-    from femflow.viz.mesh import Mesh
-    from femflow.viz.visualizer.window import Window
-
-    with Window("mpm") as window:
-        sim = MPMSimulation()
-        window.add_mesh(Mesh(generate_implicit_points(gyroid, 0.3, 0.3, 30)))
-        window.add_window(
-            MPMSimulationWindow(),
-            sim_status=sim.loaded,
-            load_sim_cb=sim.load,
-            start_sim_button_cb=sim.start,
-            mesh=window.renderer.mesh,
-        )
-        window.add_window(MPMDisplacementsWindow(), sim=sim)
         window.launch()
 
 

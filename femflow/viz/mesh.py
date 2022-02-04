@@ -47,6 +47,37 @@ class Mesh(object):
         if name == "vertices":
             self._set_default_color()
 
+    def __add__(self, mesh: "Mesh") -> "Mesh":
+        vertices = np.array([])
+        faces = np.array([])
+        tetrahedra = np.array([])
+        colors = np.array([])
+        normals = np.array([])
+
+        if self.vertices.size > 0:
+            vertices = np.concatenate((self.vertices, mesh.vertices))
+        if self.faces.size > 0:
+            faces = np.concatenate((self.faces, mesh.faces))
+        if self.tetrahedra.size > 0:
+            tetrahedra = np.concatenate((self.tetrahedra, mesh.tetrahedra))
+        if self.colors.size > 0:
+            colors = np.concatenate((self.colors, mesh.colors))
+        if self.normals.size > 0:
+            normals = np.concatenate((self.normals, mesh.normals))
+        return Mesh(vertices, faces, tetrahedra, colors, normals)
+
+    def __iadd__(self, mesh: "Mesh") -> None:
+        if self.vertices.size > 0:
+            self.vertices = np.concatenate((self.vertices, mesh.vertices))
+        if self.faces.size > 0:
+            self.faces = np.concatenate((self.faces, mesh.faces))
+        if self.tetrahedra.size > 0:
+            self.tetrahedra = np.concatenate((self.tetrahedra, mesh.tetrahedra))
+        if self.colors.size > 0:
+            self.colors = np.concatenate((self.colors, mesh.colors))
+        if self.normals.size > 0:
+            self.normals = np.concatenate((self.normals, mesh.normals))
+
     def save(self, filename: str) -> bool:
         """Saves this mesh to an obj file
 
@@ -182,6 +213,9 @@ class Mesh(object):
         self._set_default_color()
         self.world_coordinates = copy.deepcopy(self.vertices)
 
+    def set_color(self, color: np.ndarray):
+        self.colors = np.tile(color, len(self.vertices) // 3).astype(np.float32)
+
     def _set_default_color(self):
         color = np.array((255.0 / 255.0, 235.0 / 255.0, 80.0 / 255.0))
-        self.colors = np.tile(color, len(self.vertices) // 3).astype(np.float32)
+        self.set_color(color)

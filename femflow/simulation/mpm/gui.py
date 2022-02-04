@@ -9,58 +9,6 @@ from femflow.viz.visualizer.visualizer_menu import VisualizerMenu
 from femflow.viz.visualizer.visualizer_window import VisualizerWindow
 
 
-class MPMSimulationMeshMenu(VisualizerMenu):
-    def __init__(
-        self, name="MPM Mesh", flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN]
-    ):
-        super().__init__(name, flags)
-        self.mesh_options = ["gyroid", "diamond", "primitive"]
-        self.mesh_type = 0
-        self.resolution = 30
-        self.k = 0.3
-        self.t = 0.3
-
-    def render(self, **kwargs) -> None:
-        mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
-        imgui.text(f"Points {mesh.vertices.size}")
-
-
-class MPMSimulationConfigMenu(VisualizerMenu):
-    def __init__(
-        self, name="Sim Config", flags: List[int] = [imgui.TREE_NODE_DEFAULT_OPEN]
-    ):
-        super().__init__(name, flags)
-        self.n_timesteps = 500
-
-    def render(self, **kwargs) -> None:
-        imgui.text("Timestamps")
-        self._generate_imgui_input("n_timesteps", imgui.input_int, step=100)
-
-        sim = self._unpack_kwarg("sim", MPMSimulation, **kwargs)
-
-        if imgui.button(label="Start Sim"):
-            start_sim_button_cb: Callable = self._unpack_kwarg(
-                "start_sim_button_cb", callable, **kwargs
-            )
-            start_sim_button_cb(n_timesteps=self.n_timesteps)
-
-        imgui.same_line()
-
-        if imgui.button(label="Reset Sim"):
-            mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
-            reset_sim_button_cb: Callable = self._unpack_kwarg(
-                "reset_sim_button_cb", callable, **kwargs
-            )
-            reset_sim_button_cb(mesh)
-
-        status = self._unpack_kwarg("sim_status", bool, **kwargs)
-
-        if status:
-            imgui.text("Sim Running")
-        else:
-            imgui.text("Sim Not Running")
-
-
 class MPMDisplacementsWindow(VisualizerWindow):
     def __init__(self):
         name = "Displacements"
@@ -71,7 +19,13 @@ class MPMDisplacementsWindow(VisualizerWindow):
 
     def render(self, **kwargs) -> None:
         sim: MPMSimulation = self._unpack_kwarg("sim", MPMSimulation, **kwargs)
+
         mesh: Mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
+        imgui.text(f"Points: {mesh.vertices.size // 3}")
+
+        gyroid_mesh: Mesh = self._unpack_kwarg("gyroid_mesh", Mesh, **kwargs)
+        collider_mesh: Mesh = self._unpack_kwarg("collider_mesh", Mesh, **kwargs)
+
         imgui.push_item_width(-1)
         self._generate_imgui_input(
             "current_timestep",
@@ -85,7 +39,7 @@ class MPMDisplacementsWindow(VisualizerWindow):
             mesh.replace(matrix_to_vector(sim.displacements[self.current_timestep]))
 
         if imgui.button("Run"):
-            sim.load(mesh=mesh)
+            sim.load(mesh=mesh, gyroid_mesh=gyroid_mesh, collider_mesh=collider_mesh)
             sim.start()
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):
