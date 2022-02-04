@@ -1,6 +1,5 @@
 import os
 import threading
-from typing import List
 
 import numpy as np
 from loguru import logger
