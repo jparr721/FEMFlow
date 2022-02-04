@@ -23,8 +23,8 @@ class MPMDisplacementsWindow(VisualizerWindow):
         mesh: Mesh = self._unpack_kwarg("mesh", Mesh, **kwargs)
         imgui.text(f"Points: {mesh.vertices.size // 3}")
 
-        gyroid_mesh: Mesh = self._unpack_kwarg("gyroid_mesh", Mesh, **kwargs)
-        collider_mesh: Mesh = self._unpack_kwarg("collider_mesh", Mesh, **kwargs)
+        # gyroid_mesh: Mesh = self._unpack_kwarg("gyroid_mesh", Mesh, **kwargs)
+        # collider_mesh: Mesh = self._unpack_kwarg("collider_mesh", Mesh, **kwargs)
 
         imgui.push_item_width(-1)
         self._generate_imgui_input(
@@ -39,7 +39,9 @@ class MPMDisplacementsWindow(VisualizerWindow):
             mesh.replace(matrix_to_vector(sim.displacements[self.current_timestep]))
 
         if imgui.button("Run"):
-            sim.load(mesh=mesh, gyroid_mesh=gyroid_mesh, collider_mesh=collider_mesh)
+            meshes = self._unpack_kwarg("meshes", list, **kwargs)
+            params = self._unpack_kwarg("params", list, **kwargs)
+            sim.load(mesh=mesh, meshes=meshes, params=params)
             sim.start()
 
     def resize(self, parent_width: int, parent_height: int, **kwargs):

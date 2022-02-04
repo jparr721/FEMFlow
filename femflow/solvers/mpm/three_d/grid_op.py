@@ -23,7 +23,7 @@ def grid_op(
         grid_mass (np.ndarray): grid_mass
     """
     v_allowed = dx * 0.9 / dt
-    boundary = 3
+    boundary = 1
     for i in range(grid_resolution + 1):
         for j in range(grid_resolution + 1):
             for k in range(grid_resolution + 1):
@@ -44,29 +44,29 @@ def grid_op(
                         and grid_velocity[i, j, k][d] > 0
                     ):
                         grid_velocity[i, j, k][d] = 0
-    points = []
-    normals = []
-    for d in [0, 1, 2]:
-        point = [0, 0, 0]
-        normal = [0, 0, 0]
-        if d == 2:
-            boundary /= 4
-            boundary *= 2  # Thickness
-        point[d] = boundary
-        normal[d] = -1
+    # points = []
+    # normals = []
+    # for d in [0, 1, 2]:
+    #     point = [0, 0, 0]
+    #     normal = [0, 0, 0]
+    #     if d == 2:
+    #         boundary /= 4
+    #         boundary *= 2  # Thickness
+    #     point[d] = boundary
+    #     normal[d] = -1
 
-        points.append(point)
-        normals.append(normal)
+    #     points.append(point)
+    #     normals.append(normal)
 
-        point[d] = grid_resolution - boundary
-        normal[d] = 1
+    #     point[d] = grid_resolution - boundary
+    #     normal[d] = 1
 
-        points.append(point)
-        normals.append(normal)
+    #     points.append(point)
+    #     normals.append(normal)
 
-    points = np.array(points)
-    normals = np.array(normals)
-    check_collision_points(points, normals, grid_resolution, dx, grid_velocity)
+    # points = np.array(points)
+    # normals = np.array(normals)
+    # check_collision_points(points, normals, grid_resolution, dx, grid_velocity)
 
 
 @nb.njit

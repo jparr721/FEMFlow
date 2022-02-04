@@ -1,5 +1,6 @@
 import os
 import threading
+from typing import List, Tuple
 
 import numpy as np
 from loguru import logger
@@ -68,39 +69,24 @@ class MPMSimulation(SimulationBase):
         # Always 3D for now.
         dim = 3
 
-        # gyroid_mesh: Mesh = kwargs["gyroid_mesh"]
-
-        self.particles = nb_list()
-        # [
-        #     self.particles.append(
-        #         Particle(
-        #             pos,
-        #             self.force,
-        #             self.gyroid_mass,
-        #             Ev_to_lambda(self.gyroid_E, self.gyroid_v),
-        #             Ev_to_mu(self.gyroid_E, self.gyroid_v),
-        #         )
-        #     )
-        #     for pos in (
-        #         vector_to_matrix(gyroid_mesh.vertices.copy(), 3) * self.tightening_coeff
-        #     ).astype(np.float64)
-        # ]
-
-        collider_mesh: Mesh = kwargs["collider_mesh"]
-        [
-            self.particles.append(
-                Particle(
-                    pos,
-                    self.force,
-                    self.collider_mass,
-                    Ev_to_lambda(self.collider_E, self.collider_v),
-                    Ev_to_mu(self.collider_E, self.collider_v),
-                )
+        meshes: List[Mesh] = kwargs["meshes"]
+        params: List[Tuple[float, float, float]] = kwargs["params"]
+        if len(meshes) != len(params):
+            raise ValueError(
+                f"Meshes {len(meshes)} and Params  {len(params)} must be the same length"
             )
-            for pos in (
-                vector_to_matrix(collider_mesh.vertices.copy(), 3) * self.tightening_coeff
-            ).astype(np.float64)
-        ]
+        self.particles = nb_list()
+
+        for mesh, param in zip(meshes, params):
+            for pos in vector_to_matrix(mesh.vertices.copy(), 3) * self.tightening_coeff:
+                particle = Particle(
+                    pos.astype(np.float64),
+                    self.force,
+                    param[0],
+                    Ev_to_lambda(*param[1:]),
+                    Ev_to_mu(*param[1:]),
+                )
+                self.particles.append(particle)
 
         n = len(self.particles)
 
