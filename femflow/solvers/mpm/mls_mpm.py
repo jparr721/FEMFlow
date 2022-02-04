@@ -1,8 +1,9 @@
+from typing import List
+
 import numpy as np
 
 from femflow.solvers.mpm import three_d
-
-from .parameters import Parameters
+from femflow.solvers.mpm.particle import Particle
 
 
 def make_mls_mpm_coefficients(lenx: int, dim: int):
@@ -14,44 +15,65 @@ def make_mls_mpm_coefficients(lenx: int, dim: int):
     return v, F, C, Jp
 
 
+# self.mass = mass
+# self.volume = volume
+# self.hardening = hardening
+
+# self.E = E
+# self.nu = nu
+
+# self.mu_0 = E / (2 * (1 + nu))
+# self.lambda_0 = E * nu / ((1 + nu) * (1 - 2 * nu))
+
+# self.gravity = gravity
+# self.dt = dt
+# self.grid_resolution = grid_resolution
+
+# # dx is always 1 / grid_resolution
+# self.dx = 1 / grid_resolution
+# self.inv_dx = 1 / self.dx
+# self.model = model
+
+# self.tightening_coeff = tightening_coeff
+
+
 def solve_mls_mpm_3d(
-    params: Parameters,
-    x: np.ndarray,
+    res: int,
+    inv_dx: float,
+    hardening: float,
+    dx: float,
+    dt: float,
+    volume: float,
+    gravity: float,
+    particles: List[Particle],
     v: np.ndarray,
     F: np.ndarray,
     C: np.ndarray,
     Jp: np.ndarray,
 ):
-    dres = params.grid_resolution + 1
+    dres = res + 1
     grid_velocity = np.zeros((dres, dres, dres, 3))
     grid_mass = np.zeros((dres, dres, dres, 1))
 
+    model = "neo_hookean"
     three_d.p2g(
-        params.inv_dx,
-        params.hardening,
-        params.mu_0,
-        params.lambda_0,
-        params.mass,
-        params.dx,
-        params.dt,
-        params.volume,
+        inv_dx,
+        hardening,
+        dx,
+        dt,
+        volume,
         grid_velocity,
         grid_mass,
-        x,
+        particles,
         v,
         F,
         C,
         Jp,
-        params.model,
+        model,
     )
 
     three_d.grid_op(
-        params.grid_resolution,
-        params.dx,
-        params.dt,
-        params.gravity,
-        grid_velocity,
-        grid_mass,
+        res, dx, dt, gravity, grid_velocity, grid_mass,
     )
 
-    three_d.g2p(params.inv_dx, params.dt, grid_velocity, x, v, F, C, Jp, params.model)
+    three_d.g2p(inv_dx, dt, grid_velocity, particles, v, F, C, Jp, model)

@@ -35,14 +35,48 @@ def calibrate(type: str, opt=typer.Option(0, "--camera")):
 
 @app.command()
 def paper(
+    outdir: str = typer.Option("tmp"),
     mesh_type: str = typer.Option("gyroid"),
-    k: float = typer.Option(0.1),
+    k: float = typer.Option(0.2),
     t: float = typer.Option(0.3),
-    res: int = typer.Option(60),
+    mesh_res: int = typer.Option(40),
+    steps: int = typer.Option(1000),
+    dt: float = typer.Option(1e-4),
+    gyroid_mass: float = typer.Option(1.0),
+    collider_mass: float = typer.Option(1.0),
+    volume: float = typer.Option(1.0),
+    force: float = typer.Option(-9.8),
+    gyroid_E: float = typer.Option(14.0),
+    collider_E: float = typer.Option(210000),
+    gyroid_v: float = typer.Option(0.2),
+    collider_v: float = typer.Option(0.2),
+    hardening: float = typer.Option(0.7),
+    grid_res: int = typer.Option(64),
+    tightening_coeff: float = typer.Option(0.1),
+    just_load_view: bool = typer.Option(False),
 ):
     from paper_1 import run_experiment
 
-    run_experiment(mesh_type, k, t, res)
+    run_experiment(
+        outdir,
+        mesh_type,
+        k,
+        t,
+        mesh_res,
+        steps,
+        dt,
+        gyroid_mass,
+        collider_mass,
+        volume,
+        force,
+        gyroid_E,
+        collider_E,
+        gyroid_v,
+        collider_v,
+        hardening,
+        grid_res,
+        tightening_coeff,
+    )
 
 
 @app.command()
@@ -59,39 +93,6 @@ def fem(debug: bool = typer.Option(False)):
 
     with Window("fem") as window:
         window.add_mesh_from_file(os.path.join(model_paths(), "cube.obj"))
-        window.launch()
-
-
-@app.command()
-def mpm(debug: bool = typer.Option(False)):
-    """Launches the MPM simulation
-    """
-    if debug:
-        import OpenGL
-
-        OpenGL.ERROR_LOGGING = True
-        OpenGL.FULL_LOGGING = True
-    # from femflow.simulation.mpm_simulation import sim_3d
-
-    # sim_3d()
-
-    from femflow.simulation.mpm.gui import MPMDisplacementsWindow, MPMSimulationWindow
-    from femflow.simulation.mpm.primitives import generate_implicit_points, gyroid
-    from femflow.simulation.mpm.simulation import MPMSimulation
-    from femflow.viz.mesh import Mesh
-    from femflow.viz.visualizer.window import Window
-
-    with Window("mpm") as window:
-        sim = MPMSimulation()
-        window.add_mesh(Mesh(generate_implicit_points(gyroid, 0.3, 0.3, 30)))
-        window.add_window(
-            MPMSimulationWindow(),
-            sim_status=sim.loaded,
-            load_sim_cb=sim.load,
-            start_sim_button_cb=sim.start,
-            mesh=window.renderer.mesh,
-        )
-        window.add_window(MPMDisplacementsWindow(), sim=sim)
         window.launch()
 
 

@@ -2,14 +2,9 @@ import abc
 from enum import Enum
 
 
-class SimulationRunType(Enum):
-    OFFLINE = 0
-    ONLINE = 1
-
-
 class SimulationBase(object):
-    def __init__(self, run_type: SimulationRunType):
-        self.run_type = run_type
+    def __init__(self):
+        pass
 
     @abc.abstractmethod
     def load(self, **kwargs):

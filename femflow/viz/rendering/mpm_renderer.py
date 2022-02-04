@@ -61,11 +61,14 @@ class MPMRenderer(Renderer):
         minx, miny, minz = np.amin(v, axis=0)
         maxx, maxy, maxz = np.amax(v, axis=0) * 10
 
-        # Scoot the mesh to the center, cache guarantees this doesn't keep snapping.
-        self.mesh.translate_x(maxx / 2)
-        self.mesh.translate_y(maxy / 8)
-        # self.mesh.translate_y(maxy / 2)  # For drop testing
-        self.mesh.translate_z(maxz / 2)
+        minx -= maxx / 2
+        maxx -= maxx / 2
+        minz -= maxz / 2
+        maxz -= maxz / 2
+        miny = 0
+
+        # self.mesh.translate_x(maxx / 2)
+        # self.mesh.translate_z(maxz / 2)
 
         vertices = np.array(
             [

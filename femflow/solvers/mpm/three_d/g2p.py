@@ -1,6 +1,8 @@
 import numba as nb
 import numpy as np
+from numba import typed
 
+from femflow.solvers.mpm.particle import Particle
 from femflow.solvers.mpm.utils import oob
 
 
@@ -9,18 +11,18 @@ def g2p(
     inv_dx: float,
     dt: float,
     grid_velocity: np.ndarray,
-    x: np.ndarray,
+    particles: typed.List[Particle],
     v: np.ndarray,
     F: np.ndarray,
     C: np.ndarray,
     Jp: np.ndarray,
     model: str = "neo_hookean",
 ):
-    for p in range(len(x)):
-        base_coord = (x[p] * inv_dx - 0.5).astype(np.int64)
+    for p, particle in enumerate(particles):
+        base_coord = (particle.pos * inv_dx - 0.5).astype(np.int64)
         if oob(base_coord, grid_velocity.shape[0]):
             raise RuntimeError
-        fx = x[p] * inv_dx - (base_coord).astype(np.float64)
+        fx = particle.pos * inv_dx - (base_coord).astype(np.float64)
 
         w = [0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1) ** 2, 0.5 * (fx - 0.5) ** 2]
 
@@ -40,7 +42,7 @@ def g2p(
                     v[p] += weight * grid_v
                     C[p] += 4 * inv_dx * np.outer(weight * grid_v, dpos)
 
-        x[p] += dt * v[p]
+        particle.pos += dt * v[p]
         F_ = (np.eye(3) + dt * C[p]) @ F[p]
 
         if model == "snow":

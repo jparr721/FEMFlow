@@ -3,7 +3,6 @@ from typing import Union
 
 import cv2
 import numpy as np
-from goprocam import GoProCamera
 from loguru import logger
 from typing_extensions import Protocol
 
@@ -68,6 +67,8 @@ class VideoStream(object):
         logger.success("Thread exited successfully")
 
     def _register_gopro(self, stream_source: str):
+        from goprocam import GoProCamera
+
         addr = GoProCamera.GoPro.getWebcamIP(stream_source)
         self.camera = GoProCamera.GoPro(ip_address=addr)
         self.camera.startWebcam()
