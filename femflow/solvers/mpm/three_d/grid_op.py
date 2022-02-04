@@ -58,7 +58,7 @@ def grid_op(
         points.append(point)
         normals.append(normal)
 
-        point[d] = -boundary
+        point[d] = grid_resolution - boundary
         normal[d] = 1
 
         points.append(point)
@@ -71,7 +71,7 @@ def grid_op(
 
 @nb.njit
 def check_collision_points(
-    t: np.ndarray,
+    points: np.ndarray,
     normals: np.ndarray,
     grid_resolution: int,
     dx: float,

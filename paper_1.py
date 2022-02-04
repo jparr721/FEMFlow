@@ -14,6 +14,10 @@ from femflow.viz.mesh import Mesh
 from femflow.viz.visualizer.window import Window
 
 
+def multi_drop_experiment():
+    pass
+
+
 def run_experiment(
     outdir: str,
     mesh_type: str,
