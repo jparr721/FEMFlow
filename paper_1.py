@@ -144,49 +144,10 @@ def multi_drop_experiment(experiment: int):
         raise ValueError(f"Experiment {experiment} is not valid")
 
 
-def run_experiment(
-    outdir: str,
-    mesh_type: str,
-    k: float,
-    t: float,
-    mesh_res: int,
-    steps: int,
-    dt: float,
-    gyroid_mass: float,
-    collider_mass: float,
-    volume: float,
-    force: float,
-    gyroid_E: float,
-    collider_E: float,
-    gyroid_v: float,
-    collider_v: float,
-    hardening: float,
-    grid_res: int,
-    tightening_coeff: float,
-) -> None:
+def run_experiment() -> None:
     try:
         with Window("mpm", "Paper 1") as window:
-            mesh, meshes, params, sim = multi_drop_experiment(
-                0,
-                outdir,
-                mesh_type,
-                k,
-                t,
-                mesh_res,
-                steps,
-                dt,
-                gyroid_mass,
-                collider_mass,
-                volume,
-                force,
-                gyroid_E,
-                collider_E,
-                gyroid_v,
-                collider_v,
-                hardening,
-                grid_res,
-                tightening_coeff,
-            )
+            mesh, meshes, params, sim = multi_drop_experiment(0)
 
             window.add_mesh(mesh)
             window.add_window(
