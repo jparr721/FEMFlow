@@ -75,7 +75,7 @@ def multi_drop_experiment(experiment: int):
     outdir = "tmp"
     dt = 1e-4
     gyroid_mass = 1.0
-    k = 0.1
+    k = 0.2
     t = 0.3
     volume = 1.0
     force = -9.8  # Gravity
@@ -85,9 +85,9 @@ def multi_drop_experiment(experiment: int):
     grid_res = 64
     mesh_type = "gyroid"
     if experiment == 0:
-        steps = 2500
+        steps = 3500
         collider_mass = 10.0
-        mesh_res = 15
+        mesh_res = 30
         tightening_coeff = 0.05
         collider_mass = 10.0
         collider_E = 1000

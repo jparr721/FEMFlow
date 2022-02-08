@@ -37,36 +37,14 @@ def grid_op(
 
                 I = [i, j, k]
                 for d in range(3):
-                    if I[d] < boundary and grid_velocity[i, j, k][d] < 0:
+                    if I[d] < boundary:  # and grid_velocity[i, j, k][d] < 0:
                         grid_velocity[i, j, k][d] = 0
                     if (
-                        I[d] >= grid_resolution - boundary
-                        and grid_velocity[i, j, k][d] > 0
+                        I[d]
+                        >= grid_resolution - boundary
+                        # and grid_velocity[i, j, k][d] > 0
                     ):
                         grid_velocity[i, j, k][d] = 0
-    # points = []
-    # normals = []
-    # for d in [0, 1, 2]:
-    #     point = [0, 0, 0]
-    #     normal = [0, 0, 0]
-    #     if d == 2:
-    #         boundary /= 4
-    #         boundary *= 2  # Thickness
-    #     point[d] = boundary
-    #     normal[d] = -1
-
-    #     points.append(point)
-    #     normals.append(normal)
-
-    #     point[d] = grid_resolution - boundary
-    #     normal[d] = 1
-
-    #     points.append(point)
-    #     normals.append(normal)
-
-    # points = np.array(points)
-    # normals = np.array(normals)
-    # check_collision_points(points, normals, grid_resolution, dx, grid_velocity)
 
 
 @nb.njit
